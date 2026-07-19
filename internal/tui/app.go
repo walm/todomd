@@ -210,6 +210,17 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tea.KeyMsg:
+		// Keys arriving faster than the input loop reads them coalesce into
+		// one multi-rune KeyMsg that matches no binding; replay them one by
+		// one. Forms keep the batch — there it's real text (typing, paste).
+		if msg.Type == tea.KeyRunes && !msg.Paste && len(msg.Runes) > 1 && m.mode != modeForm {
+			var res tea.Model = m
+			var cmd tea.Cmd
+			for _, r := range msg.Runes {
+				res, cmd = res.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+			}
+			return res, cmd
+		}
 		switch m.mode {
 		case modeBoard:
 			return m.updateBoard(msg)

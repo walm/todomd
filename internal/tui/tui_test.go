@@ -166,3 +166,13 @@ func TestEmptyFileView(t *testing.T) {
 		t.Errorf("mode changed on empty file")
 	}
 }
+
+func TestBatchedRunesReplayIndividually(t *testing.T) {
+	m := newTestModel(t, 1, 4)
+	// Fast input coalesces into one multi-rune KeyMsg; each rune must still
+	// act as its own keypress outside forms.
+	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("jj")})
+	if m.cardIdx != 2 {
+		t.Errorf("cardIdx = %d, want 2", m.cardIdx)
+	}
+}
