@@ -63,6 +63,7 @@ type keyMap struct {
 	MoveLeft, MoveRight      key.Binding
 	MoveDown, MoveUp         key.Binding
 	Open, Add, Edit, Comment key.Binding
+	Editor                   key.Binding
 	Delete, Done, Reload     key.Binding
 	Help, Quit               key.Binding
 }
@@ -82,6 +83,7 @@ func newKeyMap() keyMap {
 		Open:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "open")),
 		Add:       key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add")),
 		Edit:      key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
+		Editor:    key.NewBinding(key.WithKeys("E"), key.WithHelp("E", "$EDITOR")),
 		Comment:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "comment")),
 		Delete:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		Done:      key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "done")),
@@ -99,8 +101,8 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Left, k.Up, k.First, k.Open},
 		{k.MoveLeft, k.MoveDown, k.Done, k.Delete},
-		{k.Add, k.Edit, k.Comment, k.Reload},
-		{k.Help, k.Quit},
+		{k.Add, k.Edit, k.Editor, k.Comment},
+		{k.Reload, k.Help, k.Quit},
 	}
 }
 
@@ -232,6 +234,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case modeConfirm:
 			return m.updateConfirm(msg)
 		}
+	case editorFinishedMsg:
+		m.applyEditor(msg)
 	}
 	return m, nil
 }
@@ -293,6 +297,8 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.formFrom = modeBoard
 			m.mode = modeForm
 		}
+	case key.Matches(msg, k.Editor):
+		return m, m.openEditor(modeBoard)
 	case key.Matches(msg, k.Comment):
 		if t := m.selectedTask(); t != nil {
 			m.form = newCommentForm(m.width, m.height, t.ID, defaultAuthor())
@@ -368,6 +374,15 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = modeForm
 		}
 		return m, nil
+	case "e":
+		if t := m.selectedTask(); t != nil {
+			m.form = newTaskForm(m.width, m.height, t, m.file.Boards[m.boardIdx].Name)
+			m.formFrom = modeDetail
+			m.mode = modeForm
+		}
+		return m, nil
+	case "E":
+		return m, m.openEditor(modeDetail)
 	}
 	var cmd tea.Cmd
 	m.vp, cmd = m.vp.Update(msg)
@@ -447,6 +462,10 @@ func (m *model) submitForm() {
 			_, err := store.Update(file, id, opts)
 			return err
 		}, id, "updated")
+		if from == modeDetail && !m.isError {
+			m.openDetail()
+			m.mode = modeDetail
+		}
 	}
 }
 

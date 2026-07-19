@@ -37,6 +37,7 @@ maximum width and the content flows over multiple lines.
 - **ai** (2026-07-19): Sure. The card already colors it: red when overdue, yellow within 3 days.
   Comments can span multiple lines too — continuation lines are indented in the file.
 - **walm** (2026-07-19): Trying the new in-modal comment flow
+- **walm** (2026-07-19): this is looking good now, and will sure be usefull!
 
 ## In Progress
 

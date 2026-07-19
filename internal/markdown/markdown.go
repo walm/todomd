@@ -10,6 +10,7 @@
 package markdown
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -340,42 +341,73 @@ func Write(f *task.File) []byte {
 	for _, board := range f.Boards {
 		b.WriteString("\n## " + board.Name + "\n")
 		for _, t := range board.Tasks {
-			b.WriteString("\n### " + t.Title + "\n")
-			b.WriteString("<!-- id:" + t.ID + " -->\n")
-			if meta := metaLine(t); meta != "" {
-				b.WriteString(meta + "\n")
-			}
-			if t.Description != "" {
-				b.WriteString("\n")
-				lines := strings.Split(t.Description, "\n")
-				mask := fenceMask(lines)
-				for j, l := range lines {
-					if mask[j] {
-						l = escapeLine(l)
-						if j == 0 {
-							l = escapeMetaLine(l)
-						}
-					}
-					b.WriteString(l + "\n")
+			b.WriteString("\n")
+			writeTask(&b, t)
+		}
+	}
+	return []byte(b.String())
+}
+
+func writeTask(b *strings.Builder, t *task.Task) {
+	b.WriteString("### " + t.Title + "\n")
+	b.WriteString("<!-- id:" + t.ID + " -->\n")
+	if meta := metaLine(t); meta != "" {
+		b.WriteString(meta + "\n")
+	}
+	if t.Description != "" {
+		b.WriteString("\n")
+		lines := strings.Split(t.Description, "\n")
+		mask := fenceMask(lines)
+		for j, l := range lines {
+			if mask[j] {
+				l = escapeLine(l)
+				if j == 0 {
+					l = escapeMetaLine(l)
 				}
 			}
-			if len(t.Comments) > 0 {
-				b.WriteString("\n#### Comments\n\n")
-				for _, c := range t.Comments {
-					lines := strings.Split(c.Text, "\n")
-					fmt.Fprintf(&b, "- **%s** (%s): %s\n", c.Author, c.Date, lines[0])
-					for _, l := range lines[1:] {
-						if isBlank(l) {
-							b.WriteString("\n")
-						} else {
-							b.WriteString("  " + l + "\n")
-						}
-					}
+			b.WriteString(l + "\n")
+		}
+	}
+	if len(t.Comments) > 0 {
+		b.WriteString("\n#### Comments\n\n")
+		for _, c := range t.Comments {
+			lines := strings.Split(c.Text, "\n")
+			fmt.Fprintf(b, "- **%s** (%s): %s\n", c.Author, c.Date, lines[0])
+			for _, l := range lines[1:] {
+				if isBlank(l) {
+					b.WriteString("\n")
+				} else {
+					b.WriteString("  " + l + "\n")
 				}
 			}
 		}
 	}
+}
+
+// WriteTask renders one task as a standalone fragment for external editing.
+func WriteTask(t *task.Task) []byte {
+	var b strings.Builder
+	writeTask(&b, t)
 	return []byte(b.String())
+}
+
+// ParseTask parses a fragment produced by WriteTask (and edited by a human)
+// back into a single task. Error line numbers refer to the fragment.
+func ParseTask(data []byte) (*task.Task, error) {
+	const wrapper = "# t\n\n## b\n" // 3 lines before the fragment
+	f, err := Parse([]byte(wrapper + string(data)))
+	if err != nil {
+		var pe *ParseError
+		if errors.As(err, &pe) {
+			pe.Line -= 3
+		}
+		return nil, err
+	}
+	tasks := f.AllTasks()
+	if len(tasks) != 1 {
+		return nil, fmt.Errorf("fragment must contain exactly one task ('### title'), found %d", len(tasks))
+	}
+	return tasks[0], nil
 }
 
 func metaLine(t *task.Task) string {

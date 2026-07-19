@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -221,5 +222,46 @@ func TestCardShowsFirstTwoTagsPlusCount(t *testing.T) {
 	}
 	if strings.Contains(card, "gamma") {
 		t.Errorf("card should not name the third tag:\n%s", card)
+	}
+}
+
+func TestApplyEditorResult(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	id := m.file.Boards[0].Tasks[0].ID
+	frag := "### Edited in vim\n<!-- id:" + id + " -->\n`#viatag` **due:** 2026-09-01\n\nNew body.\n\n#### Comments\n\n- **walm** (2026-07-19): kept\n"
+	tmp := filepath.Join(t.TempDir(), "frag.md")
+	if err := os.WriteFile(tmp, []byte(frag), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(editorFinishedMsg{path: tmp, id: id, from: modeDetail})
+	if m.mode != modeDetail {
+		t.Errorf("should return to detail, mode=%d", m.mode)
+	}
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tk := f.Boards[0].Tasks[0]
+	if tk.Title != "Edited in vim" || len(tk.Tags) != 1 || tk.Tags[0] != "viatag" ||
+		tk.Due == nil || tk.Description != "New body." || len(tk.Comments) != 1 {
+		t.Errorf("edit not applied: %+v", tk)
+	}
+	if tk.ID != id {
+		t.Errorf("id changed: %s -> %s", id, tk.ID)
+	}
+}
+
+func TestApplyEditorRejectsBadFragment(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	id := m.file.Boards[0].Tasks[0].ID
+	tmp := filepath.Join(t.TempDir(), "frag.md")
+	os.WriteFile(tmp, []byte("### One\n\n### Two\n"), 0o644)
+	m.Update(editorFinishedMsg{path: tmp, id: id, from: modeBoard})
+	if !m.isError {
+		t.Error("bad fragment should set an error status")
+	}
+	f, _ := m.store.Load()
+	if f.Boards[0].Tasks[0].Title == "One" {
+		t.Error("bad fragment must not be applied")
 	}
 }

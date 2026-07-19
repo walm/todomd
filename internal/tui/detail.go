@@ -103,7 +103,7 @@ func (m *model) openDetail() {
 }
 
 func (m *model) detailHint() string {
-	hint := "c comment · q/esc back"
+	hint := "e edit · E editor · c comment · q/esc back"
 	if m.vp.TotalLineCount() > m.vp.Height {
 		hint = fmt.Sprintf("%3.0f%% · j/k scroll · %s", m.vp.ScrollPercent()*100, hint)
 	}

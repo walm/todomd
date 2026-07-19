@@ -57,12 +57,16 @@ todomd boards --json
 | `h`/`l` `j`/`k` | Navigate columns / cards (`g`/`G` first/last) |
 | `H`/`L` | Move task to previous / next board |
 | `J`/`K` | Reorder task within its board |
-| `Enter` | Open task detail (rendered markdown; `q`/`esc` back) |
+| `Enter` | Open task detail (modal over the board; `q`/`esc` back) |
 | `a` / `e` | Add / edit task (`tab` next field, `ctrl+s` save, `esc` cancel) |
+| `E` | Edit the task as markdown in `$VISUAL`/`$EDITOR` (title, tags, due, description, comments) |
 | `c` | Comment on task |
 | `d` / `D` | Delete (confirm) / move to Done |
 | `r` | Reload from disk |
 | `?` / `q` | Toggle help / quit |
+
+Inside the open task, `e`, `E`, and `c` work too and return you to the task
+afterwards.
 
 The TUI auto-detects light/dark background at startup. Set `GLAMOUR_STYLE`
 (`dark`, `light`, `notty`, …) to pin the theme and skip the terminal query —

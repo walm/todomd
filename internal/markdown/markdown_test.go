@@ -307,3 +307,34 @@ func TestFormatterNormalizedFile(t *testing.T) {
 		t.Error("metadata lost after rewrite")
 	}
 }
+
+func TestTaskFragmentRoundTrip(t *testing.T) {
+	due := date(t, "2026-08-15")
+	tk := &task.Task{
+		ID: "aaaa", Title: "Frag", Tags: []string{"x", "y"}, Due: &due,
+		Description: "Body with\n\n```\n## fenced\n```",
+		Comments:    []task.Comment{{Author: "ai", Date: due, Text: "hi\nthere"}},
+	}
+	got, err := ParseTask(WriteTask(tk))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Title != tk.Title || got.Description != tk.Description ||
+		len(got.Tags) != 2 || got.Due == nil || len(got.Comments) != 1 ||
+		got.Comments[0].Text != "hi\nthere" {
+		t.Errorf("round trip mismatch: %+v", got)
+	}
+}
+
+func TestParseTaskErrors(t *testing.T) {
+	if _, err := ParseTask([]byte("### One\n\n### Two\n")); err == nil ||
+		!strings.Contains(err.Error(), "exactly one task") {
+		t.Errorf("two tasks: %v", err)
+	}
+	// Error line numbers refer to the fragment, not the wrapper.
+	_, err := ParseTask([]byte("### X\n<!-- id:aaaa -->\n\n#### Comments\n\n- broken\n"))
+	pe, ok := err.(*ParseError)
+	if !ok || pe.Line != 6 {
+		t.Errorf("want ParseError at fragment line 6, got %v", err)
+	}
+}
