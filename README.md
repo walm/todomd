@@ -64,6 +64,10 @@ todomd boards --json
 | `r` | Reload from disk |
 | `?` / `q` | Toggle help / quit |
 
+The TUI auto-detects light/dark background at startup. Set `GLAMOUR_STYLE`
+(`dark`, `light`, `notty`, …) to pin the theme and skip the terminal query —
+useful for terminals that don't answer OSC color queries.
+
 ## The file format
 
 ```markdown

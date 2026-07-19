@@ -39,8 +39,12 @@ func (m *model) openDetail() {
 
 	w := min(m.width-2, 100)
 	content := md.String()
+	style := m.glamourStyle
+	if style == "" {
+		style = "notty" // never WithAutoStyle here: it queries the tty mid-run
+	}
 	if r, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStandardStyle(style),
 		glamour.WithWordWrap(w),
 	); err == nil {
 		if out, err := r.Render(content); err == nil {

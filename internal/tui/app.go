@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
@@ -23,7 +24,26 @@ func Run(s *store.Store) error {
 	if err != nil {
 		return err
 	}
-	p := tea.NewProgram(newModel(s, f), tea.WithAltScreen())
+	// Resolve light/dark now, while we still own the tty. Querying later
+	// (e.g. glamour's WithAutoStyle inside openDetail) deadlocks: bubbletea's
+	// input reader swallows the OSC response, the query blocks until its
+	// timeout, and the response bytes leak in as phantom keypresses.
+	// GLAMOUR_STYLE skips the terminal query entirely (useful for terminals
+	// that never answer OSC 11, where the query stalls startup).
+	style := os.Getenv("GLAMOUR_STYLE")
+	if style == "" {
+		dark := lipgloss.HasDarkBackground()
+		lipgloss.SetHasDarkBackground(dark) // pin: never re-query mid-run
+		style = "light"
+		if dark {
+			style = "dark"
+		}
+	} else {
+		lipgloss.SetHasDarkBackground(style != "light")
+	}
+	m := newModel(s, f)
+	m.glamourStyle = style
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	_, err = p.Run()
 	return err
 }
@@ -98,10 +118,11 @@ type model struct {
 	form      *form
 	confirmID string
 
-	status  string
-	isError bool
-	help    help.Model
-	keys    keyMap
+	status       string
+	isError      bool
+	help         help.Model
+	keys         keyMap
+	glamourStyle string // resolved before the program starts; never query mid-run
 }
 
 func newModel(s *store.Store, f *task.File) *model {
