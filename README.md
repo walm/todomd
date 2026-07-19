@@ -99,7 +99,8 @@ Rules, briefly:
   tasks (card order = file order). Empty boards persist.
 - The `<!-- id:… -->` comment is the task's stable ID (invisible when
   rendered). Hand-added tasks without one get an ID on the next write.
-- The metadata line (tags + due) must sit directly below the ID comment.
+- The metadata line (tags + due) is the first non-blank line below the ID
+  comment (formatter-inserted blank lines are fine).
 - Everything up to `#### Comments` / the next heading is the description,
   preserved verbatim.
 - Comments are one list item each: `- **author** (YYYY-MM-DD): text`, with

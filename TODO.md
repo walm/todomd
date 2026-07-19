@@ -12,7 +12,7 @@
 
 This is an example task showing everything the format supports.
 
-Markdown works throughout: **bold**, *italics*, `inline code`, and lists:
+Markdown works throughout: **bold**, _italics_, `inline code`, and lists:
 
 - parse the file with a line-based parser
 - keep descriptions verbatim
@@ -36,6 +36,7 @@ maximum width and the content flows over multiple lines.
 - **andreas** (2026-07-19): Looks good to me — can we make the due date stand out a bit more on the card?
 - **ai** (2026-07-19): Sure. The card already colors it: red when overdue, yellow within 3 days.
   Comments can span multiple lines too — continuation lines are indented in the file.
+- **walm** (2026-07-19): Trying the new in-modal comment flow
 
 ## In Progress
 

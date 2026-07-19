@@ -2,6 +2,7 @@ package tui
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -174,5 +175,51 @@ func TestBatchedRunesReplayIndividually(t *testing.T) {
 	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("jj")})
 	if m.cardIdx != 2 {
 		t.Errorf("cardIdx = %d, want 2", m.cardIdx)
+	}
+}
+
+func TestCommentFromDetail(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.updateBoard(keyMsg("enter"))
+	if m.mode != modeDetail {
+		t.Fatal("not in detail")
+	}
+	m.updateDetail(keyMsg("c"))
+	if m.mode != modeForm || m.form == nil || m.form.kind != formComment {
+		t.Fatalf("c in detail should open comment form (mode=%d)", m.mode)
+	}
+	// Esc returns to the detail view, not the board.
+	m.updateForm(keyMsg("esc"))
+	if m.mode != modeDetail {
+		t.Errorf("esc from form should return to detail, mode=%d", m.mode)
+	}
+	// Submit a comment and land back in detail with it persisted.
+	m.updateDetail(keyMsg("c"))
+	m.form.title.SetValue("tester")
+	m.form.desc.SetValue("a comment from the modal")
+	m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
+	if m.mode != modeDetail {
+		t.Errorf("submit should return to detail, mode=%d", m.mode)
+	}
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs := f.Boards[0].Tasks[0].Comments
+	if len(cs) != 1 || cs[0].Author != "tester" || cs[0].Text != "a comment from the modal" {
+		t.Errorf("comment not persisted: %+v", cs)
+	}
+}
+
+func TestCardShowsFirstTwoTagsPlusCount(t *testing.T) {
+	tk := &task.Task{ID: "aaaa", Title: "T", Tags: []string{"alpha", "beta", "gamma", "delta"}}
+	card := renderCard(tk, 40, false)
+	for _, want := range []string{"#alpha", "#beta", "+2"} {
+		if !strings.Contains(card, want) {
+			t.Errorf("card missing %q:\n%s", want, card)
+		}
+	}
+	if strings.Contains(card, "gamma") {
+		t.Errorf("card should not name the third tag:\n%s", card)
 	}
 }

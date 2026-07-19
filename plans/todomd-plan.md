@@ -83,13 +83,14 @@ even `####`-level headings (except the literal `#### Comments`).
 - `### <title>` — a task. Task order within a board = card order.
 - `<!-- id:xxxx -->` — first non-blank line after the task heading. 4-char
   lowercase base36 ID. Invisible in rendered markdown.
-- Metadata line (optional): the line **immediately** after the ID comment
-  (no blank line between — the writer always separates descriptions with a
-  blank line, so a description whose first line merely looks like metadata
-  round-trips safely) **iff** the entire line consists of space-separated
-  tokens, each either `` `#tag` `` or (at most once) `**due:** YYYY-MM-DD`,
-  with a valid date. Any other line — including one containing a bad date —
-  is description. Tags match `[a-z0-9_-]+`.
+- Metadata line (optional): the first non-blank line after the ID comment
+  (blank lines are tolerated — markdown formatters like to insert one after
+  the comment) **iff** the entire line consists of space-separated tokens,
+  each either `` `#tag` `` or (at most once) `**due:** YYYY-MM-DD`, with a
+  valid date. Any other line — including one containing a bad date — is
+  description. A description whose first line genuinely matches the grammar
+  is backslash-escaped by the writer (same scheme as headings), so it
+  round-trips as description. Tags match `[a-z0-9_-]+`.
 - Description: everything after the metadata line up to the exact line
   `#### Comments`, the next `#`/`##`/`###` heading, or EOF. Other `####`
   headings are legal description content. Preserved verbatim.

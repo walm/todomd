@@ -212,8 +212,8 @@ func TestFenceShieldsHeadings(t *testing.T) {
 }
 
 // A description whose first line looks like metadata must not be re-parsed
-// as tags (writer separates description with a blank line; metadata only
-// binds when adjacent to the id comment).
+// as tags (the writer backslash-escapes such a first line; the parser
+// unescapes it).
 func TestMetadataLookalikeDescription(t *testing.T) {
 	f := &task.File{Boards: []*task.Board{{Name: "B", Tasks: []*task.Task{{
 		ID: "aaaa", Title: "T", Description: "`#nottag` **due:** 2026-01-01",
@@ -286,5 +286,24 @@ func TestEmptyFile(t *testing.T) {
 	}
 	if string(Write(f)) != "# TODO\n" {
 		t.Errorf("write = %q", Write(f))
+	}
+}
+
+// Markdown formatters (prettier et al.) insert a blank line after the id
+// comment; metadata must survive that.
+func TestFormatterNormalizedFile(t *testing.T) {
+	src := "# T\n\n## B\n\n### X\n<!-- id:aaaa -->\n\n`#tui` **due:** 2026-08-15\n\nReal description.\n"
+	f := mustParse(t, src)
+	tk := f.Boards[0].Tasks[0]
+	if len(tk.Tags) != 1 || tk.Tags[0] != "tui" || tk.Due == nil {
+		t.Fatalf("metadata lost: tags=%v due=%v", tk.Tags, tk.Due)
+	}
+	if tk.Description != "Real description." {
+		t.Errorf("desc = %q", tk.Description)
+	}
+	// And the canonical rewrite re-attaches it adjacently.
+	f2 := mustParse(t, string(Write(f)))
+	if len(f2.Boards[0].Tasks[0].Tags) != 1 {
+		t.Error("metadata lost after rewrite")
 	}
 }

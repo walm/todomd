@@ -85,6 +85,25 @@ func unescapeLine(s string) string {
 	return s
 }
 
+// escapeMetaLine/unescapeMetaLine protect a description whose FIRST line
+// happens to match the metadata grammar from being adopted as tags/due on
+// reparse. Same stacking-backslash scheme as escapeLine.
+func escapeMetaLine(s string) string {
+	if _, _, ok := parseMetadata(strings.TrimLeft(s, `\`)); ok {
+		return `\` + s
+	}
+	return s
+}
+
+func unescapeMetaLine(s string) string {
+	if strings.HasPrefix(s, `\`) {
+		if _, _, ok := parseMetadata(strings.TrimLeft(s, `\`)); ok {
+			return s[1:]
+		}
+	}
+	return s
+}
+
 func trimBlankEdges(lines []string) (trimmed []string, offset int) {
 	start, end := 0, len(lines)
 	for start < end && strings.TrimSpace(lines[start]) == "" {
@@ -208,14 +227,20 @@ func Parse(data []byte) (*task.File, error) {
 					i = j + 1
 				}
 			}
-			// Metadata: only the line immediately after the id comment (or
-			// the heading, if no id) — a blank line in between demotes it to
-			// description, which is how descriptions whose first line merely
-			// *looks* like metadata survive round-trips.
-			if i < len(lines) && structural[i] && !isBlank(lines[i]) && !isTerminator(i) {
-				if tags, due, ok := parseMetadata(lines[i]); ok {
+			// Metadata: the first non-blank line after the id comment (or
+			// heading), iff it matches the strict grammar. Blank lines in
+			// between are tolerated — markdown formatters like to insert
+			// one after the id comment. A description whose first line
+			// merely *looks* like metadata is backslash-escaped by the
+			// writer, so it never reaches this check unescaped.
+			j = i
+			for j < len(lines) && isBlank(lines[j]) {
+				j++
+			}
+			if j < len(lines) && structural[j] && !isTerminator(j) {
+				if tags, due, ok := parseMetadata(lines[j]); ok {
 					t.Tags, t.Due = tags, due
-					i++
+					i = j + 1
 				}
 			}
 
@@ -233,6 +258,7 @@ func Parse(data []byte) (*task.File, error) {
 				out[j] = l
 			}
 			if len(out) > 0 {
+				out[0] = unescapeMetaLine(out[0])
 				t.Description = strings.Join(out, "\n")
 			}
 
@@ -326,6 +352,9 @@ func Write(f *task.File) []byte {
 				for j, l := range lines {
 					if mask[j] {
 						l = escapeLine(l)
+						if j == 0 {
+							l = escapeMetaLine(l)
+						}
 					}
 					b.WriteString(l + "\n")
 				}

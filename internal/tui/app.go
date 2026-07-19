@@ -116,6 +116,7 @@ type model struct {
 	mode      mode
 	vp        viewport.Model
 	form      *form
+	formFrom  mode // view to return to when the form closes
 	confirmID string
 
 	status       string
@@ -284,15 +285,18 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.form = newTaskForm(m.width, m.height, nil, m.file.Boards[m.boardIdx].Name)
+		m.formFrom = modeBoard
 		m.mode = modeForm
 	case key.Matches(msg, k.Edit):
 		if t := m.selectedTask(); t != nil {
 			m.form = newTaskForm(m.width, m.height, t, m.file.Boards[m.boardIdx].Name)
+			m.formFrom = modeBoard
 			m.mode = modeForm
 		}
 	case key.Matches(msg, k.Comment):
 		if t := m.selectedTask(); t != nil {
 			m.form = newCommentForm(m.width, m.height, t.ID, defaultAuthor())
+			m.formFrom = modeBoard
 			m.mode = modeForm
 		}
 	case key.Matches(msg, k.Delete):
@@ -357,6 +361,13 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "ctrl+c":
 		return m, tea.Quit
+	case "c":
+		if t := m.selectedTask(); t != nil {
+			m.form = newCommentForm(m.width, m.height, t.ID, defaultAuthor())
+			m.formFrom = modeDetail
+			m.mode = modeForm
+		}
+		return m, nil
 	}
 	var cmd tea.Cmd
 	m.vp, cmd = m.vp.Update(msg)
@@ -366,7 +377,7 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	done, canceled, cmd := m.form.update(msg)
 	if canceled {
-		m.mode = modeBoard
+		m.mode = m.formFrom
 		m.form = nil
 		return m, nil
 	}
@@ -379,8 +390,10 @@ func (m *model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) submitForm() {
 	f := m.form
+	from := m.formFrom
 	m.mode = modeBoard
 	m.form = nil
+	m.formFrom = modeBoard
 	switch f.kind {
 	case formComment:
 		id := f.targetID
@@ -390,6 +403,13 @@ func (m *model) submitForm() {
 			_, err := store.AddComment(file, id, author, text)
 			return err
 		}, id, "comment added")
+		// Commenting from the open task returns to it, scrolled to the
+		// new comment.
+		if from == modeDetail && !m.isError {
+			m.openDetail()
+			m.vp.GotoBottom()
+			m.mode = modeDetail
+		}
 	case formAdd:
 		vals, err := f.taskValues()
 		if err != nil {

@@ -147,7 +147,16 @@ func renderCard(t *task.Task, w int, selected bool) string {
 	parts = append(parts, strings.Join(tl, "\n"))
 
 	if len(t.Tags) > 0 {
-		tags := "#" + strings.Join(t.Tags, " #")
+		// Show the first two tags in full; a +N counter beats truncating
+		// tag names mid-word.
+		shown := t.Tags
+		if len(shown) > 2 {
+			shown = shown[:2]
+		}
+		tags := "#" + strings.Join(shown, " #")
+		if extra := len(t.Tags) - len(shown); extra > 0 {
+			tags += fmt.Sprintf(" +%d", extra)
+		}
 		parts = append(parts, tagStyle.Render(ansi.Truncate(tags, inner, "…")))
 	}
 
