@@ -334,3 +334,77 @@ func TestUnreadMarks(t *testing.T) {
 		t.Error("own mutation must not badge the card")
 	}
 }
+
+func TestAutoReloadOnTick(t *testing.T) {
+	m := newTestModel(t, 2, 1)
+	// External change while the TUI idles on the board.
+	err := m.store.Mutate(func(f *task.File) error {
+		_, err := store.Add(f, "A", &task.Task{Title: "Appeared externally"})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Update(tickMsg{})
+	if len(m.file.Boards[0].Tasks) != 2 {
+		t.Error("tick did not reload the file")
+	}
+	found := false
+	for id, k := range m.unread.marks {
+		_ = id
+		if k == markNew {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("auto-reload should badge the new task")
+	}
+
+	// No further change: tick must not disturb anything (stat gate).
+	before := m.file
+	m.Update(tickMsg{})
+	if m.file != before {
+		t.Error("tick reloaded without a file change")
+	}
+
+	// In detail mode the tick must not reload.
+	m.updateBoard(keyMsg("enter"))
+	err = m.store.Mutate(func(f *task.File) error {
+		_, err := store.Add(f, "A", &task.Task{Title: "While reading"})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Update(tickMsg{})
+	if len(m.file.Boards[0].Tasks) != 2 {
+		t.Error("tick reloaded while a task was open")
+	}
+	// Back on the board, the next tick catches up.
+	m.updateDetail(keyMsg("esc"))
+	m.Update(tickMsg{})
+	if len(m.file.Boards[0].Tasks) != 3 {
+		t.Error("tick after returning to board did not reload")
+	}
+}
+
+func TestReloadPreservesSelection(t *testing.T) {
+	m := newTestModel(t, 1, 3)
+	id := m.file.Boards[0].Tasks[2].ID
+	m.selectByID(id)
+	// External reorder: selected task moves to the top.
+	err := m.store.Mutate(func(f *task.File) error {
+		_, err := store.Move(f, id, "", 1)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Update(tickMsg{})
+	if got := m.selectedTask(); got == nil || got.ID != id {
+		t.Errorf("selection lost after auto-reload: %+v", got)
+	}
+	if m.cardIdx != 0 {
+		t.Errorf("cardIdx = %d, want 0 (followed the task)", m.cardIdx)
+	}
+}

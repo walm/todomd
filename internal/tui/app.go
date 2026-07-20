@@ -7,6 +7,7 @@ package tui
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -127,18 +128,48 @@ type model struct {
 	keys         keyMap
 	glamourStyle string // resolved before the program starts; never query mid-run
 	unread       *unread
+
+	lastMod  time.Time // file stat as of the last load, gates auto-reload
+	lastSize int64
+}
+
+// autoReloadEvery is the stat-poll interval: the board picks up external
+// changes within this window while idle. Reloads happen only when the
+// file's mtime/size actually changed, so the steady-state cost is one
+// stat() per tick.
+const autoReloadEvery = 2 * time.Second
+
+type tickMsg struct{}
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(autoReloadEvery, func(time.Time) tea.Msg { return tickMsg{} })
+}
+
+func (m *model) recordStat() {
+	if st, err := os.Stat(m.store.Path); err == nil {
+		m.lastMod, m.lastSize = st.ModTime(), st.Size()
+	}
+}
+
+func (m *model) fileChanged() bool {
+	st, err := os.Stat(m.store.Path)
+	if err != nil {
+		return false
+	}
+	return !st.ModTime().Equal(m.lastMod) || st.Size() != m.lastSize
 }
 
 func newModel(s *store.Store, f *task.File) *model {
 	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap()}
 	m.unread = loadUnread(s.Path, f)
+	m.recordStat()
 	if n := len(m.unread.marks); n > 0 {
 		m.setStatus(fmt.Sprintf("%s changed since your last visit", plural(n, "card")), false)
 	}
 	return m
 }
 
-func (m *model) Init() tea.Cmd { return nil }
+func (m *model) Init() tea.Cmd { return tickCmd() }
 
 func (m *model) selectedTask() *task.Task {
 	if m.boardIdx >= len(m.file.Boards) {
@@ -207,9 +238,17 @@ func (m *model) reload() {
 		m.setStatus(err.Error(), true)
 		return
 	}
+	var selID string
+	if t := m.selectedTask(); t != nil {
+		selID = t.ID
+	}
 	m.file = f
 	m.clamp()
+	if selID != "" {
+		m.selectByID(selID) // keep the selection on the same card if it survived
+	}
 	m.unread.recompute(m.file)
+	m.recordStat()
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -245,6 +284,17 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case editorFinishedMsg:
 		m.applyEditor(msg)
+	case tickMsg:
+		// Auto-reload only while idling on the board — never yank the file
+		// out from under an open task, form, or confirm prompt.
+		if m.mode == modeBoard && m.fileChanged() {
+			before := len(m.unread.marks)
+			m.reload()
+			if after := len(m.unread.marks); after != before && after > 0 {
+				m.setStatus(fmt.Sprintf("%s with unseen changes", plural(after, "card")), false)
+			}
+		}
+		return m, tickCmd()
 	}
 	return m, nil
 }

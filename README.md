@@ -98,8 +98,13 @@ The TUI tracks what changed since *you* last looked (its own `tui` change
 cursor): cards added by someone else show `●` with a green border, cards
 updated/moved/commented show `○` with a yellow border, and the status line
 counts them on startup. Opening a card marks it read; your own actions never
-badge; unread state persists across sessions. Press `r` to pick up changes
-made while the TUI is open.
+badge; unread state persists across sessions.
+
+While you idle on the board, the TUI auto-reloads: it stats the file every
+2s and refreshes (badging changed cards, keeping your selection) whenever
+the file actually changed — so agent activity appears live. Auto-reload
+pauses while a task, form, or confirm prompt is open; `r` still forces a
+reload any time.
 
 The TUI auto-detects light/dark background at startup. Set `GLAMOUR_STYLE`
 (`dark`, `light`, `notty`, …) to pin the theme and skip the terminal query —
