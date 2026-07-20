@@ -471,3 +471,84 @@ func TestMouseHeaderSelectsColumn(t *testing.T) {
 		t.Errorf("header click: boardIdx = %d, want 2", m.boardIdx)
 	}
 }
+
+func motion(x, y int) tea.MouseMsg {
+	return tea.MouseMsg{Action: tea.MouseActionMotion, X: x, Y: y}
+}
+
+func TestFormButtonsHoverClickAndValidation(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.updateBoard(keyMsg("a"))
+	if m.mode != modeForm {
+		t.Fatal("form did not open")
+	}
+	m.View() // records button rects
+
+	// Hover states.
+	m.handleMouse(motion(m.form.saveRect.x+1, m.form.saveRect.y))
+	if m.form.hover != 0 {
+		t.Errorf("hover = %d, want save", m.form.hover)
+	}
+	m.handleMouse(motion(m.form.cancelRect.x+1, m.form.cancelRect.y))
+	if m.form.hover != 1 {
+		t.Errorf("hover = %d, want cancel", m.form.hover)
+	}
+	m.handleMouse(motion(0, 0))
+	if m.form.hover != -1 {
+		t.Errorf("hover = %d, want none", m.form.hover)
+	}
+
+	// Clicking Save with an empty title keeps the form open with the error.
+	m.handleMouse(click(m.form.saveRect.x+1, m.form.saveRect.y))
+	if m.mode != modeForm || m.form.err == "" {
+		t.Fatalf("failed save should stay in form with error, mode=%d err=%q", m.mode, m.form.err)
+	}
+	if !strings.Contains(m.View(), "must not be empty") {
+		t.Error("validation error not rendered in the form")
+	}
+
+	// Fill the title and click Save: task is created.
+	m.form.title.SetValue("Clicked into existence")
+	m.View()
+	m.handleMouse(click(m.form.saveRect.x+1, m.form.saveRect.y))
+	if m.mode != modeBoard {
+		t.Fatalf("save click should close the form, mode=%d", m.mode)
+	}
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Boards[0].Tasks) != 2 {
+		t.Error("task not created by save click")
+	}
+
+	// Cancel click closes without saving.
+	m.updateBoard(keyMsg("a"))
+	m.View()
+	m.form.title.SetValue("Should never exist")
+	m.View()
+	m.handleMouse(click(m.form.cancelRect.x+1, m.form.cancelRect.y))
+	if m.mode != modeBoard {
+		t.Fatal("cancel click should close the form")
+	}
+	f, _ = m.store.Load()
+	if len(f.Boards[0].Tasks) != 2 {
+		t.Error("cancel click must not save")
+	}
+}
+
+func TestDetailHintHover(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.updateBoard(keyMsg("enter"))
+	m.View()
+	i := strings.Index(m.plainHint, "c comment")
+	hintY := m.detailRect.y + m.detailRect.h - 2
+	m.handleMouse(motion(m.detailRect.x+2+i, hintY))
+	if m.hintHover != 2 {
+		t.Errorf("hintHover = %d, want 2 (comment)", m.hintHover)
+	}
+	m.handleMouse(motion(0, 0))
+	if m.hintHover != -1 {
+		t.Errorf("hintHover = %d, want -1", m.hintHover)
+	}
+}

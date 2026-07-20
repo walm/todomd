@@ -37,4 +37,11 @@ var (
 		Padding(1, 2)
 	formLabel = lipgloss.NewStyle().Foreground(subtle)
 	formTitle = lipgloss.NewStyle().Bold(true).Foreground(accent)
+
+	btnStyle      = lipgloss.NewStyle().Foreground(accent)
+	btnHoverStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#1A1A1A"}).
+			Background(accent).Bold(true)
+	hintStyle      = lipgloss.NewStyle().Foreground(subtle)
+	hintHoverStyle = lipgloss.NewStyle().Foreground(accent).Underline(true)
 )

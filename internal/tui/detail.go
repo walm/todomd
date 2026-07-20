@@ -103,13 +103,28 @@ func (m *model) openDetail() {
 	m.vp.SetContent(content)
 }
 
+// detailHint renders the footer actions, highlighting the hovered one, and
+// records the plain text for mouse hit-testing.
 func (m *model) detailHint() string {
-	hint := "e edit · E editor · c comment · q/esc back"
+	prefix := ""
 	if m.vp.TotalLineCount() > m.vp.Height {
-		hint = fmt.Sprintf("%3.0f%% · j/k scroll · %s", m.vp.ScrollPercent()*100, hint)
+		prefix = fmt.Sprintf("%3.0f%% · j/k scroll · ", m.vp.ScrollPercent()*100)
 	}
-	m.plainHint = hint
-	return lipgloss.NewStyle().Foreground(subtle).Render(hint)
+	plain, styled := prefix, hintStyle.Render(prefix)
+	for i, a := range hintActions {
+		if i > 0 {
+			plain += " · "
+			styled += hintStyle.Render(" · ")
+		}
+		plain += a.label
+		if i == m.hintHover {
+			styled += hintHoverStyle.Render(a.label)
+		} else {
+			styled += hintStyle.Render(a.label)
+		}
+	}
+	m.plainHint = plain
+	return styled
 }
 
 func (m *model) viewDetail() string {

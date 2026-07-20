@@ -44,7 +44,7 @@ func Run(s *store.Store) error {
 	}
 	m := newModel(s, f)
 	m.glamourStyle = style
-	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	_, err = p.Run()
 	return err
 }
@@ -135,6 +135,7 @@ type model struct {
 	hits       []hit  // card rectangles, rebuilt by viewBoard for mouse hits
 	detailRect rect   // modal box position, set by viewDetail
 	plainHint  string // unstyled detail footer, for hint-button hit-testing
+	hintHover  int    // hovered detail-footer action index, -1 none
 }
 
 // autoReloadEvery is the stat-poll interval: the board picks up external
@@ -164,7 +165,7 @@ func (m *model) fileChanged() bool {
 }
 
 func newModel(s *store.Store, f *task.File) *model {
-	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap()}
+	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap(), hintHover: -1}
 	m.unread = loadUnread(s.Path, f)
 	m.recordStat()
 	if n := len(m.unread.marks); n > 0 {
@@ -470,6 +471,16 @@ func (m *model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) submitForm() {
 	f := m.form
+	// Validate before closing, so a failed save keeps the typed content on
+	// screen with the error inside the form.
+	var vals taskValues
+	if f.kind == formAdd || f.kind == formEdit {
+		var err error
+		if vals, err = f.taskValues(); err != nil {
+			f.err = err.Error()
+			return
+		}
+	}
 	from := m.formFrom
 	m.mode = modeBoard
 	m.form = nil
@@ -491,11 +502,6 @@ func (m *model) submitForm() {
 			m.mode = modeDetail
 		}
 	case formAdd:
-		vals, err := f.taskValues()
-		if err != nil {
-			m.setStatus(err.Error(), true)
-			return
-		}
 		board := f.board
 		var newID string
 		m.mutate(func(file *task.File) error {
@@ -511,11 +517,6 @@ func (m *model) submitForm() {
 			m.unread.markRead(m.file, newID)
 		}
 	case formEdit:
-		vals, err := f.taskValues()
-		if err != nil {
-			m.setStatus(err.Error(), true)
-			return
-		}
 		id := f.targetID
 		m.mutate(func(file *task.File) error {
 			opts := store.UpdateOpts{
@@ -559,7 +560,7 @@ func (m *model) View() string {
 	case modeDetail:
 		return m.viewDetail()
 	case modeForm:
-		return m.form.view()
+		return m.viewForm()
 	default:
 		return m.viewBoard()
 	}

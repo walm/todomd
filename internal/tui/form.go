@@ -19,7 +19,7 @@ const (
 	formComment
 )
 
-// form is a full-screen overlay for add/edit/comment. For formComment the
+// form is a modal overlay for add/edit/comment. For formComment the
 // title input holds the author and the textarea the comment text.
 type form struct {
 	kind     formKind
@@ -33,6 +33,10 @@ type form struct {
 
 	focus         int
 	width, height int
+	err           string // validation error, shown inside the box
+
+	hover                         int // -1 none, 0 save, 1 cancel
+	boxRect, saveRect, cancelRect rect
 }
 
 func newInput(placeholder, value string, w int) textinput.Model {
@@ -46,7 +50,7 @@ func newInput(placeholder, value string, w int) textinput.Model {
 
 func newTaskForm(width, height int, t *task.Task, board string) *form {
 	w := formInnerWidth(width)
-	f := &form{kind: formAdd, board: board, width: width, height: height}
+	f := &form{kind: formAdd, board: board, width: width, height: height, hover: -1}
 	var title, tags, due, desc string
 	if t != nil {
 		f.kind = formEdit
@@ -72,7 +76,7 @@ func newTaskForm(width, height int, t *task.Task, board string) *form {
 
 func newCommentForm(width, height int, targetID, author string) *form {
 	w := formInnerWidth(width)
-	f := &form{kind: formComment, targetID: targetID, width: width, height: height}
+	f := &form{kind: formComment, targetID: targetID, width: width, height: height, hover: -1}
 	f.title = newInput("author", author, w)
 	f.desc = textarea.New()
 	f.desc.Placeholder = "comment text"
@@ -123,6 +127,7 @@ func (f *form) setFocus(i int) {
 
 // update handles a key. done=true means submit, canceled=true means close.
 func (f *form) update(msg tea.KeyMsg) (done, canceled bool, cmd tea.Cmd) {
+	f.err = ""
 	last := f.fieldCount() - 1
 	switch msg.String() {
 	case "esc":
@@ -196,26 +201,75 @@ func (f *form) taskValues() (taskValues, error) {
 	return v, nil
 }
 
-func (f *form) view() string {
-	var b strings.Builder
+const (
+	btnSave   = "[ Save ]"
+	btnCancel = "[ Cancel ]"
+)
+
+// render returns the form box plus the save/cancel button rectangles
+// relative to the box's top-left corner.
+func (f *form) render() (box string, saveRel, cancelRel rect) {
+	var lines []string
+	add := func(s string) { lines = append(lines, strings.Split(s, "\n")...) }
+
 	heading := map[formKind]string{
 		formAdd:     "Add task — " + f.board,
 		formEdit:    "Edit task",
 		formComment: "Comment",
 	}[f.kind]
-	b.WriteString(formTitle.Render(heading) + "\n\n")
-
+	add(formTitle.Render(heading))
+	add("")
 	if f.kind == formComment {
-		b.WriteString(formLabel.Render("author") + "\n" + f.title.View() + "\n\n")
-		b.WriteString(formLabel.Render("text") + "\n" + f.desc.View() + "\n")
+		add(formLabel.Render("author"))
+		add(f.title.View())
+		add("")
+		add(formLabel.Render("text"))
+		add(f.desc.View())
 	} else {
-		b.WriteString(formLabel.Render("title") + "\n" + f.title.View() + "\n\n")
-		b.WriteString(formLabel.Render("tags") + "\n" + f.tags.View() + "\n\n")
-		b.WriteString(formLabel.Render("due") + "\n" + f.due.View() + "\n\n")
-		b.WriteString(formLabel.Render("description") + "\n" + f.desc.View() + "\n")
+		add(formLabel.Render("title"))
+		add(f.title.View())
+		add("")
+		add(formLabel.Render("tags"))
+		add(f.tags.View())
+		add("")
+		add(formLabel.Render("due"))
+		add(f.due.View())
+		add("")
+		add(formLabel.Render("description"))
+		add(f.desc.View())
 	}
-	b.WriteString("\n" + formLabel.Render("tab: next field · ctrl+s: save · esc: cancel"))
+	if f.err != "" {
+		add("")
+		add(errorStyle.Render(f.err))
+	}
+	add("")
+	btnLine := len(lines)
+	save, cancel := btnStyle, btnStyle
+	switch f.hover {
+	case 0:
+		save = btnHoverStyle
+	case 1:
+		cancel = btnHoverStyle
+	}
+	add(save.Render(btnSave) + "  " + cancel.Render(btnCancel))
+	add("")
+	add(formLabel.Render("tab: next field · ctrl+s: save · esc: cancel"))
 
-	box := formBox.Render(b.String())
-	return lipgloss.Place(f.width, f.height, lipgloss.Center, lipgloss.Center, box)
+	box = formBox.Render(strings.Join(lines, "\n"))
+	// Content origin within the box: border (1,1) + padding (2,1).
+	saveRel = rect{3, 2 + btnLine, len(btnSave), 1}
+	cancelRel = rect{3 + len(btnSave) + 2, 2 + btnLine, len(btnCancel), 1}
+	return box, saveRel, cancelRel
+}
+
+// viewForm composes the form box over the board and records the absolute
+// button rectangles for mouse hit-testing.
+func (m *model) viewForm() string {
+	box, saveRel, cancelRel := m.form.render()
+	w, h := lipgloss.Width(box), lipgloss.Height(box)
+	bx, by := max(0, (m.width-w)/2), max(0, (m.height-h)/2)
+	m.form.boxRect = rect{bx, by, w, h}
+	m.form.saveRect = rect{bx + saveRel.x, by + saveRel.y, saveRel.w, saveRel.h}
+	m.form.cancelRect = rect{bx + cancelRel.x, by + cancelRel.y, cancelRel.w, cancelRel.h}
+	return compose(m.viewBoard(), box, m.width, m.height)
 }

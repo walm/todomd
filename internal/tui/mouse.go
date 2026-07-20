@@ -28,7 +28,36 @@ var hintActions = []struct{ label, key string }{
 	{"e edit", "e"}, {"E editor", "E"}, {"c comment", "c"}, {"q/esc back", "q"},
 }
 
+// hintActionAt returns the index of the footer action under the given
+// screen coordinates, or -1.
+func (m *model) hintActionAt(x, y int) int {
+	if y != m.detailRect.y+m.detailRect.h-2 {
+		return -1
+	}
+	rel := x - (m.detailRect.x + 2)
+	for i, a := range hintActions {
+		if j := strings.Index(m.plainHint, a.label); j >= 0 && rel >= j && rel < j+len(a.label) {
+			return i
+		}
+	}
+	return -1
+}
+
 func (m *model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	if msg.Action == tea.MouseActionMotion {
+		switch m.mode {
+		case modeForm:
+			m.form.hover = -1
+			if m.form.saveRect.contains(msg.X, msg.Y) {
+				m.form.hover = 0
+			} else if m.form.cancelRect.contains(msg.X, msg.Y) {
+				m.form.hover = 1
+			}
+		case modeDetail:
+			m.hintHover = m.hintActionAt(msg.X, msg.Y)
+		}
+		return m, nil
+	}
 	if msg.Action != tea.MouseActionPress {
 		return m, nil
 	}
@@ -74,15 +103,19 @@ func (m *model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	case modeDetail:
 		if !m.detailRect.contains(msg.X, msg.Y) {
 			m.mode = modeBoard // tap outside the card closes it
+			m.hintHover = -1
 			return m, nil
 		}
-		if msg.Y == m.detailRect.y+m.detailRect.h-2 { // footer hint line
-			rel := msg.X - (m.detailRect.x + 2)
-			for _, a := range hintActions {
-				if i := strings.Index(m.plainHint, a.label); i >= 0 && rel >= i && rel < i+len(a.label) {
-					return m.updateDetail(keyRunes(a.key))
-				}
-			}
+		if i := m.hintActionAt(msg.X, msg.Y); i >= 0 {
+			m.hintHover = -1
+			return m.updateDetail(keyRunes(hintActions[i].key))
+		}
+	case modeForm:
+		if m.form.saveRect.contains(msg.X, msg.Y) {
+			return m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
+		}
+		if m.form.cancelRect.contains(msg.X, msg.Y) {
+			return m.updateForm(tea.KeyMsg{Type: tea.KeyEsc})
 		}
 	}
 	return m, nil
