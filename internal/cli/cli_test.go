@@ -204,3 +204,147 @@ func TestHostileContentViaCLI(t *testing.T) {
 		t.Errorf("injection created a board: %s", out)
 	}
 }
+
+func TestChangesFlow(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	idA := addOne(t, path, "Task A")
+
+	// First call initializes, no events.
+	out, err := run(t, "--file", path, "changes", "--as", "bot", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var init struct {
+		Initialized bool `json:"initialized"`
+	}
+	json.Unmarshal([]byte(out), &init)
+	if !init.Initialized {
+		t.Fatalf("first call should initialize: %s", out)
+	}
+
+	// Rename (same ID!), move, comment, add.
+	if _, err := run(t, "--file", path, "update", idA, "--title", "Task A renamed"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "move", idA, "--to", "In Progress"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "comment", idA, "--author", "walm", "please check this"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "comment", idA, "--author", "bot", "my own note"); err != nil {
+		t.Fatal(err)
+	}
+	idB := addOne(t, path, "Task B")
+
+	out, err = run(t, "--file", path, "changes", "--as", "bot", "--ignore-author", "bot", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Events []struct {
+			Type    string         `json:"type"`
+			TaskID  string         `json:"task"`
+			Fields  map[string]any `json:"fields"`
+			Comment *struct {
+				Author string `json:"author"`
+			} `json:"comment"`
+		} `json:"events"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	types := map[string]int{}
+	for _, e := range got.Events {
+		types[e.Type]++
+		if e.Type == "task_updated" && e.TaskID == idA {
+			if _, ok := e.Fields["title"]; !ok {
+				t.Errorf("rename must appear as title field change: %s", out)
+			}
+		}
+		if e.Type == "comment_added" && e.Comment.Author == "bot" {
+			t.Error("--ignore-author bot leaked through")
+		}
+		if e.Type == "task_added" && e.TaskID != idB {
+			t.Errorf("unexpected task_added %s", e.TaskID)
+		}
+		if e.Type == "task_deleted" {
+			t.Errorf("rename must never appear as delete+add: %s", out)
+		}
+	}
+	if types["task_updated"] != 1 || types["task_moved"] != 1 || types["comment_added"] != 1 || types["task_added"] != 1 {
+		t.Errorf("event mix = %v\n%s", types, out)
+	}
+
+	// Cursor advanced: next call is empty.
+	out, _ = run(t, "--file", path, "changes", "--as", "bot", "--json")
+	if !strings.Contains(out, `"events": []`) {
+		t.Errorf("cursor did not advance: %s", out)
+	}
+}
+
+func TestChangesPeekAndSeparateCursors(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	if _, err := run(t, "--file", path, "changes", "--as", "a", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "changes", "--as", "b", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	addOne(t, path, "New one")
+
+	// Peek twice: both see it; cursor b unaffected by a's reads.
+	for i := 0; i < 2; i++ {
+		out, err := run(t, "--file", path, "changes", "--as", "a", "--peek", "--json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out, "task_added") {
+			t.Errorf("peek %d missed event: %s", i, out)
+		}
+	}
+	out, _ := run(t, "--file", path, "changes", "--as", "a", "--json")
+	if !strings.Contains(out, "task_added") {
+		t.Errorf("read after peek missed event: %s", out)
+	}
+	out, _ = run(t, "--file", path, "changes", "--as", "b", "--json")
+	if !strings.Contains(out, "task_added") {
+		t.Errorf("cursor b should still see the event: %s", out)
+	}
+}
+
+func TestChangesPersistsHandAddedIDs(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	if _, err := run(t, "--file", path, "changes", "--as", "bot", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate a human adding a task in an editor, without an id comment.
+	data, _ := os.ReadFile(path)
+	data = append(data, []byte("\n### Hand added task\n\nSome notes.\n")...)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := run(t, "--file", path, "changes", "--as", "bot", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Events []struct {
+			Type   string `json:"type"`
+			TaskID string `json:"task"`
+		} `json:"events"`
+	}
+	json.Unmarshal([]byte(out), &got)
+	if len(got.Events) != 1 || got.Events[0].Type != "task_added" {
+		t.Fatalf("events = %s", out)
+	}
+	// The reported ID must now exist in the file itself.
+	data, _ = os.ReadFile(path)
+	if !strings.Contains(string(data), "id:"+got.Events[0].TaskID) {
+		t.Errorf("event id %q not persisted to file:\n%s", got.Events[0].TaskID, data)
+	}
+}

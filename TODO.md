@@ -10,6 +10,7 @@
 <!-- id:3d66 -->
 `#example` `#docs` `#parser` **due:** 2026-08-15
 
+Wow this is good!
 This is an example task showing everything the format supports.
 
 Markdown works throughout: **bold**, _italics_, `inline code`, and lists:
@@ -38,6 +39,7 @@ maximum width and the content flows over multiple lines.
   Comments can span multiple lines too — continuation lines are indented in the file.
 - **walm** (2026-07-19): Trying the new in-modal comment flow
 - **walm** (2026-07-19): this is looking good now, and will sure be usefull!
+- **walm** (2026-07-19): Edit in editor!!
 
 ## In Progress
 

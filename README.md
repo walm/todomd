@@ -32,6 +32,29 @@ todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
 todomd delete 3f2a --yes
 todomd boards --json
+todomd changes --as claude --ignore-author claude --json
+```
+
+### Change tracking for agents
+
+`todomd changes` answers "what happened since I last looked" without the
+agent having to read or diff the whole file. Each consumer names a cursor
+with `--as`; reading advances it (`--peek` doesn't). The first call just
+initializes the cursor. Because it diffs snapshots of the file (stored under
+`$XDG_STATE_HOME/todomd`, default `~/.local/state/todomd`, keyed by the
+file's path), it catches *every* source of change: CLI, TUI, `$EDITOR`,
+hand edits, formatters, git pulls.
+
+Events: `task_added` (includes the full task as `detail`), `task_deleted`,
+`task_moved` (`from`/`to`), `task_updated` (`fields` with old/new per
+changed field — renames stay the same task, identity is the ID),
+`comment_added` (the comment). Reorders within a board are not reported.
+The typical agent loop:
+
+```sh
+todomd comment 3f2a --author claude "done, please review"
+# …later…
+todomd changes --as claude --ignore-author claude --json   # only others' activity
 ```
 
 - **File resolution**: `--file` flag > `TODOMD_FILE` env > `TODO.md` searched
