@@ -17,6 +17,8 @@ var (
 		BorderForeground(subtle).
 		Padding(0, 1)
 	cardSelected = card.BorderForeground(accent)
+	cardNew      = card.BorderForeground(okCol)
+	cardUpdated  = card.BorderForeground(warnCol)
 
 	titleStyle   = lipgloss.NewStyle().Bold(true)
 	tagStyle     = lipgloss.NewStyle().Foreground(okCol)

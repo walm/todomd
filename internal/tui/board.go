@@ -94,7 +94,7 @@ func (m *model) renderColumn(b *task.Board, w, h int, active bool, sel int, over
 	selStart, selEnd := 0, 0
 	lineCount := 0
 	for i, t := range b.Tasks {
-		c := renderCard(t, w-2, active && i == sel)
+		c := renderCard(t, w-2, active && i == sel, m.unread.marks[t.ID])
 		ch := lipgloss.Height(c)
 		if i == sel {
 			selStart, selEnd = lineCount, lineCount+ch
@@ -131,14 +131,21 @@ func (m *model) renderColumn(b *task.Board, w, h int, active bool, sel int, over
 	return lipgloss.NewStyle().Width(w).Height(h).MaxHeight(h).Render(col)
 }
 
-func renderCard(t *task.Task, w int, selected bool) string {
+func renderCard(t *task.Task, w int, selected bool, mark markKind) string {
 	inner := w - 4 // border + padding
 	if inner < 4 {
 		inner = 4
 	}
 	var parts []string
 
-	title := titleStyle.Width(inner).Render(t.Title)
+	titleText := t.Title
+	switch mark {
+	case markNew:
+		titleText = "● " + titleText
+	case markUpdated:
+		titleText = "○ " + titleText
+	}
+	title := titleStyle.Width(inner).Render(titleText)
 	tl := strings.Split(title, "\n")
 	if len(tl) > 2 {
 		tl = tl[:2]
@@ -179,8 +186,13 @@ func renderCard(t *task.Task, w int, selected bool) string {
 	}
 
 	style := card
-	if selected {
+	switch {
+	case selected:
 		style = cardSelected
+	case mark == markNew:
+		style = cardNew
+	case mark == markUpdated:
+		style = cardUpdated
 	}
 	return style.Width(w - 2).Render(strings.Join(parts, "\n"))
 }

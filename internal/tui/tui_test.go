@@ -215,7 +215,7 @@ func TestCommentFromDetail(t *testing.T) {
 
 func TestCardShowsFirstTwoTagsPlusCount(t *testing.T) {
 	tk := &task.Task{ID: "aaaa", Title: "T", Tags: []string{"alpha", "beta", "gamma", "delta"}}
-	card := renderCard(tk, 40, false)
+	card := renderCard(tk, 40, false, markNone)
 	for _, want := range []string{"#alpha", "#beta", "+2"} {
 		if !strings.Contains(card, want) {
 			t.Errorf("card missing %q:\n%s", want, card)
@@ -264,5 +264,73 @@ func TestApplyEditorRejectsBadFragment(t *testing.T) {
 	f, _ := m.store.Load()
 	if f.Boards[0].Tasks[0].Title == "One" {
 		t.Error("bad fragment must not be applied")
+	}
+}
+
+func TestUnreadMarks(t *testing.T) {
+	m := newTestModel(t, 2, 2)
+	id := m.file.Boards[0].Tasks[0].ID
+
+	// External activity: an agent comments and adds a task via the store.
+	err := m.store.Mutate(func(f *task.File) error {
+		_, err := store.AddComment(f, id, "agent", "ping from the agent")
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var newID string
+	err = m.store.Mutate(func(f *task.File) error {
+		tk, err := store.Add(f, "A", &task.Task{Title: "From agent"})
+		if err == nil {
+			newID = tk.ID
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m.updateBoard(keyMsg("r")) // reload picks up the external changes
+	if m.unread.marks[id] != markUpdated {
+		t.Errorf("commented task mark = %d, want updated", m.unread.marks[id])
+	}
+	if m.unread.marks[newID] != markNew {
+		t.Errorf("agent task mark = %d, want new", m.unread.marks[newID])
+	}
+	if !strings.Contains(m.viewBoard(), "● From agent") {
+		t.Error("new badge not rendered on card")
+	}
+
+	// Opening the commented card clears only its badge.
+	m.selectByID(id)
+	m.updateBoard(keyMsg("enter"))
+	if m.unread.marks[id] != markNone {
+		t.Error("opening a card should clear its badge")
+	}
+	if m.unread.marks[newID] != markNew {
+		t.Error("other badges must survive")
+	}
+
+	// A fresh session (new model) sees the same state: read stays read,
+	// unseen stays marked.
+	f2, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2 := newModel(m.store, f2)
+	m2.width, m2.height = 100, 30
+	if m2.unread.marks[id] != markNone {
+		t.Error("read state did not persist across sessions")
+	}
+	if m2.unread.marks[newID] != markNew {
+		t.Error("unseen badge did not persist across sessions")
+	}
+
+	// The user's own action (move to Done via D) never leaves a badge.
+	m2.selectByID(newID)
+	m2.updateBoard(keyMsg("D"))
+	if m2.unread.marks[newID] != markNone {
+		t.Error("own mutation must not badge the card")
 	}
 }

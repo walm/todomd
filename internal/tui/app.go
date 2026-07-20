@@ -126,10 +126,16 @@ type model struct {
 	help         help.Model
 	keys         keyMap
 	glamourStyle string // resolved before the program starts; never query mid-run
+	unread       *unread
 }
 
 func newModel(s *store.Store, f *task.File) *model {
-	return &model{store: s, file: f, help: help.New(), keys: newKeyMap()}
+	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap()}
+	m.unread = loadUnread(s.Path, f)
+	if n := len(m.unread.marks); n > 0 {
+		m.setStatus(fmt.Sprintf("%s changed since your last visit", plural(n, "card")), false)
+	}
+	return m
 }
 
 func (m *model) Init() tea.Cmd { return nil }
@@ -181,6 +187,7 @@ func (m *model) setStatus(s string, isErr bool) {
 }
 
 // mutate runs fn through the store, reloads, and re-selects followID.
+// The user's own change never shows an unread badge.
 func (m *model) mutate(fn func(*task.File) error, followID, okMsg string) {
 	if err := m.store.Mutate(fn); err != nil {
 		m.setStatus(err.Error(), true)
@@ -189,6 +196,7 @@ func (m *model) mutate(fn func(*task.File) error, followID, okMsg string) {
 	m.reload()
 	if followID != "" {
 		m.selectByID(followID)
+		m.unread.markRead(m.file, followID)
 	}
 	m.setStatus(okMsg, false)
 }
@@ -201,6 +209,7 @@ func (m *model) reload() {
 	}
 	m.file = f
 	m.clamp()
+	m.unread.recompute(m.file)
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -443,6 +452,7 @@ func (m *model) submitForm() {
 		}, "", "added")
 		if newID != "" {
 			m.selectByID(newID)
+			m.unread.markRead(m.file, newID)
 		}
 	case formEdit:
 		vals, err := f.taskValues()

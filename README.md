@@ -92,6 +92,15 @@ todomd changes --as claude --ignore-author claude --json   # only others' activi
 Inside the open task, `e`, `E`, and `c` work too and return you to the task
 afterwards.
 
+### Unread badges
+
+The TUI tracks what changed since *you* last looked (its own `tui` change
+cursor): cards added by someone else show `●` with a green border, cards
+updated/moved/commented show `○` with a yellow border, and the status line
+counts them on startup. Opening a card marks it read; your own actions never
+badge; unread state persists across sessions. Press `r` to pick up changes
+made while the TUI is open.
+
 The TUI auto-detects light/dark background at startup. Set `GLAMOUR_STYLE`
 (`dark`, `light`, `notty`, …) to pin the theme and skip the terminal query —
 useful for terminals that don't answer OSC color queries.

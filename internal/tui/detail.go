@@ -38,6 +38,7 @@ func (m *model) openDetail() {
 	if t == nil {
 		return
 	}
+	m.unread.markRead(m.file, t.ID)
 	board := m.file.Boards[m.boardIdx].Name
 
 	var md strings.Builder
