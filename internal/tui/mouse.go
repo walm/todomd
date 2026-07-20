@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -28,6 +30,18 @@ var hintActions = []struct{ label, key string }{
 	{"e edit", "e"}, {"E editor", "E"}, {"c comment", "c"}, {"q/esc back", "q"},
 }
 
+// labelCol returns the display column of label within plain, or -1. Byte
+// offsets from strings.Index are NOT screen columns: the separators (• ·)
+// are multi-byte UTF-8 but one cell wide, so positions must be measured in
+// display width.
+func labelCol(plain, label string) int {
+	i := strings.Index(plain, label)
+	if i < 0 {
+		return -1
+	}
+	return lipgloss.Width(plain[:i])
+}
+
 // hintActionAt returns the index of the detail-footer action under the
 // given screen coordinates, or -1.
 func (m *model) hintActionAt(x, y int) int {
@@ -36,7 +50,7 @@ func (m *model) hintActionAt(x, y int) int {
 	}
 	rel := x - (m.detailRect.x + 2)
 	for i, a := range hintActions {
-		if j := strings.Index(m.plainHint, a.label); j >= 0 && rel >= j && rel < j+len(a.label) {
+		if j := labelCol(m.plainHint, a.label); j >= 0 && rel >= j && rel < j+lipgloss.Width(a.label) {
 			return i
 		}
 	}
@@ -53,7 +67,7 @@ func (m *model) footerActionAt(x, y int) int {
 		if a.key == "" {
 			continue
 		}
-		if j := strings.Index(m.plainFooter, a.label); j >= 0 && x >= j && x < j+len(a.label) {
+		if j := labelCol(m.plainFooter, a.label); j >= 0 && x >= j && x < j+lipgloss.Width(a.label) {
 			return i
 		}
 	}

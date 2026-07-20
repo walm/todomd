@@ -258,10 +258,11 @@ func (f *form) render() (box string, saveRel, cancelRel rect) {
 		hintStyle.Render(" · ") + cancel.Render(formHintCancel))
 
 	box = formBox.Render(strings.Join(lines, "\n"))
-	// Content origin within the box: border (1,1) + padding (2,1).
+	// Content origin within the box: border (1,1) + padding (2,1). Label
+	// positions measured in display columns, not bytes (the · is multibyte).
 	plain := formHintPre + formHintSave + " · " + formHintCancel
-	saveRel = rect{3 + strings.Index(plain, formHintSave), 2 + hintLine, len(formHintSave), 1}
-	cancelRel = rect{3 + strings.Index(plain, formHintCancel), 2 + hintLine, len(formHintCancel), 1}
+	saveRel = rect{3 + labelCol(plain, formHintSave), 2 + hintLine, len(formHintSave), 1}
+	cancelRel = rect{3 + labelCol(plain, formHintCancel), 2 + hintLine, len(formHintCancel), 1}
 	return box, saveRel, cancelRel
 }
 

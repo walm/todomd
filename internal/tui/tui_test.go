@@ -452,7 +452,7 @@ func TestMouseSelectOpenAndClose(t *testing.T) {
 
 	// Click the "c comment" hint button.
 	hintY := m.detailRect.y + m.detailRect.h - 2
-	i := strings.Index(m.plainHint, "c comment")
+	i := labelCol(m.plainHint, "c comment")
 	if i < 0 {
 		t.Fatalf("plainHint = %q", m.plainHint)
 	}
@@ -541,7 +541,7 @@ func TestDetailHintHover(t *testing.T) {
 	m := newTestModel(t, 1, 1)
 	m.updateBoard(keyMsg("enter"))
 	m.View()
-	i := strings.Index(m.plainHint, "c comment")
+	i := labelCol(m.plainHint, "c comment")
 	hintY := m.detailRect.y + m.detailRect.h - 2
 	m.handleMouse(motion(m.detailRect.x+2+i, hintY))
 	if m.hintHover != 2 {
@@ -557,7 +557,7 @@ func TestFooterClickAndHover(t *testing.T) {
 	m := newTestModel(t, 1, 1)
 	m.height = 30
 	m.viewBoard() // records plainFooter
-	i := strings.Index(m.plainFooter, "a add")
+	i := labelCol(m.plainFooter, "a add")
 	if i < 0 {
 		t.Fatalf("plainFooter = %q", m.plainFooter)
 	}
@@ -566,7 +566,7 @@ func TestFooterClickAndHover(t *testing.T) {
 	if m.footHover < 0 || footerActions[m.footHover].key != "a" {
 		t.Errorf("footHover = %d", m.footHover)
 	}
-	j := strings.Index(m.plainFooter, "h/l column")
+	j := labelCol(m.plainFooter, "h/l column")
 	m.handleMouse(motion(j+1, m.height-1))
 	if m.footHover != -1 {
 		t.Errorf("inert segment should not hover, footHover = %d", m.footHover)
@@ -579,9 +579,28 @@ func TestFooterClickAndHover(t *testing.T) {
 	m.updateForm(keyMsg("esc"))
 	// Click "? help" toggles full help.
 	m.viewBoard()
-	k := strings.Index(m.plainFooter, "? help")
+	k := labelCol(m.plainFooter, "? help")
 	m.handleMouse(click(k+1, m.height-1))
 	if !m.help.ShowAll {
 		t.Error("footer click should toggle help")
+	}
+}
+
+// Regression: the footer separators are multi-byte (•), so byte offsets sit
+// right of the visible labels — hit-testing must use display columns.
+func TestFooterHitAtVisiblePosition(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.height = 30
+	m.viewBoard()
+	byteIdx := strings.Index(m.plainFooter, "a add")
+	col := labelCol(m.plainFooter, "a add")
+	if byteIdx <= col {
+		t.Fatalf("test premise broken: byteIdx=%d col=%d", byteIdx, col)
+	}
+	if got := m.footerActionAt(col, m.height-1); got < 0 || footerActions[got].key != "a" {
+		t.Errorf("visible position must hit, got %d", got)
+	}
+	if got := m.footerActionAt(byteIdx, m.height-1); got >= 0 {
+		t.Errorf("byte-offset position (right of label) must miss, got %d", got)
 	}
 }
