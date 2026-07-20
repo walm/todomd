@@ -1,0 +1,23 @@
+set stty_init "rows 28 cols 100"
+# pause: wait while continuously reading/relaying the spawned TUI's output
+# (plain `sleep` would buffer everything until the final expect).
+proc pause {t} {
+    set n [expr {int($t * 100)}]
+    for {set i 0} {$i < $n} {incr i} {
+        sleep 0.01
+        expect -timeout 0 -re {ZZZ_NEVER_MATCHES}
+    }
+}
+spawn -noecho todomd
+pause 2.2
+send "j"; pause 0.5
+send "j"; pause 0.7
+send "\r"; pause 4.2
+send "\x1b"; pause 1.0
+send "G"; pause 0.8
+send "L"; pause 1.4
+send "L"; pause 1.6
+send "h"; pause 0.6
+send "h"; pause 0.8
+send "q"
+expect eof

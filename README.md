@@ -1,6 +1,14 @@
-# todomd
+<p align="center">
+  <img src="docs/logo.png" alt="TodoMD logo" width="160">
+</p>
 
-A Kanban TUI and agent-friendly CLI over a plain markdown `TODO.md`.
+<h1 align="center">TodoMD</h1>
+
+<p align="center">
+  A Kanban TUI and agent-friendly CLI over a plain markdown <code>TODO.md</code>.
+</p>
+
+![demo](docs/demo.gif)
 
 The markdown file is the single source of truth — readable and diffable for
 humans, renderable on GitHub, and deterministic for the tool. Humans use the
