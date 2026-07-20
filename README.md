@@ -9,7 +9,14 @@ exit codes).
 
 ## Install
 
-Grab a macOS or Linux binary from the
+macOS or Linux — installs (and updates) the latest release to
+`~/.local/bin`, verifying the checksum:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/walm/todomd/main/install.sh | sh
+```
+
+Or grab a binary from the
 [releases page](https://github.com/walm/todomd/releases), or build from
 source:
 
