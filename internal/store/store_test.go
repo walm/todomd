@@ -12,6 +12,7 @@ import (
 
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	path := filepath.Join(t.TempDir(), "TODO.md")
 	if err := Init(path, "Test"); err != nil {
 		t.Fatal(err)

@@ -166,8 +166,10 @@ type Comment struct {
 
 `internal/store` is the single mutation API shared by CLI and TUI. Every
 mutation is expressed by task ID (never by pointer/index into a stale model)
-and executes as: **acquire advisory lock (`flock` on `<file>.lock`) → load →
-apply → atomic write (temp file + rename, preserving permissions) → release**.
+and executes as: **acquire advisory lock (`flock` on a lock file in the
+per-file state dir, `$XDG_STATE_HOME/todomd/<path-hash>/lock`, so repos stay
+free of sidecars) → load → apply → atomic write (temp file + rename,
+preserving permissions) → release**.
 Concurrent `todomd add` calls from parallel agents therefore serialize instead
 of losing writes. The TUI holds a model for display only; each keystroke
 mutation re-issues a store mutation against a fresh load, then re-renders from

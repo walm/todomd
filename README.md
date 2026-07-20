@@ -66,8 +66,9 @@ todomd changes --as claude --ignore-author claude --json   # only others' activi
   `3` ambiguous ID prefix.
 - Boards are matched case-insensitively and created on demand (new boards land
   before `Done`).
-- Concurrent invocations are safe: every write takes an advisory lock and
-  replaces the file atomically.
+- Concurrent invocations are safe: every write takes an advisory lock
+  (kept in `~/.local/state/todomd`, never next to your file) and replaces
+  the file atomically.
 - Any text is safe to pass — titles reject newlines, and description/comment
   lines that would read as file structure are escaped on write and unescaped
   on parse. The one restriction: multi-line text must not contain an unclosed

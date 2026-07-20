@@ -33,6 +33,9 @@ func run(t *testing.T, args ...string) (string, error) {
 
 func testFile(t *testing.T) string {
 	t.Helper()
+	if os.Getenv("XDG_STATE_HOME") == "" || !strings.HasPrefix(os.Getenv("XDG_STATE_HOME"), os.TempDir()) {
+		t.Setenv("XDG_STATE_HOME", t.TempDir())
+	}
 	path := filepath.Join(t.TempDir(), "TODO.md")
 	if _, err := run(t, "--file", path, "init"); err != nil {
 		t.Fatal(err)

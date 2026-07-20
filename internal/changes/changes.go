@@ -5,14 +5,13 @@
 package changes
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 
+	"github.com/walm/todomd/internal/statedir"
 	"github.com/walm/todomd/internal/task"
 )
 
@@ -129,26 +128,16 @@ func Diff(old, cur *task.File) []Event {
 var cursorNameRe = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // CursorPath returns where the snapshot for (file, cursor name) lives:
-// $XDG_STATE_HOME/todomd/<hash-of-abs-file-path>/<name>.md, defaulting to
-// ~/.local/state. The hash keys the *path*, never the content.
+// <statedir>/<name>.md (see internal/statedir).
 func CursorPath(filePath, name string) (string, error) {
 	if !cursorNameRe.MatchString(name) {
 		return "", fmt.Errorf("invalid cursor name %q (want [A-Za-z0-9._-]+)", name)
 	}
-	base := os.Getenv("XDG_STATE_HOME")
-	if base == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		base = filepath.Join(home, ".local", "state")
-	}
-	abs, err := filepath.Abs(filePath)
+	dir, err := statedir.For(filePath)
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256([]byte(abs))
-	return filepath.Join(base, "todomd", hex.EncodeToString(sum[:8]), name+".md"), nil
+	return filepath.Join(dir, name+".md"), nil
 }
 
 // LoadCursor reads the snapshot; ok is false if none exists yet.

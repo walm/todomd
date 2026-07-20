@@ -14,6 +14,7 @@ import (
 
 func newTestModel(t *testing.T, boards int, tasksPer int) *model {
 	t.Helper()
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	path := filepath.Join(t.TempDir(), "TODO.md")
 	f := &task.File{Title: "T"}
 	for i := 0; i < boards; i++ {

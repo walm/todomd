@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/walm/todomd/internal/markdown"
+	"github.com/walm/todomd/internal/statedir"
 	"github.com/walm/todomd/internal/task"
 )
 
@@ -123,8 +124,20 @@ func (s *Store) Save(f *task.File) error {
 // Mutate locks the file, loads it fresh, applies fn, and writes the result.
 // fn must express its change in terms of task IDs / board names, never
 // pointers into a previously loaded model.
+//
+// The flock target lives in the per-file state dir, not next to the todo
+// file — flock is same-machine anyway, and this keeps repositories free of
+// .lock sidecars. The lock file is intentionally never deleted (unlink
+// after unlock races against concurrent lockers).
 func (s *Store) Mutate(fn func(*task.File) error) error {
-	lock, err := os.OpenFile(s.Path+".lock", os.O_CREATE|os.O_RDWR, 0o644)
+	dir, err := statedir.For(s.Path)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	lock, err := os.OpenFile(filepath.Join(dir, "lock"), os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return err
 	}
