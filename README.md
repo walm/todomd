@@ -15,7 +15,7 @@ humans, renderable on GitHub, and deterministic for the tool. Humans use the
 TUI; AI agents drive the CLI (`--json` everywhere, stable task IDs, meaningful
 exit codes).
 
-## Install
+## 📦 Install
 
 macOS or Linux — installs (and updates) the latest release to
 `~/.local/bin`, verifying the checksum:
@@ -34,14 +34,14 @@ go install github.com/walm/todomd@latest   # or: go build -o todomd .
 
 `todomd --version` prints the version.
 
-## Quick start
+## 🚀 Quick start
 
 ```sh
 todomd init                 # creates TODO.md with Backlog / In Progress / Done
 todomd                      # opens the Kanban TUI
 ```
 
-## CLI (for agents and scripts)
+## 🤖 CLI (for agents and scripts)
 
 ```sh
 todomd add "Fix the parser" --tag parser --due 2026-08-01 --desc "Details..." --json
@@ -56,7 +56,7 @@ todomd boards --json
 todomd changes --as claude --ignore-author claude --json
 ```
 
-### Change tracking for agents
+### 🔄 Change tracking for agents
 
 `todomd changes` answers "what happened since I last looked" without the
 agent having to read or diff the whole file. Each consumer names a cursor
@@ -95,7 +95,7 @@ todomd changes --as claude --ignore-author claude --json   # only others' activi
   on parse. The one restriction: multi-line text must not contain an unclosed
   ``` code fence.
 
-## TUI
+## ⌨️ TUI
 
 | Keys | Action |
 |---|---|
@@ -113,7 +113,7 @@ todomd changes --as claude --ignore-author claude --json   # only others' activi
 Inside the open task, `e`, `E`, and `c` work too and return you to the task
 afterwards.
 
-Mouse works alongside the keys: click a card to select it, click it again to
+🖱️ Mouse works alongside the keys: click a card to select it, click it again to
 open; inside the open task the footer hints (`e edit · E editor ·
 c comment`) are clickable and tapping outside the card closes it. Forms use
 the same style (`ctrl+s save · esc cancel`), and on the board footer
@@ -122,7 +122,7 @@ underlines on hover. Column headers select their column, and the wheel
 scrolls (cards on the board, text in the open task). Terminals need
 shift-click to select text for copying while mouse mode is on.
 
-### Unread badges
+### 🔔 Unread badges
 
 The TUI tracks what changed since *you* last looked (its own `tui` change
 cursor): cards added by someone else show `●` with a green border, cards
@@ -140,7 +140,7 @@ The TUI auto-detects light/dark background at startup. Set `GLAMOUR_STYLE`
 (`dark`, `light`, `notty`, …) to pin the theme and skip the terminal query —
 useful for terminals that don't answer OSC color queries.
 
-## The file format
+## 📝 The file format
 
 ```markdown
 # TODO
@@ -180,7 +180,7 @@ Rules, briefly:
 - Hand-editing is fine; the tool re-canonicalizes spacing on its next write
   and reports malformed content with line numbers.
 
-## A board, not a database
+## ⚠️ A board, not a database
 
 todomd is built for the *active* work of a project — a few boards, dozens of
 tasks. It is not meant to hold hundreds of tasks: a board you can't read in
@@ -193,7 +193,7 @@ one glance has stopped being a board.
   and nothing is ever lost: every task, move, and comment lives in the
   file's history (`git log -p TODO.md`), which beats any archive board.
 
-## Releasing
+## 🏷️ Releasing
 
 todomd follows [semver](https://semver.org) (0.x: minor bumps may break —
 called out in [CHANGELOG.md](CHANGELOG.md)). Versions come from git tags;
@@ -205,7 +205,7 @@ goreleaser stamps the binary. To cut a release:
 The release workflow runs the tests, cross-builds darwin/linux
 (amd64 + arm64) archives, and publishes a GitHub release.
 
-## License
+## 📄 License
 
 [MIT](LICENSE) — free to use however you like; please keep the notice, which
 points back to this repo as the source.
