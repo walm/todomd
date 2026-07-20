@@ -185,3 +185,8 @@ goreleaser stamps the binary. To cut a release:
 
 The release workflow runs the tests, cross-builds darwin/linux
 (amd64 + arm64) archives, and publishes a GitHub release.
+
+## License
+
+[MIT](LICENSE) — free to use however you like; please keep the notice, which
+points back to this repo as the source.
