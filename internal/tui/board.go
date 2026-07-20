@@ -53,6 +53,7 @@ func (m *model) viewBoard() string {
 		m.colOffset = 0
 	}
 
+	m.hits = m.hits[:0]
 	cols := make([]string, 0, nVis)
 	for i := m.colOffset; i < m.colOffset+nVis; i++ {
 		b := m.file.Boards[i]
@@ -68,13 +69,13 @@ func (m *model) viewBoard() string {
 		if i == m.colOffset+nVis-1 && m.colOffset+nVis < len(m.file.Boards) {
 			overflow = "›"
 		}
-		cols = append(cols, m.renderColumn(b, colW, bodyH, active, sel, overflow))
+		cols = append(cols, m.renderColumn(i, b, colW, bodyH, active, sel, overflow, (i-m.colOffset)*colW))
 	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
 	return body + "\n" + footer
 }
 
-func (m *model) renderColumn(b *task.Board, w, h int, active bool, sel int, overflow string) string {
+func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel int, overflow string, x0 int) string {
 	hdrStyle := colHeader
 	if active {
 		hdrStyle = colHeaderActive
@@ -91,11 +92,13 @@ func (m *model) renderColumn(b *task.Board, w, h int, active bool, sel int, over
 
 	cardH := h - 1 // header line
 	var cards []string
+	heights := make([]int, len(b.Tasks))
 	selStart, selEnd := 0, 0
 	lineCount := 0
 	for i, t := range b.Tasks {
 		c := renderCard(t, w-2, active && i == sel, m.unread.marks[t.ID])
 		ch := lipgloss.Height(c)
+		heights[i] = ch
 		if i == sel {
 			selStart, selEnd = lineCount, lineCount+ch
 		}
@@ -123,6 +126,21 @@ func (m *model) renderColumn(b *task.Board, w, h int, active bool, sel int, over
 	}
 	end := min(len(lines), top+cardH)
 	visible := strings.Join(lines[top:end], "\n")
+
+	// Record clickable rectangles (display row 0 is the column header).
+	y := 0
+	for idx, ch := range heights {
+		v0, v1 := y-top, y+ch-top
+		y += ch
+		if v1 <= 0 || v0 >= cardH {
+			continue
+		}
+		m.hits = append(m.hits, hit{
+			board: bi, card: idx,
+			x0: x0, x1: x0 + w,
+			y0: 1 + max(0, v0), y1: 1 + min(cardH, v1),
+		})
+	}
 
 	col := hdr
 	if visible != "" {

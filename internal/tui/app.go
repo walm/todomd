@@ -44,7 +44,7 @@ func Run(s *store.Store) error {
 	}
 	m := newModel(s, f)
 	m.glamourStyle = style
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	_, err = p.Run()
 	return err
 }
@@ -131,6 +131,10 @@ type model struct {
 
 	lastMod  time.Time // file stat as of the last load, gates auto-reload
 	lastSize int64
+
+	hits       []hit  // card rectangles, rebuilt by viewBoard for mouse hits
+	detailRect rect   // modal box position, set by viewDetail
+	plainHint  string // unstyled detail footer, for hint-button hit-testing
 }
 
 // autoReloadEvery is the stat-poll interval: the board picks up external
@@ -282,6 +286,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case modeConfirm:
 			return m.updateConfirm(msg)
 		}
+	case tea.MouseMsg:
+		return m.handleMouse(msg)
 	case editorFinishedMsg:
 		m.applyEditor(msg)
 	case tickMsg:

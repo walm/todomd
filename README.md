@@ -92,6 +92,13 @@ todomd changes --as claude --ignore-author claude --json   # only others' activi
 Inside the open task, `e`, `E`, and `c` work too and return you to the task
 afterwards.
 
+Mouse works alongside the keys: click a card to select it, click it again to
+open; inside the open task the footer hints (`e edit · E editor ·
+c comment`) are clickable and tapping outside the card closes it. Column
+headers select their column, and the wheel scrolls (cards on the board, text
+in the open task). Terminals need shift-click to select text for copying
+while mouse mode is on.
+
 ### Unread badges
 
 The TUI tracks what changed since *you* last looked (its own `tui` change

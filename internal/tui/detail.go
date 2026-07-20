@@ -108,13 +108,19 @@ func (m *model) detailHint() string {
 	if m.vp.TotalLineCount() > m.vp.Height {
 		hint = fmt.Sprintf("%3.0f%% · j/k scroll · %s", m.vp.ScrollPercent()*100, hint)
 	}
+	m.plainHint = hint
 	return lipgloss.NewStyle().Foreground(subtle).Render(hint)
 }
 
 func (m *model) viewDetail() string {
 	if m.smallScreen() {
-		return m.vp.View() + "\n " + m.detailHint()
+		out := m.vp.View() + "\n " + m.detailHint()
+		m.plainHint = "" // no hint buttons; full-screen, so no tap-outside either
+		m.detailRect = rect{0, 0, m.width, m.height}
+		return out
 	}
 	box := detailBox.Render(m.vp.View() + "\n" + m.detailHint())
+	w, h := lipgloss.Width(box), lipgloss.Height(box)
+	m.detailRect = rect{max(0, (m.width-w)/2), max(0, (m.height-h)/2), w, h}
 	return compose(m.viewBoard(), box, m.width, m.height)
 }

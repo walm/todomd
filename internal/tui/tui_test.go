@@ -408,3 +408,66 @@ func TestReloadPreservesSelection(t *testing.T) {
 		t.Errorf("cardIdx = %d, want 0 (followed the task)", m.cardIdx)
 	}
 }
+
+func click(x, y int) tea.MouseMsg {
+	return tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: x, Y: y}
+}
+
+func TestMouseSelectOpenAndClose(t *testing.T) {
+	m := newTestModel(t, 2, 2)
+	m.viewBoard() // build hit rects
+	var target hit
+	for _, h := range m.hits {
+		if h.board == 0 && h.card == 1 {
+			target = h
+		}
+	}
+	if target.x1 == 0 {
+		t.Fatalf("no hit rect for card, hits=%+v", m.hits)
+	}
+	// First click selects, second click (same card) opens.
+	m.handleMouse(click(target.x0+2, target.y0))
+	if m.boardIdx != 0 || m.cardIdx != 1 || m.mode != modeBoard {
+		t.Fatalf("click should select: board=%d card=%d mode=%d", m.boardIdx, m.cardIdx, m.mode)
+	}
+	m.handleMouse(click(target.x0+2, target.y0))
+	if m.mode != modeDetail {
+		t.Fatal("second click should open the card")
+	}
+	m.View() // sets detailRect + plainHint
+
+	// Tap outside the modal closes it.
+	m.handleMouse(click(0, m.height-1))
+	if m.mode != modeBoard {
+		t.Error("tap outside should close the card")
+	}
+
+	// Click inside the modal (not the hint line) does nothing.
+	m.handleMouse(click(target.x0+2, target.y0)) // reopen (still selected)
+	m.View()
+	m.handleMouse(click(m.detailRect.x+2, m.detailRect.y+1))
+	if m.mode != modeDetail {
+		t.Error("click inside the card should not close it")
+	}
+
+	// Click the "c comment" hint button.
+	hintY := m.detailRect.y + m.detailRect.h - 2
+	i := strings.Index(m.plainHint, "c comment")
+	if i < 0 {
+		t.Fatalf("plainHint = %q", m.plainHint)
+	}
+	m.handleMouse(click(m.detailRect.x+2+i, hintY))
+	if m.mode != modeForm || m.form == nil || m.form.kind != formComment {
+		t.Errorf("hint click should open comment form, mode=%d", m.mode)
+	}
+}
+
+func TestMouseHeaderSelectsColumn(t *testing.T) {
+	m := newTestModel(t, 3, 1)
+	m.viewBoard()
+	_, colW := m.layout()
+	m.handleMouse(click(colW*2+1, 0))
+	if m.boardIdx != 2 {
+		t.Errorf("header click: boardIdx = %d, want 2", m.boardIdx)
+	}
+}
