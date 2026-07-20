@@ -94,11 +94,12 @@ afterwards.
 
 Mouse works alongside the keys: click a card to select it, click it again to
 open; inside the open task the footer hints (`e edit · E editor ·
-c comment`) are clickable and tapping outside the card closes it. Forms have
-`[ Save ]` / `[ Cancel ]` buttons; buttons and footer actions highlight on
-hover. Column headers select their column, and the wheel scrolls (cards on
-the board, text in the open task). Terminals need shift-click to select text
-for copying while mouse mode is on.
+c comment`) are clickable and tapping outside the card closes it. Forms use
+the same style (`ctrl+s save · esc cancel`), and on the board footer
+`a add`, `? help`, and `q quit` are clickable too — every actionable label
+underlines on hover. Column headers select their column, and the wheel
+scrolls (cards on the board, text in the open task). Terminals need
+shift-click to select text for copying while mouse mode is on.
 
 ### Unread badges
 

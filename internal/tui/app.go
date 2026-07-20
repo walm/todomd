@@ -132,10 +132,12 @@ type model struct {
 	lastMod  time.Time // file stat as of the last load, gates auto-reload
 	lastSize int64
 
-	hits       []hit  // card rectangles, rebuilt by viewBoard for mouse hits
-	detailRect rect   // modal box position, set by viewDetail
-	plainHint  string // unstyled detail footer, for hint-button hit-testing
-	hintHover  int    // hovered detail-footer action index, -1 none
+	hits        []hit  // card rectangles, rebuilt by viewBoard for mouse hits
+	detailRect  rect   // modal box position, set by viewDetail
+	plainHint   string // unstyled detail footer, for hint-button hit-testing
+	hintHover   int    // hovered detail-footer action index, -1 none
+	plainFooter string // unstyled board footer, for hit-testing
+	footHover   int    // hovered board-footer action index, -1 none
 }
 
 // autoReloadEvery is the stat-poll interval: the board picks up external
@@ -165,7 +167,7 @@ func (m *model) fileChanged() bool {
 }
 
 func newModel(s *store.Store, f *task.File) *model {
-	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap(), hintHover: -1}
+	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap(), hintHover: -1, footHover: -1}
 	m.unread = loadUnread(s.Path, f)
 	m.recordStat()
 	if n := len(m.unread.marks); n > 0 {

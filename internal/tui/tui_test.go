@@ -552,3 +552,36 @@ func TestDetailHintHover(t *testing.T) {
 		t.Errorf("hintHover = %d, want -1", m.hintHover)
 	}
 }
+
+func TestFooterClickAndHover(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.height = 30
+	m.viewBoard() // records plainFooter
+	i := strings.Index(m.plainFooter, "a add")
+	if i < 0 {
+		t.Fatalf("plainFooter = %q", m.plainFooter)
+	}
+	// Hover highlights only clickable segments.
+	m.handleMouse(motion(i+1, m.height-1))
+	if m.footHover < 0 || footerActions[m.footHover].key != "a" {
+		t.Errorf("footHover = %d", m.footHover)
+	}
+	j := strings.Index(m.plainFooter, "h/l column")
+	m.handleMouse(motion(j+1, m.height-1))
+	if m.footHover != -1 {
+		t.Errorf("inert segment should not hover, footHover = %d", m.footHover)
+	}
+	// Click "a add" opens the add form.
+	m.handleMouse(click(i+1, m.height-1))
+	if m.mode != modeForm || m.form.kind != formAdd {
+		t.Errorf("footer click should open add form, mode=%d", m.mode)
+	}
+	m.updateForm(keyMsg("esc"))
+	// Click "? help" toggles full help.
+	m.viewBoard()
+	k := strings.Index(m.plainFooter, "? help")
+	m.handleMouse(click(k+1, m.height-1))
+	if !m.help.ShowAll {
+		t.Error("footer click should toggle help")
+	}
+}

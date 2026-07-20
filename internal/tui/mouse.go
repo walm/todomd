@@ -28,8 +28,8 @@ var hintActions = []struct{ label, key string }{
 	{"e edit", "e"}, {"E editor", "E"}, {"c comment", "c"}, {"q/esc back", "q"},
 }
 
-// hintActionAt returns the index of the footer action under the given
-// screen coordinates, or -1.
+// hintActionAt returns the index of the detail-footer action under the
+// given screen coordinates, or -1.
 func (m *model) hintActionAt(x, y int) int {
 	if y != m.detailRect.y+m.detailRect.h-2 {
 		return -1
@@ -37,6 +37,23 @@ func (m *model) hintActionAt(x, y int) int {
 	rel := x - (m.detailRect.x + 2)
 	for i, a := range hintActions {
 		if j := strings.Index(m.plainHint, a.label); j >= 0 && rel >= j && rel < j+len(a.label) {
+			return i
+		}
+	}
+	return -1
+}
+
+// footerActionAt returns the index of the clickable board-footer action
+// under the given screen coordinates, or -1.
+func (m *model) footerActionAt(x, y int) int {
+	if y != m.height-1 || m.plainFooter == "" {
+		return -1
+	}
+	for i, a := range footerActions {
+		if a.key == "" {
+			continue
+		}
+		if j := strings.Index(m.plainFooter, a.label); j >= 0 && x >= j && x < j+len(a.label) {
 			return i
 		}
 	}
@@ -55,6 +72,8 @@ func (m *model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 		case modeDetail:
 			m.hintHover = m.hintActionAt(msg.X, msg.Y)
+		case modeBoard:
+			m.footHover = m.footerActionAt(msg.X, msg.Y)
 		}
 		return m, nil
 	}
@@ -81,6 +100,10 @@ func (m *model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 	switch m.mode {
 	case modeBoard:
+		if i := m.footerActionAt(msg.X, msg.Y); i >= 0 {
+			m.footHover = -1
+			return m.updateBoard(keyRunes(footerActions[i].key))
+		}
 		if msg.Y == 0 { // column header selects the column
 			if _, colW := m.layout(); colW > 0 {
 				if i := m.colOffset + msg.X/colW; i < len(m.file.Boards) {

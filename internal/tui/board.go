@@ -215,6 +215,37 @@ func renderCard(t *task.Task, w int, selected bool, mark markKind) string {
 	return style.Width(w - 2).Render(strings.Join(parts, "\n"))
 }
 
+// footerActions is the board's short help line; entries with a key are
+// clickable and highlight on hover.
+var footerActions = []struct{ label, key string }{
+	{"h/l column", ""}, {"j/k card", ""}, {"enter open", ""}, {"a add", "a"},
+	{"H/L move task", ""}, {"D done", ""}, {"? help", "?"}, {"q quit", "q"},
+}
+
+// footerHelp renders the short help with hover highlighting and records its
+// plain text for hit-testing; the expanded (?) help stays bubbles/help.
+func (m *model) footerHelp() string {
+	if m.help.ShowAll {
+		m.plainFooter = ""
+		return m.help.View(m.keys)
+	}
+	plain, styled := "", ""
+	for i, a := range footerActions {
+		if i > 0 {
+			plain += " • "
+			styled += hintStyle.Render(" • ")
+		}
+		plain += a.label
+		if a.key != "" && i == m.footHover {
+			styled += hintHoverStyle.Render(a.label)
+		} else {
+			styled += hintStyle.Render(a.label)
+		}
+	}
+	m.plainFooter = plain
+	return styled
+}
+
 func (m *model) viewFooter() string {
 	var status string
 	switch {
@@ -232,7 +263,7 @@ func (m *model) viewFooter() string {
 			status = statusStyle.Render(m.status)
 		}
 	}
-	helpView := m.help.View(m.keys)
+	helpView := m.footerHelp()
 	if status == "" {
 		return helpView
 	}

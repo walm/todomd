@@ -201,12 +201,15 @@ func (f *form) taskValues() (taskValues, error) {
 	return v, nil
 }
 
+// formHint is the footer of a form; save/cancel dispatch like the detail
+// footer, "tab next field" is keyboard-only.
 const (
-	btnSave   = "[ Save ]"
-	btnCancel = "[ Cancel ]"
+	formHintPre    = "tab next field · "
+	formHintSave   = "ctrl+s save"
+	formHintCancel = "esc cancel"
 )
 
-// render returns the form box plus the save/cancel button rectangles
+// render returns the form box plus the save/cancel action rectangles
 // relative to the box's top-left corner.
 func (f *form) render() (box string, saveRel, cancelRel rect) {
 	var lines []string
@@ -243,22 +246,22 @@ func (f *form) render() (box string, saveRel, cancelRel rect) {
 		add(errorStyle.Render(f.err))
 	}
 	add("")
-	btnLine := len(lines)
-	save, cancel := btnStyle, btnStyle
+	hintLine := len(lines)
+	save, cancel := hintStyle, hintStyle
 	switch f.hover {
 	case 0:
-		save = btnHoverStyle
+		save = hintHoverStyle
 	case 1:
-		cancel = btnHoverStyle
+		cancel = hintHoverStyle
 	}
-	add(save.Render(btnSave) + "  " + cancel.Render(btnCancel))
-	add("")
-	add(formLabel.Render("tab: next field · ctrl+s: save · esc: cancel"))
+	add(hintStyle.Render(formHintPre) + save.Render(formHintSave) +
+		hintStyle.Render(" · ") + cancel.Render(formHintCancel))
 
 	box = formBox.Render(strings.Join(lines, "\n"))
 	// Content origin within the box: border (1,1) + padding (2,1).
-	saveRel = rect{3, 2 + btnLine, len(btnSave), 1}
-	cancelRel = rect{3 + len(btnSave) + 2, 2 + btnLine, len(btnCancel), 1}
+	plain := formHintPre + formHintSave + " · " + formHintCancel
+	saveRel = rect{3 + strings.Index(plain, formHintSave), 2 + hintLine, len(formHintSave), 1}
+	cancelRel = rect{3 + strings.Index(plain, formHintCancel), 2 + hintLine, len(formHintCancel), 1}
 	return box, saveRel, cancelRel
 }
 
