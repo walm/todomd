@@ -9,9 +9,15 @@ exit codes).
 
 ## Install
 
+Grab a macOS or Linux binary from the
+[releases page](https://github.com/walm/todomd/releases), or build from
+source:
+
 ```sh
-go build -o todomd .
+go install github.com/walm/todomd@latest   # or: go build -o todomd .
 ```
+
+`todomd --version` prints the version.
 
 ## Quick start
 
@@ -137,7 +143,7 @@ Description: any markdown, multiple paragraphs, code fences, lists.
 #### Comments
 
 - **ai** (2026-07-18): Considered goldmark; hand-rolled round-trips better.
-- **andreas** (2026-07-18): Agreed.
+- **user** (2026-07-18): Agreed.
 
 ## In Progress
 
@@ -160,3 +166,15 @@ Rules, briefly:
   and reports malformed content with line numbers.
 
 The full specification lives in [`plans/todomd-plan.md`](plans/todomd-plan.md).
+
+## Releasing
+
+todomd follows [semver](https://semver.org) (0.x: minor bumps may break —
+called out in [CHANGELOG.md](CHANGELOG.md)). Versions come from git tags;
+goreleaser stamps the binary. To cut a release:
+
+1. Add a `## vX.Y.Z` section to `CHANGELOG.md` and commit.
+2. `git tag vX.Y.Z && git push origin main --tags`
+
+The release workflow runs the tests, cross-builds darwin/linux
+(amd64 + arm64) archives, and publishes a GitHub release.

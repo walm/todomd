@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"text/tabwriter"
 
@@ -56,6 +57,21 @@ func printJSON(v any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// version is stamped by the release build via
+// -ldflags "-X github.com/walm/todomd/internal/cli.version=v0.x.y";
+// plain `go build` / `go install` falls back to module build info.
+var version = "dev"
+
+func resolveVersion() string {
+	if version != "dev" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return version
 }
 
 var (
@@ -139,6 +155,7 @@ func newRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "todomd",
 		Short:         "Kanban TUI and agent-friendly CLI over a markdown TODO.md",
+		Version:       resolveVersion(),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

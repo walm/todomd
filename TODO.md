@@ -2,24 +2,27 @@
 
 ## Backlog
 
-### Optional: fsnotify auto-reload in TUI
-<!-- id:8uf8 -->
-`#tui`
+### Add board management commands (rename/reorder)
+<!-- id:y96v -->
+`#cli`
 
-### Example: rich task with everything
-<!-- id:3d66 -->
-`#example` `#docs` `#parser` **due:** 2026-08-15
+### Publish a Homebrew tap
+<!-- id:hb01 -->
+`#release`
 
-Wow this is good!
-This is an example task showing everything the format supports.
+### Example: a task showing everything the format supports
+<!-- id:ex01 -->
+`#example` `#docs` **due:** 2026-12-31
 
-Markdown works throughout: **bold**, _italics_, `inline code`, and lists:
+Descriptions are verbatim markdown: **bold**, _italics_, `inline code`,
+and lists all work:
 
-- parse the file with a line-based parser
-- keep descriptions verbatim
-- escape structural lines so nothing breaks
+- boards are `##` headings, tasks are `###` headings
+- the HTML comment above holds the task's stable id
+- tags and the due date live on the line under it
 
-Code fences render too, and headings inside them are safe:
+Code fences are safe too — structural-looking lines inside them are
+just content:
 
 ```go
 func Parse(data []byte) (*task.File, error) {
@@ -28,34 +31,18 @@ func Parse(data []byte) (*task.File, error) {
 }
 ```
 
-A second paragraph after the code block, long enough to wrap around inside
-the modal so you can see how longer prose behaves when the box is at its
-maximum width and the content flows over multiple lines.
-
 #### Comments
 
-- **andreas** (2026-07-19): Looks good to me — can we make the due date stand out a bit more on the card?
-- **ai** (2026-07-19): Sure. The card already colors it: red when overdue, yellow within 3 days.
-  Comments can span multiple lines too — continuation lines are indented in the file.
-- **walm** (2026-07-19): Trying the new in-modal comment flow
-- **walm** (2026-07-19): this is looking good now, and will sure be usefull!
-- **walm** (2026-07-19): Edit in editor!!
+- **user** (2026-07-20): Comments capture the conversation on a task, from
+  humans and agents alike.
+- **ai** (2026-07-20): And they can span multiple lines — continuation
+  lines are simply indented in the file.
+  Agents add these with `todomd comment <id> --author ai "..."`.
 
 ## In Progress
 
-### Package & release: goreleaser, homebrew tap
-<!-- id:360k -->
-`#release`
-
 ## Done
 
-### Ship v1
+### Ship v0.1.0
 <!-- id:c4q5 -->
-
-#### Comments
-
-- **ai** (2026-07-19): Core, CLI, and TUI implemented with full test coverage; plan reviewed by a sub-agent and all 18 findings resolved.
-
-### Optional: board management commands (rename/reorder)
-<!-- id:y96v -->
-`#cli`
+`#release`
