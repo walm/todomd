@@ -180,7 +180,18 @@ Rules, briefly:
 - Hand-editing is fine; the tool re-canonicalizes spacing on its next write
   and reports malformed content with line numbers.
 
-The full specification lives in [`plans/todomd-plan.md`](plans/todomd-plan.md).
+## A board, not a database
+
+todomd is built for the *active* work of a project — a few boards, dozens of
+tasks. It is not meant to hold hundreds of tasks: a board you can't read in
+one glance has stopped being a board.
+
+- **Delete Done tasks once they've been reviewed** — `todomd delete <id>
+  --yes` (or `d` in the TUI). Agents should clear confirmed Done items as
+  part of their loop instead of letting the board grow.
+- **Archive and history are git's job.** Keep `TODO.md` in version control
+  and nothing is ever lost: every task, move, and comment lives in the
+  file's history (`git log -p TODO.md`), which beats any archive board.
 
 ## Releasing
 
