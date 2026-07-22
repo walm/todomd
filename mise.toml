@@ -1,2 +1,6 @@
 [tools]
 go = "1.26.4"
+
+[tasks.build]
+description = "Build the dev todomd binary into the repo root"
+run = "go build -o todomd ."
