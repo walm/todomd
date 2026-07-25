@@ -149,6 +149,12 @@ The TUI auto-detects light/dark background at startup. Set `GLAMOUR_STYLE`
 (`dark`, `light`, `notty`, …) to pin the theme and skip the terminal query —
 useful for terminals that don't answer OSC color queries.
 
+## 🌐 Web UI
+
+Prefer a browser? [**todomd-web**](https://github.com/walm/todomd-web) is a
+separate application serving the same board over HTTP — one Go binary, no
+database, the same `TODO.md` as the source of truth.
+
 ## 📝 The file format
 
 ```markdown
