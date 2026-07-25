@@ -135,3 +135,94 @@ func TestCursorPath(t *testing.T) {
 		t.Error("path traversal in cursor name must be rejected")
 	}
 }
+
+// Apply is how a writer folds its own delta into its own cursor snapshot.
+// Round-tripping cursor := Apply(cursor, Diff(before, after)) must leave no
+// events pending for that writer.
+func TestApplyFoldsOwnDelta(t *testing.T) {
+	d := date(t, "2026-09-01")
+	mk := func() *task.File {
+		return file(
+			board("Backlog",
+				&task.Task{ID: "aaaa", Title: "One", Tags: []string{"x"}},
+				&task.Task{ID: "bbbb", Title: "Two"},
+			),
+			board("Done"),
+		)
+	}
+	cases := []struct {
+		name  string
+		apply func(f *task.File)
+	}{
+		{"move", func(f *task.File) {
+			tk := f.Boards[0].Tasks[0]
+			f.Boards[0].Tasks = f.Boards[0].Tasks[1:]
+			f.Boards[1].Tasks = append(f.Boards[1].Tasks, tk)
+		}},
+		{"update fields", func(f *task.File) {
+			tk := f.Boards[0].Tasks[0]
+			tk.Title = "One renamed"
+			tk.Tags = []string{"y", "z"}
+			tk.Due = &d
+			tk.Description = "body"
+		}},
+		{"clear due and tags", func(f *task.File) {
+			tk := f.Boards[0].Tasks[0]
+			tk.Due = nil
+			tk.Tags = nil
+		}},
+		{"comment", func(f *task.File) {
+			tk := f.Boards[0].Tasks[1]
+			tk.Comments = append(tk.Comments, task.Comment{Author: "bot", Date: d, Text: "mine"})
+		}},
+		{"add", func(f *task.File) {
+			f.Boards[0].Tasks = append(f.Boards[0].Tasks, &task.Task{ID: "cccc", Title: "Three"})
+		}},
+		{"add to a new board", func(f *task.File) {
+			f.Boards = append(f.Boards, board("Review", &task.Task{ID: "dddd", Title: "Four"}))
+		}},
+		{"delete", func(f *task.File) {
+			f.Boards[0].Tasks = f.Boards[0].Tasks[:1]
+		}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			before, after, cursor := mk(), mk(), mk()
+			c.apply(after)
+			own := Diff(before, after)
+			if len(own) == 0 {
+				t.Fatal("test premise: mutation produced no events")
+			}
+			Apply(cursor, own)
+			if evs := Diff(cursor, after); len(evs) != 0 {
+				t.Errorf("own delta still pending after Apply: %+v", evs)
+			}
+		})
+	}
+}
+
+// Folding in the writer's own delta must not swallow what someone else did —
+// not even on the same task.
+func TestApplyKeepsOthersChangesPending(t *testing.T) {
+	d := date(t, "2026-09-01")
+	cursor := file(board("Backlog", &task.Task{ID: "aaaa", Title: "One"}), board("Done"))
+
+	// Someone else comments on the task and renames it...
+	other := file(board("Backlog", &task.Task{ID: "aaaa", Title: "One (theirs)",
+		Comments: []task.Comment{{Author: "human", Date: d, Text: "please review"}}}), board("Done"))
+	// ...then the writer moves that same task to Done.
+	after := file(board("Backlog"), board("Done", &task.Task{ID: "aaaa", Title: "One (theirs)",
+		Comments: []task.Comment{{Author: "human", Date: d, Text: "please review"}}}))
+
+	Apply(cursor, Diff(other, after)) // the writer's own delta: just the move
+	got := byType(Diff(cursor, after))
+	if len(got[TaskMoved]) != 0 {
+		t.Error("writer's own move should have been folded in")
+	}
+	if len(got[CommentAdded]) != 1 {
+		t.Errorf("other's comment must stay pending, got %+v", got)
+	}
+	if len(got[TaskUpdated]) != 1 || got[TaskUpdated][0].Fields["title"].New != "One (theirs)" {
+		t.Errorf("other's rename must stay pending, got %+v", got[TaskUpdated])
+	}
+}

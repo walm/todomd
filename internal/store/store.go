@@ -130,6 +130,46 @@ func (s *Store) Save(f *task.File) error {
 // .lock sidecars. The lock file is intentionally never deleted (unlink
 // after unlock races against concurrent lockers).
 func (s *Store) Mutate(fn func(*task.File) error) error {
+	return s.withLock(func() error {
+		f, err := s.Load()
+		if err != nil {
+			return err
+		}
+		if err := fn(f); err != nil {
+			return err
+		}
+		return s.Save(f)
+	})
+}
+
+// MutateTracked is Mutate plus the pre-mutation state, so a caller can compute
+// the delta it just wrote (see internal/changes.Diff).
+func (s *Store) MutateTracked(fn func(*task.File) error) (before, after *task.File, err error) {
+	err = s.withLock(func() error {
+		f, err := s.Load()
+		if err != nil {
+			return err
+		}
+		// Copy via a canonical round-trip: Write emits every task's id, so the
+		// copy is stable. (Loading the file twice could mint different ids for
+		// tasks that don't have one yet, which would diff as delete+add.)
+		if before, err = markdown.Parse(markdown.Write(f)); err != nil {
+			return err
+		}
+		if err := fn(f); err != nil {
+			return err
+		}
+		after = f
+		return s.Save(f)
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return before, after, nil
+}
+
+// withLock runs fn holding the exclusive advisory lock for this file.
+func (s *Store) withLock(fn func() error) error {
 	dir, err := statedir.For(s.Path)
 	if err != nil {
 		return err
@@ -146,15 +186,7 @@ func (s *Store) Mutate(fn func(*task.File) error) error {
 		return fmt.Errorf("locking %s: %w", s.Path, err)
 	}
 	defer unix.Flock(int(lock.Fd()), unix.LOCK_UN)
-
-	f, err := s.Load()
-	if err != nil {
-		return err
-	}
-	if err := fn(f); err != nil {
-		return err
-	}
-	return s.Save(f)
+	return fn()
 }
 
 // Init creates a new file with the default boards. Fails if it exists.
