@@ -263,9 +263,13 @@ func (m *model) viewFooter() string {
 			status = statusStyle.Render(m.status)
 		}
 	}
-	helpView := m.footerHelp()
-	if status == "" {
-		return helpView
+	lines := []string{}
+	if m.updateNotice != "" {
+		lines = append(lines, hintStyle.Render(m.updateNotice))
 	}
-	return status + "\n" + helpView
+	if status != "" {
+		lines = append(lines, status)
+	}
+	lines = append(lines, m.footerHelp())
+	return strings.Join(lines, "\n")
 }

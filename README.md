@@ -34,6 +34,24 @@ go install github.com/walm/todomd@latest   # or: go build -o todomd .
 
 `todomd --version` prints the version.
 
+### Upgrading
+
+```sh
+todomd upgrade          # download the latest release and replace this binary
+todomd upgrade --check  # just report what's available
+```
+
+It verifies the release's published sha256 before swapping the binary, and
+leaves the old one in place if anything fails. If todomd lives somewhere you
+can't write, it says so rather than half-upgrading. (Re-running the install
+script above works too, and is the right move for a source build.)
+
+todomd mentions a newer release **only where a human is looking**: in the TUI
+footer and at the end of `todomd --help` (on stderr, so `--help` output itself
+is unchanged). No other command ever prints it, so scripts and agents are
+unaffected. The check runs at most once a day, in the background, from a
+cached answer — and `TODOMD_NO_UPDATE_CHECK=1` turns it off entirely.
+
 ## 🚀 Quick start
 
 ```sh
