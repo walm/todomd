@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/walm/todomd/internal/selfupdate"
 )
 
 // run executes the CLI with args against a fresh command tree, capturing
@@ -478,4 +481,80 @@ func changeTypes(t *testing.T, path, cursor string) []string {
 		types[i] = e.Type
 	}
 	return types
+}
+
+// runStreams runs the CLI capturing stdout and stderr separately.
+func runStreams(t *testing.T, args ...string) (stdout, stderr string) {
+	t.Helper()
+	oldOut, oldErr := os.Stdout, os.Stderr
+	rOut, wOut, _ := os.Pipe()
+	rErr, wErr, _ := os.Pipe()
+	os.Stdout, os.Stderr = wOut, wErr
+	defer func() { os.Stdout, os.Stderr = oldOut, oldErr }()
+
+	flagJSON = false
+	root := newRoot()
+	root.SetArgs(args)
+	root.SetOut(wOut)
+	root.SetErr(wErr)
+	_ = root.Execute()
+
+	wOut.Close()
+	wErr.Close()
+	var bo, be bytes.Buffer
+	bo.ReadFrom(rOut)
+	be.ReadFrom(rErr)
+	return bo.String(), be.String()
+}
+
+// The update notice is for humans only: it appears at the end of --help, on
+// stderr, and nowhere else. Agents drive the other commands and their stdout
+// must stay exactly as it was.
+func TestUpdateNoticeOnlyInHelpAndOnStderr(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	if err := selfupdate.SaveCache("v9.9.9", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	// Pretend this build is a release, otherwise the notice self-suppresses.
+	old := version
+	version = "v0.1.0"
+	t.Cleanup(func() { version = old })
+
+	stdout, stderr := runStreams(t, "--help")
+	if !strings.Contains(stderr, "v9.9.9") || !strings.Contains(stderr, "todomd upgrade") {
+		t.Errorf("--help should hint on stderr, got stderr:\n%s", stderr)
+	}
+	if strings.Contains(stdout, "v9.9.9") {
+		t.Errorf("--help stdout must stay clean for parsers:\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "Available Commands") {
+		t.Errorf("help text missing from stdout:\n%s", stdout)
+	}
+
+	// Ordinary commands never mention it, on either stream.
+	path := testFile(t)
+	addOne(t, path, "a task")
+	for _, args := range [][]string{
+		{"--file", path, "list"},
+		{"--file", path, "list", "--json"},
+		{"--file", path, "boards", "--json"},
+		{"--file", path, "add", "another", "--json"},
+	} {
+		out, errOut := runStreams(t, args...)
+		if strings.Contains(out, "v9.9.9") || strings.Contains(errOut, "v9.9.9") {
+			t.Errorf("%v leaked the update notice:\nstdout=%s\nstderr=%s", args, out, errOut)
+		}
+	}
+}
+
+func TestUpdateNoticeSuppressedForDevBuilds(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	if err := selfupdate.SaveCache("v9.9.9", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	// version is "dev" in tests: nothing to compare, so stay quiet.
+	_, stderr := runStreams(t, "--help")
+	if strings.Contains(stderr, "v9.9.9") {
+		t.Errorf("dev build should not nag: %s", stderr)
+	}
 }

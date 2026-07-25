@@ -19,8 +19,9 @@ import (
 	"github.com/walm/todomd/internal/task"
 )
 
-// Run starts the TUI over the given store.
-func Run(s *store.Store) error {
+// Run starts the TUI over the given store. version is the running build, used
+// for the (human-only) update notice.
+func Run(s *store.Store, version string) error {
 	f, err := s.Load()
 	if err != nil {
 		return err
@@ -44,6 +45,7 @@ func Run(s *store.Store) error {
 	}
 	m := newModel(s, f)
 	m.glamourStyle = style
+	m.version = version
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	_, err = p.Run()
 	return err
@@ -138,6 +140,9 @@ type model struct {
 	hintHover   int    // hovered detail-footer action index, -1 none
 	plainFooter string // unstyled board footer, for hit-testing
 	footHover   int    // hovered board-footer action index, -1 none
+
+	version      string // running version, for the update check
+	updateNotice string // "vX.Y.Z available" hint, empty when up to date
 }
 
 // autoReloadEvery is the stat-poll interval: the board picks up external
@@ -176,7 +181,9 @@ func newModel(s *store.Store, f *task.File) *model {
 	return m
 }
 
-func (m *model) Init() tea.Cmd { return tickCmd() }
+func (m *model) Init() tea.Cmd {
+	return tea.Batch(tickCmd(), checkUpdateCmd(m.version))
+}
 
 func (m *model) selectedTask() *task.Task {
 	if m.boardIdx >= len(m.file.Boards) {
@@ -293,6 +300,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleMouse(msg)
 	case editorFinishedMsg:
 		m.applyEditor(msg)
+	case updateNoticeMsg:
+		m.updateNotice = string(msg)
+		return m, nil
 	case tickMsg:
 		// Auto-reload only while idling on the board — never yank the file
 		// out from under an open task, form, or confirm prompt.

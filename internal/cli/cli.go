@@ -18,6 +18,7 @@ import (
 
 	"github.com/walm/todomd/internal/changes"
 	"github.com/walm/todomd/internal/markdown"
+	"github.com/walm/todomd/internal/selfupdate"
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
 	"github.com/walm/todomd/internal/tui"
@@ -219,13 +220,27 @@ func newRoot() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return tui.Run(s)
+			return tui.Run(s, resolveVersion())
 		},
 	}
 	root.PersistentFlags().StringVarP(&flagFile, "file", "f", "", "path to the todo markdown file (default: TODO.md, searched upward; env TODOMD_FILE)")
 
 	root.AddCommand(newInit(), newList(), newShow(), newAdd(), newUpdate(),
-		newMove(), newDone(), newComment(), newDelete(), newBoards(), newChanges())
+		newMove(), newDone(), newComment(), newDelete(), newBoards(), newChanges(),
+		newUpgrade())
+
+	// Mention a newer release at the end of --help. It goes to stderr so the
+	// help text on stdout stays byte-identical for anything parsing it, and it
+	// reads the cached answer only — never the network — so help stays instant.
+	// Nothing else on the CLI ever prints this: agents drive the other
+	// commands, and their output is theirs alone.
+	defaultHelp := root.HelpFunc()
+	root.SetHelpFunc(func(c *cobra.Command, args []string) {
+		defaultHelp(c, args)
+		if n := selfupdate.Notice(resolveVersion()); n != "" {
+			fmt.Fprintln(os.Stderr, "\n"+n)
+		}
+	})
 	return root
 }
 

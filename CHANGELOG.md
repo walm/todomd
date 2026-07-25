@@ -4,6 +4,21 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `todomd upgrade` installs the latest release over the running binary, with
+  the same sha256 verification `install.sh` does. `--check` reports without
+  installing, `--force` overrides the up-to-date and source-build guards, and
+  `--json` reports the outcome. A failed upgrade always leaves the existing
+  binary in place.
+- An upgrade hint where a human is looking — the TUI footer, and the end of
+  `todomd --help` (on stderr, leaving help output itself unchanged). No other
+  command prints it, so scripts and agents see nothing new. The check happens
+  in the background at most once a day and is cached;
+  `TODOMD_NO_UPDATE_CHECK=1` disables it.
+
 ## v0.2.0 — 2026-07-25
 
 ### Fixed
