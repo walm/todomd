@@ -4,6 +4,24 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Fixed
+
+- `changes` no longer reports a consumer's own mutations back to it
+  ([#1](https://github.com/walm/todomd/issues/1)). Attribution previously
+  stopped at `comment_added`, so an agent that moved tasks through the board
+  was woken by every one of its own moves.
+
+### Added
+
+- `--as <cursor>` on the mutating commands (`add`, `update`, `move`, `done`,
+  `comment`, `delete`): the write is folded into that cursor's snapshot, so
+  `changes --as <cursor>` skips it. Only the fields that write touched are
+  folded in, so another writer's change to the same task stays pending.
+- `TODOMD_CURSOR` env var, used by both `changes` and the mutating commands,
+  so a long-running consumer names itself once.
+
 ## v0.1.0 — 2026-07-20
 
 Initial release.

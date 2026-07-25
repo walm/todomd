@@ -159,3 +159,107 @@ func SaveCursor(path string, data []byte) error {
 	}
 	return os.WriteFile(path, data, 0o644)
 }
+
+// cloneTask deep-copies a task so a snapshot never aliases the live model.
+func cloneTask(t *task.Task) *task.Task {
+	c := *t
+	c.Tags = slices.Clone(t.Tags)
+	c.Comments = slices.Clone(t.Comments)
+	if t.Due != nil {
+		d := *t.Due
+		c.Due = &d
+	}
+	return &c
+}
+
+func findTask(f *task.File, id string) (*task.Task, *task.Board) {
+	for _, b := range f.Boards {
+		for _, t := range b.Tasks {
+			if t.ID == id {
+				return t, b
+			}
+		}
+	}
+	return nil, nil
+}
+
+func removeTask(f *task.File, id string) {
+	for _, b := range f.Boards {
+		for i, t := range b.Tasks {
+			if t.ID == id {
+				b.Tasks = append(b.Tasks[:i], b.Tasks[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+// boardByName finds or appends a board. Board order is irrelevant here:
+// snapshots are only ever diffed (by task id and board name), never displayed.
+func boardByName(f *task.File, name string) *task.Board {
+	for _, b := range f.Boards {
+		if b.Name == name {
+			return b
+		}
+	}
+	b := &task.Board{Name: name}
+	f.Boards = append(f.Boards, b)
+	return b
+}
+
+// Apply replays events onto f. A writer uses this to fold *its own* delta into
+// its own cursor snapshot, so `changes` stops reporting the writer's own
+// mutations back to it. Only the fields named by each event are touched, so
+// changes made by others — a human's comment on the same task the writer just
+// moved, say — stay pending and are still reported.
+func Apply(f *task.File, events []Event) {
+	for _, e := range events {
+		switch e.Type {
+		case TaskAdded:
+			if t, _ := findTask(f, e.Task.ID); t == nil {
+				b := boardByName(f, e.Board)
+				b.Tasks = append(b.Tasks, cloneTask(e.Task))
+			}
+		case TaskDeleted:
+			removeTask(f, e.Task.ID)
+		case TaskMoved:
+			t, _ := findTask(f, e.Task.ID)
+			if t == nil {
+				continue
+			}
+			removeTask(f, e.Task.ID)
+			to := boardByName(f, e.To)
+			to.Tasks = append(to.Tasks, t)
+		case TaskUpdated:
+			t, _ := findTask(f, e.Task.ID)
+			if t == nil {
+				continue
+			}
+			// Copy only the fields this event reports as changed; the event's
+			// task carries their post-mutation values.
+			for name := range e.Fields {
+				switch name {
+				case "title":
+					t.Title = e.Task.Title
+				case "description":
+					t.Description = e.Task.Description
+				case "tags":
+					t.Tags = slices.Clone(e.Task.Tags)
+				case "due":
+					t.Due = nil
+					if e.Task.Due != nil {
+						d := *e.Task.Due
+						t.Due = &d
+					}
+				case "comments":
+					t.Comments = slices.Clone(e.Task.Comments)
+				}
+			}
+		case CommentAdded:
+			t, _ := findTask(f, e.Task.ID)
+			if t != nil && e.Comment != nil {
+				t.Comments = append(t.Comments, *e.Comment)
+			}
+		}
+	}
+}

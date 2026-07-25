@@ -186,7 +186,12 @@ initializes the cursor and reports no events.`,
 			return w.Flush()
 		},
 	}
-	cmd.Flags().StringVar(&as, "as", "default", "cursor name (one per consumer, e.g. an agent name)")
+	defaultCursor := "default"
+	if env := os.Getenv("TODOMD_CURSOR"); env != "" {
+		defaultCursor = env
+	}
+	cmd.Flags().StringVar(&as, "as", defaultCursor,
+		"cursor name (one per consumer, e.g. an agent name; env TODOMD_CURSOR)")
 	cmd.Flags().BoolVar(&peek, "peek", false, "report without advancing the cursor")
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
 	jsonFlag(cmd)

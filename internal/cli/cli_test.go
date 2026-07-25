@@ -351,3 +351,131 @@ func TestChangesPersistsHandAddedIDs(t *testing.T) {
 		t.Errorf("event id %q not persisted to file:\n%s", got.Events[0].TaskID, data)
 	}
 }
+
+// Regression for #1: a consumer that writes to the board was woken by its own
+// mutations, because only comment_added honoured attribution.
+func TestChangesSkipsOwnMutations(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	id := addOne(t, path, "probe")
+	if _, err := run(t, "--file", path, "changes", "--as", "probe", "--json"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Every mutation kind, attributed to this consumer.
+	for _, args := range [][]string{
+		{"move", id, "--to", "In Progress", "--as", "probe"},
+		{"update", id, "--title", "probe renamed", "--as", "probe"},
+		{"comment", id, "--author", "probe", "mine", "--as", "probe"},
+		{"add", "second task", "--as", "probe"},
+		{"done", id, "--as", "probe"},
+	} {
+		if _, err := run(t, append([]string{"--file", path}, args...)...); err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+	}
+	if evs := changeTypes(t, path, "probe"); len(evs) != 0 {
+		t.Errorf("own mutations reported back: %v", evs)
+	}
+
+	// An unattributed write (someone else) is still reported.
+	if _, err := run(t, "--file", path, "move", id, "--to", "Backlog"); err != nil {
+		t.Fatal(err)
+	}
+	if evs := changeTypes(t, path, "probe"); len(evs) != 1 || evs[0] != "task_moved" {
+		t.Errorf("other writer's move = %v, want [task_moved]", evs)
+	}
+}
+
+// Folding in the writer's own change must not hide what someone else did to the
+// same task — the "please review" comment must survive the agent's own move.
+func TestChangesKeepsOthersChangesOnSameTask(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	id := addOne(t, path, "probe")
+	if _, err := run(t, "--file", path, "changes", "--as", "agent", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "comment", id, "--author", "human", "please review"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "move", id, "--to", "In Progress", "--as", "agent"); err != nil {
+		t.Fatal(err)
+	}
+	if evs := changeTypes(t, path, "agent"); len(evs) != 1 || evs[0] != "comment_added" {
+		t.Errorf("got %v, want just the human's [comment_added]", evs)
+	}
+}
+
+func TestChangesOwnWriteIsPerCursor(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	id := addOne(t, path, "probe")
+	for _, name := range []string{"agentA", "agentB"} {
+		if _, err := run(t, "--file", path, "changes", "--as", name, "--json"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := run(t, "--file", path, "move", id, "--to", "In Progress", "--as", "agentA"); err != nil {
+		t.Fatal(err)
+	}
+	if evs := changeTypes(t, path, "agentA"); len(evs) != 0 {
+		t.Errorf("writer saw its own move: %v", evs)
+	}
+	if evs := changeTypes(t, path, "agentB"); len(evs) != 1 {
+		t.Errorf("other cursor should still see the move, got %v", evs)
+	}
+}
+
+func TestChangesCursorFromEnv(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	id := addOne(t, path, "probe")
+	t.Setenv("TODOMD_CURSOR", "envbot")
+	// No --as anywhere: both the read and the write use $TODOMD_CURSOR.
+	if _, err := run(t, "--file", path, "changes", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "move", id, "--to", "Done"); err != nil {
+		t.Fatal(err)
+	}
+	if evs := changeTypes(t, path, "envbot"); len(evs) != 0 {
+		t.Errorf("own move via TODOMD_CURSOR reported back: %v", evs)
+	}
+}
+
+// Attributing a write to a cursor that doesn't exist yet must not fail the
+// write (the consumer's first read baselines from current state anyway).
+func TestOwnWriteWithUntrackedCursor(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	if _, err := run(t, "--file", path, "add", "x", "--as", "neverseen"); err != nil {
+		t.Fatalf("write failed for an untracked cursor: %v", err)
+	}
+	out, err := run(t, "--file", path, "list")
+	if err != nil || !strings.Contains(out, "x") {
+		t.Errorf("task not written: %v\n%s", err, out)
+	}
+}
+
+// changeTypes reads and advances a cursor, returning the event types.
+func changeTypes(t *testing.T, path, cursor string) []string {
+	t.Helper()
+	out, err := run(t, "--file", path, "changes", "--as", cursor, "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Events []struct {
+			Type string `json:"type"`
+		} `json:"events"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	types := make([]string, len(got.Events))
+	for i, e := range got.Events {
+		types[i] = e.Type
+	}
+	return types
+}

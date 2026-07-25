@@ -70,12 +70,21 @@ Events: `task_added` (includes the full task as `detail`), `task_deleted`,
 `task_moved` (`from`/`to`), `task_updated` (`fields` with old/new per
 changed field — renames stay the same task, identity is the ID),
 `comment_added` (the comment). Reorders within a board are not reported.
+
+**A consumer is never notified about its own writes.** Pass the same `--as`
+name when you write (or set `TODOMD_CURSOR` once) and that write is folded
+into your own cursor, so it isn't reported back to you — while everyone
+else's cursor still sees it. Only what *you* changed is skipped: if a human
+comments on the very task you just moved, you still get that comment.
+
 The typical agent loop:
 
 ```sh
+export TODOMD_CURSOR=claude          # or pass --as claude to each call
+todomd move 3f2a --to "In Progress"  # mine: won't come back as an event
 todomd comment 3f2a --author claude "done, please review"
 # …later…
-todomd changes --as claude --ignore-author claude --json   # only others' activity
+todomd changes --json                # only what others did
 ```
 
 - **File resolution**: `--file` flag > `TODOMD_FILE` env > `TODO.md` searched

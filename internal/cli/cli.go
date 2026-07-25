@@ -16,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
+	"github.com/walm/todomd/internal/changes"
+	"github.com/walm/todomd/internal/markdown"
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
 	"github.com/walm/todomd/internal/tui"
@@ -77,7 +79,60 @@ func resolveVersion() string {
 var (
 	flagFile string
 	flagJSON bool
+	flagAs   string
 )
+
+// selfCursor is the cursor this invocation acts as: --as, else $TODOMD_CURSOR.
+// Empty means the writer isn't tracking changes, so there is nothing to skip.
+func selfCursor() string {
+	if flagAs != "" {
+		return flagAs
+	}
+	return os.Getenv("TODOMD_CURSOR")
+}
+
+// asFlag adds --as to a mutating command: the write is attributed to that
+// cursor so `changes --as <name>` won't report it back to its own author.
+func asFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&flagAs, "as", "",
+		"attribute this write to a cursor so 'changes --as <name>' skips it (env TODOMD_CURSOR)")
+}
+
+// skipOwnChange folds the delta just written into the writer's own cursor
+// snapshot, so the writer is not notified about its own mutation. Only the
+// fields this write touched are folded in: anything another writer changed —
+// a human comment on the same task, say — stays pending.
+func skipOwnChange(path string, before, after *task.File) {
+	name := selfCursor()
+	if name == "" || before == nil || after == nil {
+		return
+	}
+	warn := func(err error) {
+		fmt.Fprintf(os.Stderr, "todomd: warning: cursor %q not advanced: %v\n", name, err)
+	}
+	cpath, err := changes.CursorPath(path, name)
+	if err != nil {
+		warn(err)
+		return
+	}
+	data, ok, err := changes.LoadCursor(cpath)
+	if err != nil {
+		warn(err)
+		return
+	}
+	if !ok {
+		return // consumer hasn't started tracking; its first read baselines anyway
+	}
+	snap, err := markdown.Parse(data)
+	if err != nil {
+		warn(err)
+		return
+	}
+	changes.Apply(snap, changes.Diff(before, after))
+	if err := changes.SaveCursor(cpath, markdown.Write(snap)); err != nil {
+		warn(err)
+	}
+}
 
 func newStore(forInit bool) (*store.Store, error) {
 	if forInit && flagFile == "" && os.Getenv("TODOMD_FILE") == "" {
@@ -103,7 +158,7 @@ func mutate(fn func(*task.File) (*task.Task, error), msg func(t *task.Task, boar
 	}
 	var affected *task.Task
 	var boardName string
-	err = s.Mutate(func(f *task.File) error {
+	before, after, err := s.MutateTracked(func(f *task.File) error {
 		t, err := fn(f)
 		if err != nil {
 			return err
@@ -117,6 +172,7 @@ func mutate(fn func(*task.File) (*task.Task, error), msg func(t *task.Task, boar
 	if err != nil {
 		return err
 	}
+	skipOwnChange(s.Path, before, after)
 	if flagJSON {
 		return printJSON(toJSON(affected, boardName))
 	}
@@ -351,6 +407,7 @@ func newAdd() *cobra.Command {
 	cmd.Flags().StringVar(&desc, "desc", "", "description (markdown)")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "tag (repeatable)")
 	cmd.Flags().StringVar(&due, "due", "", "due date YYYY-MM-DD")
+	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
 }
@@ -396,6 +453,7 @@ func newUpdate() *cobra.Command {
 	cmd.Flags().StringVar(&due, "due", "", "new due date YYYY-MM-DD")
 	cmd.Flags().BoolVar(&opts.ClearDue, "clear-due", false, "remove the due date")
 	cmd.Flags().BoolVar(&opts.ClearTags, "clear-tags", false, "remove all tags")
+	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
 }
@@ -423,6 +481,7 @@ func newMove() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&to, "to", "", "target board (default: current; created if missing)")
 	cmd.Flags().IntVar(&pos, "pos", 0, "1-based position in the target (default: append)")
+	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
 }
@@ -440,6 +499,7 @@ func newDone() *cobra.Command {
 			})
 		},
 	}
+	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
 }
@@ -460,6 +520,7 @@ func newComment() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&author, "author", "", "comment author (e.g. ai, or a name)")
 	cmd.MarkFlagRequired("author")
+	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
 }
@@ -480,13 +541,14 @@ func newDelete() *cobra.Command {
 			}
 			var deleted *task.Task
 			var board string
-			err = s.Mutate(func(f *task.File) error {
+			before, after, err := s.MutateTracked(func(f *task.File) error {
 				deleted, board, err = store.Delete(f, args[0])
 				return err
 			})
 			if err != nil {
 				return err
 			}
+			skipOwnChange(s.Path, before, after)
 			if flagJSON {
 				return printJSON(toJSON(deleted, board))
 			}
@@ -495,6 +557,7 @@ func newDelete() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&yes, "yes", false, "confirm deletion")
+	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
 }
