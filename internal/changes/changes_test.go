@@ -226,3 +226,22 @@ func TestApplyKeepsOthersChangesPending(t *testing.T) {
 		t.Errorf("other's rename must stay pending, got %+v", got[TaskUpdated])
 	}
 }
+
+func TestDiffAndApplyPriority(t *testing.T) {
+	old := file(board("B", &task.Task{ID: "aaaa", Title: "T"}))
+	cur := file(board("B", &task.Task{ID: "aaaa", Title: "T", Priority: task.PriorityHigh}))
+	evs := Diff(old, cur)
+	if len(evs) != 1 || evs[0].Type != TaskUpdated {
+		t.Fatalf("events = %+v", evs)
+	}
+	fc := evs[0].Fields["priority"]
+	if fc.Old != "normal" || fc.New != "high" {
+		t.Errorf("priority change = %+v", fc)
+	}
+	// And a writer folding its own priority change sees nothing pending.
+	cursor := file(board("B", &task.Task{ID: "aaaa", Title: "T"}))
+	Apply(cursor, evs)
+	if rest := Diff(cursor, cur); len(rest) != 0 {
+		t.Errorf("own priority change still pending: %+v", rest)
+	}
+}

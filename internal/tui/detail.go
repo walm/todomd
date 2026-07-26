@@ -8,6 +8,8 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+
+	"github.com/walm/todomd/internal/task"
 )
 
 var detailBox = lipgloss.NewStyle().
@@ -46,6 +48,9 @@ func (m *model) openDetail() {
 	fmt.Fprintf(&md, "`%s` · **%s**", t.ID, board)
 	if len(t.Tags) > 0 {
 		fmt.Fprintf(&md, " · #%s", strings.Join(t.Tags, " #"))
+	}
+	if t.Priority != task.PriorityNormal {
+		fmt.Fprintf(&md, " · priority **%s**", t.Priority)
 	}
 	if t.Due != nil {
 		fmt.Fprintf(&md, " · due **%s**", t.Due)

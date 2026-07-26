@@ -332,6 +332,7 @@ type UpdateOpts struct {
 	Title       *string
 	Description *string
 	Tags        *[]string // replaces the whole set
+	Priority    *task.Priority
 	Due         *task.Date
 	ClearDue    bool
 	ClearTags   bool
@@ -365,6 +366,9 @@ func Update(f *task.File, ref string, opts UpdateOpts) (*task.Task, error) {
 			}
 		}
 		t.Tags = tags
+	}
+	if opts.Priority != nil {
+		t.Priority = *opts.Priority
 	}
 	if opts.ClearDue {
 		t.Due = nil

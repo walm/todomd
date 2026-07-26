@@ -604,3 +604,64 @@ func TestFooterHitAtVisiblePosition(t *testing.T) {
 		t.Errorf("byte-offset position (right of label) must miss, got %d", got)
 	}
 }
+
+func TestPriorityCycleAndCard(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	id := m.file.Boards[0].Tasks[0].ID
+
+	// p steps normal → high → low → normal, persisting each time.
+	for _, want := range []task.Priority{task.PriorityHigh, task.PriorityLow, task.PriorityNormal} {
+		m.updateBoard(keyMsg("p"))
+		if got := m.file.Boards[0].Tasks[0].Priority; got != want {
+			t.Fatalf("after p: priority = %v, want %v", got, want)
+		}
+		f, err := m.store.Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if f.Boards[0].Tasks[0].Priority != want {
+			t.Errorf("priority not persisted: %v", f.Boards[0].Tasks[0].Priority)
+		}
+	}
+	_ = id
+
+	// Cards mark the non-default levels.
+	high := &task.Task{ID: "aaaa", Title: "T", Priority: task.PriorityHigh}
+	if !strings.Contains(renderCard(high, 40, false, markNone), "high") {
+		t.Error("high card should show its priority")
+	}
+	normal := &task.Task{ID: "bbbb", Title: "T"}
+	card := renderCard(normal, 40, false, markNone)
+	if strings.Contains(card, "high") || strings.Contains(card, "low") || strings.Contains(card, "normal") {
+		t.Errorf("normal card should stay unmarked:\n%s", card)
+	}
+}
+
+func TestFormCarriesPriority(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.updateBoard(keyMsg("a"))
+	m.form.title.SetValue("New task")
+	m.form.prio.SetValue("high")
+	m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found *task.Task
+	for _, tk := range f.Boards[0].Tasks {
+		if tk.Title == "New task" {
+			found = tk
+		}
+	}
+	if found == nil || found.Priority != task.PriorityHigh {
+		t.Fatalf("form priority not applied: %+v", found)
+	}
+	// An invalid value keeps the form open with an error instead of saving.
+	m.updateBoard(keyMsg("a"))
+	m.form.title.SetValue("Bad")
+	m.form.prio.SetValue("urgent")
+	m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
+	if m.mode != modeForm || m.form.err == "" {
+		t.Errorf("invalid priority should keep the form open, mode=%d err=%q", m.mode, m.form.err)
+	}
+}

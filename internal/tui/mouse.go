@@ -27,7 +27,8 @@ func keyRunes(s string) tea.KeyMsg {
 // hintActions are the clickable segments of the detail footer, dispatched
 // by replaying the corresponding key through the normal handler.
 var hintActions = []struct{ label, key string }{
-	{"e edit", "e"}, {"E editor", "E"}, {"c comment", "c"}, {"q/esc back", "q"},
+	{"e edit", "e"}, {"E editor", "E"}, {"c comment", "c"}, {"p priority", "p"},
+	{"q/esc back", "q"},
 }
 
 // labelCol returns the display column of label within plain, or -1. Byte

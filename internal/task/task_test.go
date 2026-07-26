@@ -61,3 +61,30 @@ func TestValidation(t *testing.T) {
 		t.Errorf("trim failed: %q", got)
 	}
 }
+
+func TestPriority(t *testing.T) {
+	// Normal is the zero value, so an untouched task is Normal.
+	var zero Task
+	if zero.Priority != PriorityNormal || zero.Priority.String() != "normal" {
+		t.Errorf("zero value = %v (%s), want normal", zero.Priority, zero.Priority)
+	}
+	// Numeric order matches importance, so sorting works.
+	if !(PriorityHigh > PriorityNormal && PriorityNormal > PriorityLow) {
+		t.Error("priority ordering is wrong")
+	}
+	for in, want := range map[string]Priority{
+		"high": PriorityHigh, "HIGH": PriorityHigh, " High ": PriorityHigh, "h": PriorityHigh,
+		"normal": PriorityNormal, "": PriorityNormal, "n": PriorityNormal,
+		"low": PriorityLow, "LOW": PriorityLow, "l": PriorityLow,
+	} {
+		got, err := ParsePriority(in)
+		if err != nil || got != want {
+			t.Errorf("ParsePriority(%q) = %v, %v", in, got, err)
+		}
+	}
+	for _, bad := range []string{"urgent", "critical", "1", "highest"} {
+		if _, err := ParsePriority(bad); err == nil {
+			t.Errorf("ParsePriority(%q) should fail", bad)
+		}
+	}
+}
