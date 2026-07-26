@@ -43,6 +43,10 @@ func keyMsg(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyEnter}
 	case "esc":
 		return tea.KeyMsg{Type: tea.KeyEsc}
+	case "left":
+		return tea.KeyMsg{Type: tea.KeyLeft}
+	case "right":
+		return tea.KeyMsg{Type: tea.KeyRight}
 	}
 	panic("unknown key " + s)
 }
@@ -641,7 +645,7 @@ func TestFormCarriesPriority(t *testing.T) {
 	m := newTestModel(t, 1, 1)
 	m.updateBoard(keyMsg("a"))
 	m.form.title.SetValue("New task")
-	m.form.prio.SetValue("high")
+	m.form.prio = task.PriorityHigh
 	m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
 	f, err := m.store.Load()
 	if err != nil {
@@ -656,12 +660,79 @@ func TestFormCarriesPriority(t *testing.T) {
 	if found == nil || found.Priority != task.PriorityHigh {
 		t.Fatalf("form priority not applied: %+v", found)
 	}
-	// An invalid value keeps the form open with an error instead of saving.
+	// The select can't hold an invalid priority at all; a bad due date still
+	// keeps the form open with its error rather than discarding the input.
 	m.updateBoard(keyMsg("a"))
 	m.form.title.SetValue("Bad")
-	m.form.prio.SetValue("urgent")
+	m.form.due.SetValue("not-a-date")
 	m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
 	if m.mode != modeForm || m.form.err == "" {
-		t.Errorf("invalid priority should keep the form open, mode=%d err=%q", m.mode, m.form.err)
+		t.Errorf("invalid due should keep the form open, mode=%d err=%q", m.mode, m.form.err)
 	}
 }
+
+func TestPrioritySelect(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.updateBoard(keyMsg("a"))
+	f := m.form
+	if f.prio != task.PriorityNormal {
+		t.Fatalf("new task should start at normal, got %v", f.prio)
+	}
+	// Tab to the priority field (title → tags → priority).
+	m.updateForm(tea.KeyMsg{Type: tea.KeyTab})
+	m.updateForm(tea.KeyMsg{Type: tea.KeyTab})
+	if f.focus != 2 {
+		t.Fatalf("focus = %d, want the priority select", f.focus)
+	}
+	// → raises, ← lowers, and both clamp at the ends.
+	m.updateForm(keyMsg("right"))
+	if f.prio != task.PriorityHigh {
+		t.Errorf("→ gave %v, want high", f.prio)
+	}
+	m.updateForm(keyMsg("right"))
+	if f.prio != task.PriorityHigh {
+		t.Errorf("→ past the end should clamp, got %v", f.prio)
+	}
+	m.updateForm(keyMsg("left"))
+	m.updateForm(keyMsg("left"))
+	if f.prio != task.PriorityLow {
+		t.Errorf("← gave %v, want low", f.prio)
+	}
+	m.updateForm(keyMsg("left"))
+	if f.prio != task.PriorityLow {
+		t.Errorf("← past the start should clamp, got %v", f.prio)
+	}
+	// Stray typing can't corrupt a select.
+	m.updateForm(keyMsg("x"))
+	if f.prio != task.PriorityLow {
+		t.Errorf("typing changed the select: %v", f.prio)
+	}
+
+	// Every option is clickable, and clicking focuses the field.
+	m.View() // records option rects
+	if len(f.prioRects) != 3 {
+		t.Fatalf("prioRects = %d, want 3", len(f.prioRects))
+	}
+	m.setFocus0()
+	r := f.prioRects[2] // "high"
+	m.handleMouse(click(r.x, r.y))
+	if f.prio != task.PriorityHigh {
+		t.Errorf("clicking 'high' gave %v", f.prio)
+	}
+	if f.focus != 2 {
+		t.Errorf("clicking an option should focus the select, focus=%d", f.focus)
+	}
+	// Hover marks the option under the pointer, and only that one.
+	m.handleMouse(motion(f.prioRects[0].x, f.prioRects[0].y))
+	if f.prioHover != 0 {
+		t.Errorf("prioHover = %d, want 0", f.prioHover)
+	}
+	m.handleMouse(motion(0, 0))
+	if f.prioHover != -1 {
+		t.Errorf("prioHover = %d, want -1 off the options", f.prioHover)
+	}
+}
+
+// setFocus0 puts the form back on its first field, for tests that then assert
+// a click moves focus.
+func (m *model) setFocus0() { m.form.setFocus(0) }

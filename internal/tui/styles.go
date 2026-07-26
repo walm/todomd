@@ -40,6 +40,15 @@ var (
 	formLabel = lipgloss.NewStyle().Foreground(subtle)
 	formTitle = lipgloss.NewStyle().Bold(true).Foreground(accent)
 
+	// Select options: the chosen one stands out, and stands out more while
+	// its field has focus; hover mirrors the other clickable labels.
+	optionStyle         = lipgloss.NewStyle().Foreground(subtle)
+	optionHoverStyle    = lipgloss.NewStyle().Foreground(accent).Underline(true)
+	optionSelected      = lipgloss.NewStyle().Foreground(accent).Bold(true)
+	optionSelectedFocus = lipgloss.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#1A1A1A"}).
+				Background(accent).Bold(true)
+
 	hintStyle      = lipgloss.NewStyle().Foreground(subtle)
 	hintHoverStyle = lipgloss.NewStyle().Foreground(accent).Underline(true)
 )

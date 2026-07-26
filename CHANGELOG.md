@@ -10,7 +10,8 @@ breaking changes to the file format or CLI (they will be called out).
 
 - Task priority: `high`, `normal` (default) or `low`. Set it with
   `add --priority` / `update --priority`, filter with `list --priority`, cycle
-  it in the TUI with `p`, or edit it in the add/edit form. Cards show `▲ high`
+  it in the TUI with `p`, or pick it from the `←`/`→` select in the add/edit
+  form (also clickable, with hover). Cards show `▲ high`
   / `▼ low`; `"priority"` is always present in JSON. The convention is to work
   High first, then Normal, then Low — todomd records it and leaves scheduling
   to you.

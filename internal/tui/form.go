@@ -28,7 +28,7 @@ type form struct {
 
 	title textinput.Model // or author
 	tags  textinput.Model
-	prio  textinput.Model
+	prio  task.Priority // chosen from prioOptions, so it can't be invalid
 	due   textinput.Model
 	desc  textarea.Model // or comment text
 
@@ -36,8 +36,24 @@ type form struct {
 	width, height int
 	err           string // validation error, shown inside the box
 
+	prioLine                      int // content-relative row of the select
 	hover                         int // -1 none, 0 save, 1 cancel
 	boxRect, saveRect, cancelRect rect
+	prioHover                     int // hovered priority option, -1 none
+	prioRects                     []rect
+}
+
+// prioOptions is the priority select, ordered low → high so ← and → read as
+// "less" and "more".
+var prioOptions = []task.Priority{task.PriorityLow, task.PriorityNormal, task.PriorityHigh}
+
+func prioIndex(p task.Priority) int {
+	for i, o := range prioOptions {
+		if o == p {
+			return i
+		}
+	}
+	return 1 // normal
 }
 
 func newInput(placeholder, value string, w int) textinput.Model {
@@ -51,16 +67,14 @@ func newInput(placeholder, value string, w int) textinput.Model {
 
 func newTaskForm(width, height int, t *task.Task, board string) *form {
 	w := formInnerWidth(width)
-	f := &form{kind: formAdd, board: board, width: width, height: height, hover: -1}
-	var title, tags, prio, due, desc string
+	f := &form{kind: formAdd, board: board, width: width, height: height, hover: -1, prioHover: -1}
+	var title, tags, due, desc string
 	if t != nil {
 		f.kind = formEdit
 		f.targetID = t.ID
 		title = t.Title
 		tags = strings.Join(t.Tags, " ")
-		if t.Priority != task.PriorityNormal {
-			prio = t.Priority.String()
-		}
+		f.prio = t.Priority
 		if t.Due != nil {
 			due = t.Due.String()
 		}
@@ -68,7 +82,6 @@ func newTaskForm(width, height int, t *task.Task, board string) *form {
 	}
 	f.title = newInput("task title", title, w)
 	f.tags = newInput("tags: parser core", tags, w)
-	f.prio = newInput("priority: high, normal or low", prio, w)
 	f.due = newInput("due: YYYY-MM-DD", due, w)
 	f.desc = textarea.New()
 	f.desc.Placeholder = "description (markdown)"
@@ -81,7 +94,7 @@ func newTaskForm(width, height int, t *task.Task, board string) *form {
 
 func newCommentForm(width, height int, targetID, author string) *form {
 	w := formInnerWidth(width)
-	f := &form{kind: formComment, targetID: targetID, width: width, height: height, hover: -1}
+	f := &form{kind: formComment, targetID: targetID, width: width, height: height, hover: -1, prioHover: -1}
 	f.title = newInput("author", author, w)
 	f.desc = textarea.New()
 	f.desc.Placeholder = "comment text"
@@ -107,7 +120,6 @@ func (f *form) setFocus(i int) {
 	f.focus = i
 	f.title.Blur()
 	f.tags.Blur()
-	f.prio.Blur()
 	f.due.Blur()
 	f.desc.Blur()
 	if f.kind == formComment {
@@ -124,8 +136,7 @@ func (f *form) setFocus(i int) {
 		f.title.Focus()
 	case 1:
 		f.tags.Focus()
-	case 2:
-		f.prio.Focus()
+	case 2: // priority is a select: nothing to focus, arrows drive it
 	case 3:
 		f.due.Focus()
 	default:
@@ -156,6 +167,17 @@ func (f *form) update(msg tea.KeyMsg) (done, canceled bool, cmd tea.Cmd) {
 			return false, false, nil
 		}
 	}
+	if f.kind != formComment && f.focus == 2 {
+		switch msg.String() {
+		case "left", "h":
+			f.prio = prioOptions[max(0, prioIndex(f.prio)-1)]
+			return false, false, nil
+		case "right", "l", " ":
+			f.prio = prioOptions[min(len(prioOptions)-1, prioIndex(f.prio)+1)]
+			return false, false, nil
+		}
+		return false, false, nil // a select swallows stray typing
+	}
 	if f.focus == last {
 		f.desc, cmd = f.desc.Update(msg)
 		return false, false, cmd
@@ -169,8 +191,6 @@ func (f *form) update(msg tea.KeyMsg) (done, canceled bool, cmd tea.Cmd) {
 		f.title, cmd = f.title.Update(msg)
 	case 1:
 		f.tags, cmd = f.tags.Update(msg)
-	case 2:
-		f.prio, cmd = f.prio.Update(msg)
 	case 3:
 		f.due, cmd = f.due.Update(msg)
 	}
@@ -201,9 +221,7 @@ func (f *form) taskValues() (taskValues, error) {
 		}
 		v.tags = append(v.tags, tag)
 	}
-	if v.prio, err = task.ParsePriority(f.prio.Value()); err != nil {
-		return v, err
-	}
+	v.prio = f.prio
 	if s := strings.TrimSpace(f.due.Value()); s != "" {
 		d, err := task.ParseDate(s)
 		if err != nil {
@@ -249,8 +267,13 @@ func (f *form) render() (box string, saveRel, cancelRel rect) {
 		add(formLabel.Render("tags"))
 		add(f.tags.View())
 		add("")
-		add(formLabel.Render("priority"))
-		add(f.prio.View())
+		prioLabel := "priority"
+		if f.focus == 2 {
+			prioLabel += formLabel.Render("   ←/→ choose")
+		}
+		add(formLabel.Render(prioLabel))
+		f.prioLine = len(lines)
+		add(f.renderPrio())
 		add("")
 		add(formLabel.Render("due"))
 		add(f.due.View())
@@ -283,6 +306,36 @@ func (f *form) render() (box string, saveRel, cancelRel rect) {
 	return box, saveRel, cancelRel
 }
 
+// renderPrio draws the option row and records where each option sits, so the
+// mouse can hit-test them. Positions are content-relative; viewForm turns them
+// into screen rects.
+func (f *form) renderPrio() string {
+	const gap = "   "
+	var out strings.Builder
+	f.prioRects = f.prioRects[:0]
+	col := 0
+	for i, p := range prioOptions {
+		if i > 0 {
+			out.WriteString(gap)
+			col += len(gap)
+		}
+		label := p.String()
+		style := optionStyle
+		switch {
+		case p == f.prio && f.focus == 2:
+			style = optionSelectedFocus
+		case p == f.prio:
+			style = optionSelected
+		case i == f.prioHover:
+			style = optionHoverStyle
+		}
+		out.WriteString(style.Render(label))
+		f.prioRects = append(f.prioRects, rect{col, 0, len(label), 1})
+		col += len(label)
+	}
+	return out.String()
+}
+
 // viewForm composes the form box over the board and records the absolute
 // button rectangles for mouse hit-testing.
 func (m *model) viewForm() string {
@@ -292,5 +345,11 @@ func (m *model) viewForm() string {
 	m.form.boxRect = rect{bx, by, w, h}
 	m.form.saveRect = rect{bx + saveRel.x, by + saveRel.y, saveRel.w, saveRel.h}
 	m.form.cancelRect = rect{bx + cancelRel.x, by + cancelRel.y, cancelRel.w, cancelRel.h}
+	// Content origin within the box: border (1,1) + padding (2,1).
+	for i := range m.form.prioRects {
+		r := &m.form.prioRects[i]
+		r.y = by + 2 + m.form.prioLine
+		r.x = bx + 3 + r.x
+	}
 	return compose(m.viewBoard(), box, m.width, m.height)
 }

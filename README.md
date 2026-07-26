@@ -139,6 +139,7 @@ todomd changes --json                # only what others did
 | `a` / `e` | Add / edit task (`tab` next field, `ctrl+s` save, `esc` cancel) |
 | `E` | Edit the task as markdown in `$VISUAL`/`$EDITOR` (title, tags, due, description, comments) |
 | `p` | Cycle priority (normal → high → low) |
+| | (in the add/edit form, priority is a `←`/`→` select) |
 | `c` | Comment on task |
 | `d` / `D` | Delete (confirm) / move to Done |
 | `r` | Reload from disk |
