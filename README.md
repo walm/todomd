@@ -62,10 +62,11 @@ todomd                      # opens the Kanban TUI
 ## 🤖 CLI (for agents and scripts)
 
 ```sh
-todomd add "Fix the parser" --tag parser --due 2026-08-01 --desc "Details..." --json
+todomd add "Fix the parser" --tag parser --priority high --due 2026-08-01 --json
+todomd list --priority high --json    # what to work on first
 todomd list --json                    # everything, grouped by board
 todomd show 3f2a --json               # full task detail
-todomd update 3f2a --title "New" --tag a --tag b --clear-due
+todomd update 3f2a --title "New" --priority low --tag a --clear-due
 todomd move 3f2a --to "In Progress" --pos 1
 todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
@@ -110,6 +111,11 @@ todomd changes --json                # only what others did
 - **IDs** are stable 4-char base36 (they survive renames and moves) and may be
   abbreviated to any unique prefix. Deleted IDs may be reused later — don't
   hold IDs across deletions.
+- **Priority** is `high`, `normal` (the default) or `low`, on `add`/`update`
+  and as a `list --priority` filter. It's advisory: the suggested convention
+  is to work High first, then Normal, then Low — todomd records it and leaves
+  the ordering to you. `"priority"` is always present in JSON, so an agent
+  never has to infer the default.
 - **Exit codes**: `0` ok · `1` general error · `2` task not found ·
   `3` ambiguous ID prefix.
 - Boards are matched case-insensitively and created on demand (new boards land
@@ -132,6 +138,7 @@ todomd changes --json                # only what others did
 | `Enter` | Open task detail (modal over the board; `q`/`esc` back) |
 | `a` / `e` | Add / edit task (`tab` next field, `ctrl+s` save, `esc` cancel) |
 | `E` | Edit the task as markdown in `$VISUAL`/`$EDITOR` (title, tags, due, description, comments) |
+| `p` | Cycle priority (normal → high → low) |
 | `c` | Comment on task |
 | `d` / `D` | Delete (confirm) / move to Done |
 | `r` | Reload from disk |
@@ -184,7 +191,7 @@ Free-form preamble — never touched by the tool.
 
 ### Implement markdown parser
 <!-- id:3f2a -->
-`#parser` `#core` **due:** 2026-08-01
+`#parser` `#core` **priority:** high **due:** 2026-08-01
 
 Description: any markdown, multiple paragraphs, code fences, lists.
 
@@ -204,8 +211,10 @@ Rules, briefly:
   tasks (card order = file order). Empty boards persist.
 - The `<!-- id:… -->` comment is the task's stable ID (invisible when
   rendered). Hand-added tasks without one get an ID on the next write.
-- The metadata line (tags + due) is the first non-blank line below the ID
-  comment (formatter-inserted blank lines are fine).
+- The metadata line (tags, priority, due) is the first non-blank line below
+  the ID comment (formatter-inserted blank lines are fine). `**priority:**` is
+  `high` or `low`; the default `normal` is left out, so ordinary tasks stay
+  clean.
 - Everything up to `#### Comments` / the next heading is the description,
   preserved verbatim.
 - Comments are one list item each: `- **author** (YYYY-MM-DD): text`, with

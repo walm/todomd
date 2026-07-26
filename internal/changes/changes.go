@@ -97,6 +97,9 @@ func Diff(old, cur *task.File) []Event {
 			if !slices.Equal(o.t.Tags, t.Tags) {
 				fields["tags"] = FieldChange{slices.Clone(o.t.Tags), slices.Clone(t.Tags)}
 			}
+			if o.t.Priority != t.Priority {
+				fields["priority"] = FieldChange{o.t.Priority.String(), t.Priority.String()}
+			}
 			if dueValue(o.t.Due) != dueValue(t.Due) {
 				fields["due"] = FieldChange{dueValue(o.t.Due), dueValue(t.Due)}
 			}
@@ -245,6 +248,8 @@ func Apply(f *task.File, events []Event) {
 					t.Description = e.Task.Description
 				case "tags":
 					t.Tags = slices.Clone(e.Task.Tags)
+				case "priority":
+					t.Priority = e.Task.Priority
 				case "due":
 					t.Due = nil
 					if e.Task.Due != nil {

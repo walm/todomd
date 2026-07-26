@@ -4,6 +4,26 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- Task priority: `high`, `normal` (default) or `low`. Set it with
+  `add --priority` / `update --priority`, filter with `list --priority`, cycle
+  it in the TUI with `p`, or edit it in the add/edit form. Cards show `▲ high`
+  / `▼ low`; `"priority"` is always present in JSON. The convention is to work
+  High first, then Normal, then Low — todomd records it and leaves scheduling
+  to you.
+- In the file it is a `**priority:** high` token on the metadata line. The
+  default `normal` is never written, so existing files and ordinary tasks are
+  untouched.
+
+### Note
+
+- Files that use a priority are read by todomd ≤ v0.3.0 as if the metadata
+  line were description text (its parser rejects the unknown token). Upgrade
+  every todomd that shares a file before setting priorities.
+
 ## v0.3.0 — 2026-07-25
 
 ### Added

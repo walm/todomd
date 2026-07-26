@@ -186,6 +186,12 @@ func renderCard(t *task.Task, w int, selected bool, mark markKind) string {
 	}
 
 	var meta []string
+	switch t.Priority {
+	case task.PriorityHigh:
+		meta = append(meta, prioHigh.Render("▲ high"))
+	case task.PriorityLow:
+		meta = append(meta, prioLow.Render("▼ low"))
+	}
 	if t.Due != nil {
 		style := dueStyle
 		switch d := t.Due.DaysUntil(task.Today()); {

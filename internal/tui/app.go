@@ -67,6 +67,7 @@ type keyMap struct {
 	MoveDown, MoveUp         key.Binding
 	Open, Add, Edit, Comment key.Binding
 	Editor                   key.Binding
+	Priority                 key.Binding
 	Delete, Done, Reload     key.Binding
 	Help, Quit               key.Binding
 }
@@ -87,6 +88,7 @@ func newKeyMap() keyMap {
 		Add:       key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add")),
 		Edit:      key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 		Editor:    key.NewBinding(key.WithKeys("E"), key.WithHelp("E", "$EDITOR")),
+		Priority:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "priority")),
 		Comment:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "comment")),
 		Delete:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		Done:      key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "done")),
@@ -105,7 +107,8 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.Left, k.Up, k.First, k.Open},
 		{k.MoveLeft, k.MoveDown, k.Done, k.Delete},
 		{k.Add, k.Edit, k.Editor, k.Comment},
-		{k.Reload, k.Help, k.Quit},
+		{k.Priority, k.Delete, k.Done, k.Reload},
+		{k.Help, k.Quit},
 	}
 }
 
@@ -375,6 +378,8 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.formFrom = modeBoard
 			m.mode = modeForm
 		}
+	case key.Matches(msg, k.Priority):
+		m.cyclePriority()
 	case key.Matches(msg, k.Editor):
 		return m, m.openEditor(modeBoard)
 	case key.Matches(msg, k.Comment):
@@ -438,6 +443,25 @@ func (m *model) reorder(dir int) {
 	}, id, "")
 }
 
+// cyclePriority steps the selected task low → normal → high → low, so one key
+// reaches every level.
+func (m *model) cyclePriority() {
+	t := m.selectedTask()
+	if t == nil {
+		return
+	}
+	next := map[task.Priority]task.Priority{
+		task.PriorityLow:    task.PriorityNormal,
+		task.PriorityNormal: task.PriorityHigh,
+		task.PriorityHigh:   task.PriorityLow,
+	}[t.Priority]
+	id := t.ID
+	m.mutate(func(f *task.File) error {
+		_, err := store.Update(f, id, store.UpdateOpts{Priority: &next})
+		return err
+	}, id, "priority: "+next.String())
+}
+
 func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
@@ -461,6 +485,10 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "E":
 		return m, m.openEditor(modeDetail)
+	case "p":
+		m.cyclePriority()
+		m.openDetail() // re-render with the new priority
+		return m, nil
 	}
 	var cmd tea.Cmd
 	m.vp, cmd = m.vp.Update(msg)
@@ -517,7 +545,8 @@ func (m *model) submitForm() {
 		board := f.board
 		var newID string
 		m.mutate(func(file *task.File) error {
-			t := &task.Task{Title: vals.title, Description: vals.desc, Tags: vals.tags, Due: vals.due}
+			t := &task.Task{Title: vals.title, Description: vals.desc, Tags: vals.tags,
+				Priority: vals.prio, Due: vals.due}
 			added, err := store.Add(file, board, t)
 			if err == nil {
 				newID = added.ID
@@ -535,6 +564,7 @@ func (m *model) submitForm() {
 				Title:       &vals.title,
 				Description: &vals.desc,
 				Tags:        &vals.tags,
+				Priority:    &vals.prio,
 				ClearDue:    vals.due == nil,
 				Due:         vals.due,
 			}

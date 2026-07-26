@@ -338,3 +338,60 @@ func TestParseTaskErrors(t *testing.T) {
 		t.Errorf("want ParseError at fragment line 6, got %v", err)
 	}
 }
+
+func TestPriorityRoundTrip(t *testing.T) {
+	due := date(t, "2026-08-01")
+	f := &task.File{Boards: []*task.Board{{Name: "B", Tasks: []*task.Task{
+		{ID: "aaaa", Title: "High one", Priority: task.PriorityHigh, Tags: []string{"x"}, Due: &due},
+		{ID: "bbbb", Title: "Normal one"},
+		{ID: "cccc", Title: "Low one", Priority: task.PriorityLow},
+	}}}}
+	out := string(Write(f))
+	// The default is left out entirely, so ordinary tasks stay clean.
+	if strings.Contains(out, "priority:** normal") {
+		t.Errorf("normal priority should not be written:\n%s", out)
+	}
+	if !strings.Contains(out, "`#x` **priority:** high **due:** 2026-08-01") {
+		t.Errorf("unexpected metadata line:\n%s", out)
+	}
+	f2 := mustParse(t, out)
+	got := f2.Boards[0].Tasks
+	if got[0].Priority != task.PriorityHigh || got[1].Priority != task.PriorityNormal ||
+		got[2].Priority != task.PriorityLow {
+		t.Errorf("priorities = %v %v %v", got[0].Priority, got[1].Priority, got[2].Priority)
+	}
+	if got[0].Due == nil || len(got[0].Tags) != 1 {
+		t.Errorf("priority disturbed the other metadata: %+v", got[0])
+	}
+}
+
+func TestPriorityOnlyMetadata(t *testing.T) {
+	f := mustParse(t, "# T\n\n## B\n\n### X\n<!-- id:aaaa -->\n**priority:** low\n\nBody.\n")
+	tk := f.Boards[0].Tasks[0]
+	if tk.Priority != task.PriorityLow || tk.Description != "Body." {
+		t.Errorf("got priority=%v desc=%q", tk.Priority, tk.Description)
+	}
+}
+
+// A bad priority value means the line isn't metadata at all — it stays
+// description rather than being silently dropped.
+func TestInvalidPriorityIsDescription(t *testing.T) {
+	f := mustParse(t, "# T\n\n## B\n\n### X\n<!-- id:aaaa -->\n**priority:** urgent\n")
+	tk := f.Boards[0].Tasks[0]
+	if tk.Priority != task.PriorityNormal {
+		t.Errorf("priority = %v", tk.Priority)
+	}
+	if !strings.Contains(tk.Description, "urgent") {
+		t.Errorf("desc = %q", tk.Description)
+	}
+}
+
+// Files written before priority existed must keep parsing unchanged.
+func TestBackwardCompatibleWithoutPriority(t *testing.T) {
+	f := mustParse(t, sample)
+	for _, tk := range f.AllTasks() {
+		if tk.Priority != task.PriorityNormal {
+			t.Errorf("%q got priority %v, want normal", tk.Title, tk.Priority)
+		}
+	}
+}

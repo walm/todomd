@@ -28,6 +28,7 @@ type form struct {
 
 	title textinput.Model // or author
 	tags  textinput.Model
+	prio  textinput.Model
 	due   textinput.Model
 	desc  textarea.Model // or comment text
 
@@ -51,12 +52,15 @@ func newInput(placeholder, value string, w int) textinput.Model {
 func newTaskForm(width, height int, t *task.Task, board string) *form {
 	w := formInnerWidth(width)
 	f := &form{kind: formAdd, board: board, width: width, height: height, hover: -1}
-	var title, tags, due, desc string
+	var title, tags, prio, due, desc string
 	if t != nil {
 		f.kind = formEdit
 		f.targetID = t.ID
 		title = t.Title
 		tags = strings.Join(t.Tags, " ")
+		if t.Priority != task.PriorityNormal {
+			prio = t.Priority.String()
+		}
 		if t.Due != nil {
 			due = t.Due.String()
 		}
@@ -64,6 +68,7 @@ func newTaskForm(width, height int, t *task.Task, board string) *form {
 	}
 	f.title = newInput("task title", title, w)
 	f.tags = newInput("tags: parser core", tags, w)
+	f.prio = newInput("priority: high, normal or low", prio, w)
 	f.due = newInput("due: YYYY-MM-DD", due, w)
 	f.desc = textarea.New()
 	f.desc.Placeholder = "description (markdown)"
@@ -95,13 +100,14 @@ func (f *form) fieldCount() int {
 	if f.kind == formComment {
 		return 2
 	}
-	return 4
+	return 5
 }
 
 func (f *form) setFocus(i int) {
 	f.focus = i
 	f.title.Blur()
 	f.tags.Blur()
+	f.prio.Blur()
 	f.due.Blur()
 	f.desc.Blur()
 	if f.kind == formComment {
@@ -119,6 +125,8 @@ func (f *form) setFocus(i int) {
 	case 1:
 		f.tags.Focus()
 	case 2:
+		f.prio.Focus()
+	case 3:
 		f.due.Focus()
 	default:
 		f.desc.Focus()
@@ -162,6 +170,8 @@ func (f *form) update(msg tea.KeyMsg) (done, canceled bool, cmd tea.Cmd) {
 	case 1:
 		f.tags, cmd = f.tags.Update(msg)
 	case 2:
+		f.prio, cmd = f.prio.Update(msg)
+	case 3:
 		f.due, cmd = f.due.Update(msg)
 	}
 	return false, false, cmd
@@ -170,6 +180,7 @@ func (f *form) update(msg tea.KeyMsg) (done, canceled bool, cmd tea.Cmd) {
 type taskValues struct {
 	title string
 	tags  []string
+	prio  task.Priority
 	due   *task.Date
 	desc  string
 }
@@ -189,6 +200,9 @@ func (f *form) taskValues() (taskValues, error) {
 			return v, err
 		}
 		v.tags = append(v.tags, tag)
+	}
+	if v.prio, err = task.ParsePriority(f.prio.Value()); err != nil {
+		return v, err
 	}
 	if s := strings.TrimSpace(f.due.Value()); s != "" {
 		d, err := task.ParseDate(s)
@@ -234,6 +248,9 @@ func (f *form) render() (box string, saveRel, cancelRel rect) {
 		add("")
 		add(formLabel.Render("tags"))
 		add(f.tags.View())
+		add("")
+		add(formLabel.Render("priority"))
+		add(f.prio.View())
 		add("")
 		add(formLabel.Render("due"))
 		add(f.due.View())

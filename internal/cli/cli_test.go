@@ -558,3 +558,59 @@ func TestUpdateNoticeSuppressedForDevBuilds(t *testing.T) {
 		t.Errorf("dev build should not nag: %s", stderr)
 	}
 }
+
+func TestPriorityViaCLI(t *testing.T) {
+	path := testFile(t)
+	high := addOne(t, path, "Urgent thing", "--priority", "high")
+	normal := addOne(t, path, "Ordinary thing")
+	low := addOne(t, path, "Someday", "--priority", "low")
+
+	// JSON always states the priority, so an agent never has to infer it.
+	for id, want := range map[string]string{high: "high", normal: "normal", low: "low"} {
+		out, err := run(t, "--file", path, "show", id, "--json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var tk struct {
+			Priority string `json:"priority"`
+		}
+		if err := json.Unmarshal([]byte(out), &tk); err != nil {
+			t.Fatal(err)
+		}
+		if tk.Priority != want {
+			t.Errorf("%s priority = %q, want %q", id, tk.Priority, want)
+		}
+	}
+
+	// Filtering is what makes "do the high ones first" a one-liner.
+	out, err := run(t, "--file", path, "list", "--priority", "high")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "Urgent thing") || strings.Contains(out, "Ordinary thing") {
+		t.Errorf("--priority high listed the wrong tasks:\n%s", out)
+	}
+
+	// update changes it; the file keeps normal implicit.
+	if _, err := run(t, "--file", path, "update", low, "--priority", "high"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "update", high, "--priority", "normal"); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(path)
+	if strings.Contains(string(data), "priority:** normal") {
+		t.Errorf("normal should not be written to the file:\n%s", data)
+	}
+	if n := strings.Count(string(data), "**priority:** high"); n != 1 {
+		t.Errorf("want exactly one high task in the file, got %d:\n%s", n, data)
+	}
+
+	// Bad values are rejected, not silently normalised.
+	if _, err := run(t, "--file", path, "add", "x", "--priority", "urgent"); err == nil {
+		t.Error("invalid priority should be rejected")
+	}
+	if _, err := run(t, "--file", path, "list", "--priority", "urgent"); err == nil {
+		t.Error("invalid --priority filter should be rejected")
+	}
+}

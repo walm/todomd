@@ -4,22 +4,22 @@
 
 ### Add board management commands (rename/reorder)
 <!-- id:y96v -->
-`#cli`
+`#cli` **priority:** high
 
 ### Publish a Homebrew tap
 <!-- id:hb01 -->
-`#release`
+`#release` **priority:** low
 
 ### Example: a task showing everything the format supports
 <!-- id:ex01 -->
-`#example` `#docs` **due:** 2026-12-31
+`#example` `#docs` **priority:** high **due:** 2026-12-31
 
 Descriptions are verbatim markdown: **bold**, _italics_, `inline code`,
 and lists all work:
 
 - boards are `##` headings, tasks are `###` headings
 - the HTML comment above holds the task's stable id
-- tags and the due date live on the line under it
+- tags, priority and the due date live on the line under it
 
 Code fences are safe too — structural-looking lines inside them are
 just content:

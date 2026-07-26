@@ -87,11 +87,60 @@ type Board struct {
 	Tasks []*Task
 }
 
+// Priority ranks how urgently a task wants doing. The zero value is
+// PriorityNormal, so a task that never mentions priority is Normal without
+// any migration, and the numeric order matches importance: sorting descending
+// gives High, then Normal, then Low.
+type Priority int
+
+const (
+	PriorityLow    Priority = -1
+	PriorityNormal Priority = 0
+	PriorityHigh   Priority = 1
+)
+
+// String returns the wire/file spelling: "high", "normal" or "low".
+func (p Priority) String() string {
+	switch {
+	case p >= PriorityHigh:
+		return "high"
+	case p <= PriorityLow:
+		return "low"
+	default:
+		return "normal"
+	}
+}
+
+// ParsePriority accepts "high", "normal" or "low", case-insensitively.
+func ParsePriority(s string) (Priority, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "high", "h":
+		return PriorityHigh, nil
+	case "normal", "n", "":
+		return PriorityNormal, nil
+	case "low", "l":
+		return PriorityLow, nil
+	}
+	return PriorityNormal, fmt.Errorf("invalid priority %q (want high, normal or low)", s)
+}
+
+func (p Priority) MarshalJSON() ([]byte, error) { return []byte(`"` + p.String() + `"`), nil }
+
+func (p *Priority) UnmarshalJSON(b []byte) error {
+	v, err := ParsePriority(strings.Trim(string(b), `"`))
+	if err != nil {
+		return err
+	}
+	*p = v
+	return nil
+}
+
 // Task is a single card.
 type Task struct {
 	ID          string
 	Title       string
 	Tags        []string
+	Priority    Priority
 	Due         *Date
 	Description string // verbatim markdown
 	Comments    []Comment

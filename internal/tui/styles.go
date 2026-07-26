@@ -26,6 +26,8 @@ var (
 	dueSoonStyle = lipgloss.NewStyle().Foreground(warnCol)
 	overdueStyle = lipgloss.NewStyle().Foreground(dangCol).Bold(true)
 	countStyle   = lipgloss.NewStyle().Foreground(subtle)
+	prioHigh     = lipgloss.NewStyle().Foreground(dangCol).Bold(true)
+	prioLow      = lipgloss.NewStyle().Foreground(subtle)
 
 	statusStyle = lipgloss.NewStyle().Foreground(accent)
 	errorStyle  = lipgloss.NewStyle().Foreground(dangCol)

@@ -35,6 +35,7 @@ type taskJSON struct {
 	Board       string        `json:"board"`
 	Title       string        `json:"title"`
 	Tags        []string      `json:"tags"`
+	Priority    task.Priority `json:"priority"`
 	Due         *task.Date    `json:"due"`
 	Description string        `json:"description"`
 	Comments    []commentJSON `json:"comments"`
@@ -46,6 +47,7 @@ func toJSON(t *task.Task, board string) taskJSON {
 		Board:       board,
 		Title:       t.Title,
 		Tags:        append([]string{}, t.Tags...),
+		Priority:    t.Priority,
 		Due:         t.Due,
 		Description: t.Description,
 		Comments:    []commentJSON{},
@@ -271,7 +273,7 @@ func newInit() *cobra.Command {
 }
 
 func newList() *cobra.Command {
-	var board, tag string
+	var board, tag, priority string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List tasks",
@@ -285,8 +287,19 @@ func newList() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			var wantPriority *task.Priority
+			if priority != "" {
+				p, err := task.ParsePriority(priority)
+				if err != nil {
+					return err
+				}
+				wantPriority = &p
+			}
 			match := func(b *task.Board, t *task.Task) bool {
 				if board != "" && !strings.EqualFold(b.Name, board) {
+					return false
+				}
+				if wantPriority != nil && t.Priority != *wantPriority {
 					return false
 				}
 				if tag != "" {
@@ -337,7 +350,11 @@ func newList() *cobra.Command {
 					if t.Due != nil {
 						due = t.Due.String()
 					}
-					fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", t.ID, b.Name, t.Title, tags, due)
+					prio := ""
+					if t.Priority != task.PriorityNormal {
+						prio = "!" + t.Priority.String()
+					}
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, b.Name, t.Title, prio, tags, due)
 				}
 			}
 			return w.Flush()
@@ -345,6 +362,7 @@ func newList() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&board, "board", "", "only this board")
 	cmd.Flags().StringVar(&tag, "tag", "", "only tasks with this tag")
+	cmd.Flags().StringVar(&priority, "priority", "", "only tasks with this priority (high, normal, low)")
 	jsonFlag(cmd)
 	return cmd
 }
@@ -375,6 +393,9 @@ func newShow() *cobra.Command {
 			if len(t.Tags) > 0 {
 				fmt.Printf("tags:   #%s\n", strings.Join(t.Tags, " #"))
 			}
+			if t.Priority != task.PriorityNormal {
+				fmt.Printf("prio:   %s\n", t.Priority)
+			}
 			if t.Due != nil {
 				fmt.Printf("due:    %s\n", t.Due)
 			}
@@ -396,7 +417,7 @@ func newShow() *cobra.Command {
 }
 
 func newAdd() *cobra.Command {
-	var board, desc, due string
+	var board, desc, due, priority string
 	var tags []string
 	cmd := &cobra.Command{
 		Use:   "add <title>",
@@ -404,6 +425,13 @@ func newAdd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			t := &task.Task{Title: args[0], Description: desc, Tags: tags}
+			if priority != "" {
+				p, err := task.ParsePriority(priority)
+				if err != nil {
+					return err
+				}
+				t.Priority = p
+			}
 			if due != "" {
 				d, err := task.ParseDate(due)
 				if err != nil {
@@ -422,6 +450,7 @@ func newAdd() *cobra.Command {
 	cmd.Flags().StringVar(&desc, "desc", "", "description (markdown)")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "tag (repeatable)")
 	cmd.Flags().StringVar(&due, "due", "", "due date YYYY-MM-DD")
+	cmd.Flags().StringVar(&priority, "priority", "", "priority: high, normal (default) or low")
 	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
@@ -429,7 +458,7 @@ func newAdd() *cobra.Command {
 
 func newUpdate() *cobra.Command {
 	var opts store.UpdateOpts
-	var title, desc, due string
+	var title, desc, due, priority string
 	var tags []string
 	cmd := &cobra.Command{
 		Use:   "update <id>",
@@ -444,6 +473,13 @@ func newUpdate() *cobra.Command {
 			}
 			if cmd.Flags().Changed("tag") {
 				opts.Tags = &tags
+			}
+			if priority != "" {
+				p, err := task.ParsePriority(priority)
+				if err != nil {
+					return err
+				}
+				opts.Priority = &p
 			}
 			if due != "" {
 				d, err := task.ParseDate(due)
@@ -466,6 +502,7 @@ func newUpdate() *cobra.Command {
 	cmd.Flags().StringVar(&desc, "desc", "", "new description")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "replacement tag set (repeatable)")
 	cmd.Flags().StringVar(&due, "due", "", "new due date YYYY-MM-DD")
+	cmd.Flags().StringVar(&priority, "priority", "", "new priority: high, normal or low")
 	cmd.Flags().BoolVar(&opts.ClearDue, "clear-due", false, "remove the due date")
 	cmd.Flags().BoolVar(&opts.ClearTags, "clear-tags", false, "remove all tags")
 	asFlag(cmd)

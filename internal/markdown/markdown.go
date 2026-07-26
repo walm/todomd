@@ -2,7 +2,7 @@
 //
 // The format is line-based: `#` file title, `##` boards, `###` tasks, an
 // `<!-- id:xxxx -->` comment per task, an optional metadata line (inline-code
-// tags and a due date) immediately after the ID comment, a verbatim
+// tags, an optional priority, and a due date) immediately after the ID comment, a verbatim
 // description, and an optional `#### Comments` list. Code fences at column 0
 // shield their contents from structural interpretation. Lines in descriptions
 // that would otherwise read as structure are backslash-escaped on write and
@@ -90,7 +90,7 @@ func unescapeLine(s string) string {
 // happens to match the metadata grammar from being adopted as tags/due on
 // reparse. Same stacking-backslash scheme as escapeLine.
 func escapeMetaLine(s string) string {
-	if _, _, ok := parseMetadata(strings.TrimLeft(s, `\`)); ok {
+	if _, ok := parseMetadata(strings.TrimLeft(s, `\`)); ok {
 		return `\` + s
 	}
 	return s
@@ -98,7 +98,7 @@ func escapeMetaLine(s string) string {
 
 func unescapeMetaLine(s string) string {
 	if strings.HasPrefix(s, `\`) {
-		if _, _, ok := parseMetadata(strings.TrimLeft(s, `\`)); ok {
+		if _, ok := parseMetadata(strings.TrimLeft(s, `\`)); ok {
 			return s[1:]
 		}
 	}
@@ -118,31 +118,49 @@ func trimBlankEdges(lines []string) (trimmed []string, offset int) {
 
 func isBlank(s string) bool { return strings.TrimSpace(s) == "" }
 
-// parseMetadata reports whether line is a metadata line (only `#tag` tokens
-// and at most one `**due:** YYYY-MM-DD`), and if so returns its contents.
-func parseMetadata(line string) (tags []string, due *task.Date, ok bool) {
+// meta is what a task's metadata line carries.
+type meta struct {
+	tags     []string
+	due      *task.Date
+	priority task.Priority
+}
+
+// parseMetadata reports whether line is a metadata line — only `#tag` tokens,
+// at most one `**due:** YYYY-MM-DD`, and at most one `**priority:** high|
+// normal|low` — and if so returns its contents.
+func parseMetadata(line string) (m meta, ok bool) {
 	toks := strings.Fields(line)
 	if len(toks) == 0 {
-		return nil, nil, false
+		return meta{}, false
 	}
+	seenDue, seenPriority := false, false
 	for i := 0; i < len(toks); {
-		if m := tagTokRe.FindStringSubmatch(toks[i]); m != nil {
-			tags = append(tags, m[1])
+		if t := tagTokRe.FindStringSubmatch(toks[i]); t != nil {
+			m.tags = append(m.tags, t[1])
 			i++
 			continue
 		}
-		if toks[i] == "**due:**" && due == nil && i+1 < len(toks) {
+		if toks[i] == "**due:**" && !seenDue && i+1 < len(toks) {
 			d, err := task.ParseDate(toks[i+1])
 			if err != nil {
-				return nil, nil, false
+				return meta{}, false
 			}
-			due = &d
+			m.due, seenDue = &d, true
 			i += 2
 			continue
 		}
-		return nil, nil, false
+		if toks[i] == "**priority:**" && !seenPriority && i+1 < len(toks) {
+			p, err := task.ParsePriority(toks[i+1])
+			if err != nil {
+				return meta{}, false
+			}
+			m.priority, seenPriority = p, true
+			i += 2
+			continue
+		}
+		return meta{}, false
 	}
-	return tags, due, true
+	return m, true
 }
 
 // Parse reads a TODO.md. Input line endings may be CRLF; the model is
@@ -239,8 +257,8 @@ func Parse(data []byte) (*task.File, error) {
 				j++
 			}
 			if j < len(lines) && structural[j] && !isTerminator(j) {
-				if tags, due, ok := parseMetadata(lines[j]); ok {
-					t.Tags, t.Due = tags, due
+				if md, ok := parseMetadata(lines[j]); ok {
+					t.Tags, t.Due, t.Priority = md.tags, md.due, md.priority
 					i = j + 1
 				}
 			}
@@ -414,6 +432,11 @@ func metaLine(t *task.Task) string {
 	var toks []string
 	for _, tag := range t.Tags {
 		toks = append(toks, "`#"+tag+"`")
+	}
+	if t.Priority != task.PriorityNormal {
+		// Normal is the default and by far the common case, so leaving it out
+		// keeps files (and diffs) free of noise.
+		toks = append(toks, "**priority:** "+t.Priority.String())
 	}
 	if t.Due != nil {
 		toks = append(toks, "**due:** "+t.Due.String())
