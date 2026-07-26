@@ -85,6 +85,12 @@ func (m *model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			} else if m.form.cancelRect.contains(msg.X, msg.Y) {
 				m.form.hover = 1
 			}
+			m.form.prioHover = -1
+			for i, r := range m.form.prioRects {
+				if r.contains(msg.X, msg.Y) {
+					m.form.prioHover = i
+				}
+			}
 		case modeDetail:
 			m.hintHover = m.hintActionAt(msg.X, msg.Y)
 		case modeBoard:
@@ -149,6 +155,13 @@ func (m *model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m.updateDetail(keyRunes(hintActions[i].key))
 		}
 	case modeForm:
+		for i, r := range m.form.prioRects {
+			if r.contains(msg.X, msg.Y) {
+				m.form.prio = prioOptions[i]
+				m.form.setFocus(2) // clicking an option focuses the select
+				return m, nil
+			}
+		}
 		if m.form.saveRect.contains(msg.X, msg.Y) {
 			return m.updateForm(tea.KeyMsg{Type: tea.KeyCtrlS})
 		}
