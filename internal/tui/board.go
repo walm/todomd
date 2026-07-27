@@ -89,64 +89,92 @@ func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel i
 		}
 		hdr += pagerStyle.Render(overflow)
 	}
+	frame := lipgloss.NewStyle().Width(w).Height(h).MaxHeight(h)
+	if len(b.Tasks) == 0 {
+		return frame.Render(hdr)
+	}
 
-	cardH := h - 1 // header line
-	var cards []string
-	heights := make([]int, len(b.Tasks))
-	selStart, selEnd := 0, 0
-	lineCount := 0
-	for i, t := range b.Tasks {
+	cardH := h - 1 // the header takes the first line
+	// Render each card at most once per frame, and only the ones we actually
+	// need: this loop is what keeps a board with thousands of cards as cheap
+	// to draw as a board with ten.
+	cache := map[int]string{}
+	render := func(i int) string {
+		if c, ok := cache[i]; ok {
+			return c
+		}
+		t := b.Tasks[i]
 		c := renderCard(t, w-2, active && i == sel, m.unread.marks[t.ID])
-		ch := lipgloss.Height(c)
-		heights[i] = ch
-		if i == sel {
-			selStart, selEnd = lineCount, lineCount+ch
-		}
-		lineCount += ch
-		cards = append(cards, c)
-	}
-	stack := lipgloss.JoinVertical(lipgloss.Left, cards...)
-	lines := []string{}
-	if len(cards) > 0 {
-		lines = strings.Split(stack, "\n")
+		cache[i] = c
+		return c
 	}
 
-	// Scroll the selected card into view.
+	// Scroll position is a card index, so we never have to know the height of
+	// the cards above the window — only of the ones we draw.
 	top := 0
+	if active {
+		top = min(max(m.cardTop, 0), len(b.Tasks)-1)
+	}
 	if sel >= 0 {
-		if selEnd > cardH {
-			top = selEnd - cardH
+		// Walk back from the selection to find the earliest card that still
+		// leaves it on screen, then keep the current scroll if it already
+		// does, so the view doesn't jump around while moving one card at a
+		// time.
+		minTop, used := sel, lipgloss.Height(render(sel))
+		for i := sel - 1; i >= 0; i-- {
+			ch := lipgloss.Height(render(i))
+			if used+ch > cardH {
+				break
+			}
+			used += ch
+			minTop = i
 		}
-		if selStart < top {
-			top = selStart
-		}
+		top = min(max(top, minTop), sel)
+		m.cardTop = top
 	}
-	if top > 0 && top+cardH > len(lines) {
-		top = max(0, len(lines)-cardH)
-	}
-	end := min(len(lines), top+cardH)
-	visible := strings.Join(lines[top:end], "\n")
 
-	// Record clickable rectangles (display row 0 is the column header).
-	y := 0
-	for idx, ch := range heights {
-		v0, v1 := y-top, y+ch-top
-		y += ch
-		if v1 <= 0 || v0 >= cardH {
-			continue
+	// Collect the window forward from top, then — if we ran out of cards
+	// before filling the column — extend upwards with the tail of earlier
+	// cards, so the bottom of a long column doesn't sit under dead space.
+	type slot struct {
+		card  int
+		lines []string
+	}
+	var window []slot
+	used := 0
+	for i := top; i < len(b.Tasks) && used < cardH; i++ {
+		cl := strings.Split(render(i), "\n")
+		window = append(window, slot{i, cl})
+		used += len(cl)
+	}
+	for i := top - 1; i >= 0 && used < cardH; i-- {
+		cl := strings.Split(render(i), "\n")
+		if need := cardH - used; need < len(cl) {
+			cl = cl[len(cl)-need:] // show this card's tail
 		}
+		window = append([]slot{{i, cl}}, window...)
+		used += len(cl)
+	}
+
+	var lines []string
+	for _, sl := range window {
+		// Clickable rectangle (display row 0 is the header).
 		m.hits = append(m.hits, hit{
-			board: bi, card: idx,
+			board: bi, card: sl.card,
 			x0: x0, x1: x0 + w,
-			y0: 1 + max(0, v0), y1: 1 + min(cardH, v1),
+			y0: 1 + len(lines), y1: 1 + min(cardH, len(lines)+len(sl.lines)),
 		})
+		lines = append(lines, sl.lines...)
+	}
+	if len(lines) > cardH {
+		lines = lines[:cardH] // a card taller than the column is clipped
 	}
 
 	col := hdr
-	if visible != "" {
-		col += "\n" + visible
+	if len(lines) > 0 {
+		col += "\n" + strings.Join(lines, "\n")
 	}
-	return lipgloss.NewStyle().Width(w).Height(h).MaxHeight(h).Render(col)
+	return frame.Render(col)
 }
 
 func renderCard(t *task.Task, w int, selected bool, mark markKind) string {

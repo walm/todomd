@@ -120,6 +120,7 @@ type model struct {
 	boardIdx      int
 	cardIdx       int
 	colOffset     int
+	cardTop       int // first visible card in the active column
 
 	mode      mode
 	vp        viewport.Model
