@@ -4,6 +4,23 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Changed
+
+- The board render no longer scales with how many tasks the file holds. Each
+  column now draws only the cards in its visible window, so a keystroke costs
+  the same on a 25,000-task board as on a ten-task one: 339 ms → 0.5 ms
+  (678×) at 25,000 tasks, 68 ms → 0.5 ms at 5,000. Column scrolling moved to
+  card granularity, with the top card clipped so the window still fills
+  exactly as before.
+
+### Added
+
+- Benchmarks for the paths that scale with file size (`go test ./... -bench .
+  -run XXX`): parse, write, round trip, store load/mutate, `changes.Diff`, and
+  the TUI board render.
+
 ## v0.4.0 — 2026-07-26
 
 ### Added

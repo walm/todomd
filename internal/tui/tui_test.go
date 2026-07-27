@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
@@ -736,3 +737,113 @@ func TestPrioritySelect(t *testing.T) {
 // setFocus0 puts the form back on its first field, for tests that then assert
 // a click moves focus.
 func (m *model) setFocus0() { m.form.setFocus(0) }
+
+// selVisible reports whether the selected card was actually drawn: every
+// rendered card records a hit rect, so presence there means on screen.
+func (m *model) selVisible() bool {
+	for _, h := range m.hits {
+		if h.board == m.boardIdx && h.card == m.cardIdx {
+			return true
+		}
+	}
+	return false
+}
+
+// The column renders a window of cards, so navigation must keep the selection
+// inside it — in both directions and after jumps.
+func TestColumnScrollKeepsSelectionVisible(t *testing.T) {
+	m := newTestModel(t, 1, 200)
+	m.width, m.height = 60, 20
+
+	m.viewBoard()
+	if !m.selVisible() {
+		t.Fatal("first card not visible at rest")
+	}
+	// Walk all the way down.
+	for i := 1; i < 200; i++ {
+		m.updateBoard(keyMsg("j"))
+		m.viewBoard()
+		if !m.selVisible() {
+			t.Fatalf("card %d not visible while scrolling down (cardTop=%d)", m.cardIdx, m.cardTop)
+		}
+	}
+	// And back up.
+	for i := 198; i >= 0; i-- {
+		m.updateBoard(keyMsg("k"))
+		m.viewBoard()
+		if !m.selVisible() {
+			t.Fatalf("card %d not visible while scrolling up (cardTop=%d)", m.cardIdx, m.cardTop)
+		}
+	}
+	// Jumps to either end.
+	m.updateBoard(keyMsg("G"))
+	m.viewBoard()
+	if m.cardIdx != 199 || !m.selVisible() {
+		t.Errorf("G: cardIdx=%d visible=%v", m.cardIdx, m.selVisible())
+	}
+	m.updateBoard(keyMsg("g"))
+	m.viewBoard()
+	if m.cardIdx != 0 || !m.selVisible() || m.cardTop != 0 {
+		t.Errorf("g: cardIdx=%d top=%d visible=%v", m.cardIdx, m.cardTop, m.selVisible())
+	}
+}
+
+// Only what's on screen is drawn (and therefore clickable) — that's what makes
+// the render independent of how many tasks the board holds.
+func TestColumnRendersOnlyVisibleCards(t *testing.T) {
+	m := newTestModel(t, 1, 500)
+	m.width, m.height = 60, 20
+	out := m.viewBoard()
+	if len(m.hits) > 12 {
+		t.Errorf("rendered %d cards into a 20-row terminal", len(m.hits))
+	}
+	if len(m.hits) == 0 {
+		t.Fatal("nothing rendered")
+	}
+	if got := lipgloss.Height(out); got != m.height {
+		t.Errorf("board height = %d, want %d", got, m.height)
+	}
+	// The window sits at the top until the selection moves.
+	if m.hits[0].card != 0 {
+		t.Errorf("window starts at card %d, want 0", m.hits[0].card)
+	}
+	// Scrolled to the end, the window holds the last card and nothing beyond.
+	m.updateBoard(keyMsg("G"))
+	m.viewBoard()
+	last := m.hits[len(m.hits)-1]
+	if last.card != 499 {
+		t.Errorf("last rendered card = %d, want 499", last.card)
+	}
+}
+
+// Switching columns must not carry the previous column's scroll offset over.
+func TestColumnScrollResetsAcrossColumns(t *testing.T) {
+	m := newTestModel(t, 2, 100)
+	m.width, m.height = 60, 20
+	m.updateBoard(keyMsg("G")) // scroll the first column to the bottom
+	m.viewBoard()
+	if m.cardTop == 0 {
+		t.Fatal("expected the first column to be scrolled")
+	}
+	m.updateBoard(keyMsg("l")) // move to the second column, selection at 0
+	m.viewBoard()
+	if m.cardTop != 0 || !m.selVisible() {
+		t.Errorf("switching columns left top=%d visible=%v", m.cardTop, m.selVisible())
+	}
+}
+
+// A card taller than the column is still shown, clipped, rather than dropping
+// the column or overflowing the frame.
+func TestOversizedCardIsClipped(t *testing.T) {
+	m := newTestModel(t, 1, 3)
+	m.width, m.height = 60, 7 // ~5 rows of cards
+	m.file.Boards[0].Tasks[0].Title = strings.Repeat("very long title ", 20)
+	m.file.Boards[0].Tasks[0].Tags = []string{"a", "b"}
+	out := m.viewBoard()
+	if lipgloss.Height(out) != m.height {
+		t.Errorf("height = %d, want %d", lipgloss.Height(out), m.height)
+	}
+	if !m.selVisible() {
+		t.Error("oversized selected card should still be rendered")
+	}
+}
