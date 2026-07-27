@@ -4,7 +4,19 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
-## Unreleased
+## v0.5.0 — 2026-07-27
+
+### Added
+
+- `todomd archive` clears every task from a board (`Done` by default) in one
+  step. It confirms before acting and refuses when the removal wouldn't be
+  recoverable: the file must be committed to git, or `--to FILE` must be given
+  to move the tasks into another markdown board instead. `--dry-run` previews,
+  `--force` overrides the git check, `--yes` skips the prompt and is required
+  when stdin isn't a terminal. `--json` reports what went.
+- Benchmarks for the paths that scale with file size (`go test ./... -bench .
+  -run XXX`): parse, write, round trip, store load/mutate, `changes.Diff`, and
+  the TUI board render.
 
 ### Changed
 
@@ -14,12 +26,6 @@ breaking changes to the file format or CLI (they will be called out).
   (678×) at 25,000 tasks, 68 ms → 0.5 ms at 5,000. Column scrolling moved to
   card granularity, with the top card clipped so the window still fills
   exactly as before.
-
-### Added
-
-- Benchmarks for the paths that scale with file size (`go test ./... -bench .
-  -run XXX`): parse, write, round trip, store load/mutate, `changes.Diff`, and
-  the TUI board render.
 
 ## v0.4.0 — 2026-07-26
 
