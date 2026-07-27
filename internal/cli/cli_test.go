@@ -3,7 +3,9 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -612,5 +614,190 @@ func TestPriorityViaCLI(t *testing.T) {
 	}
 	if _, err := run(t, "--file", path, "list", "--priority", "urgent"); err == nil {
 		t.Error("invalid --priority filter should be rejected")
+	}
+}
+
+// gitRepo turns dir into a repo, optionally committing path.
+func gitRepo(t *testing.T, dir, path string, commit bool) {
+	t.Helper()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed")
+	}
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@example.com",
+			"GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@example.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	run("init", "-q")
+	if commit {
+		run("add", filepath.Base(path))
+		run("commit", "-qm", "todo")
+	}
+}
+
+// doneTasks moves n freshly added tasks to Done and returns their ids.
+func doneTasks(t *testing.T, path string, n int) []string {
+	t.Helper()
+	var ids []string
+	for i := 0; i < n; i++ {
+		id := addOne(t, path, fmt.Sprintf("finished %d", i))
+		if _, err := run(t, "--file", path, "done", id); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+// Without git history behind it, a bulk delete refuses rather than quietly
+// destroying tasks.
+func TestArchiveRefusesWhenNotRecoverable(t *testing.T) {
+	path := testFile(t)
+	doneTasks(t, path, 2)
+
+	_, err := run(t, "--file", path, "archive", "--yes")
+	if err == nil || !strings.Contains(err.Error(), "not in a git repository") {
+		t.Fatalf("expected a refusal outside git, got %v", err)
+	}
+	out, _ := run(t, "--file", path, "list", "--board", "Done")
+	if !strings.Contains(out, "finished 0") {
+		t.Error("tasks must survive a refused archive")
+	}
+
+	// A repo alone isn't enough: uncommitted means history lacks these tasks.
+	gitRepo(t, filepath.Dir(path), path, false)
+	if _, err := run(t, "--file", path, "archive", "--yes"); err == nil ||
+		!strings.Contains(err.Error(), "untracked") {
+		t.Errorf("expected a refusal for an untracked file, got %v", err)
+	}
+	// --force is the escape hatch.
+	if _, err := run(t, "--file", path, "archive", "--yes", "--force"); err != nil {
+		t.Fatalf("--force should proceed: %v", err)
+	}
+	out, _ = run(t, "--file", path, "list", "--board", "Done")
+	if strings.TrimSpace(out) != "" {
+		t.Errorf("Done should be empty: %q", out)
+	}
+}
+
+func TestArchiveCommittedFile(t *testing.T) {
+	path := testFile(t)
+	doneTasks(t, path, 3)
+	addOne(t, path, "still open")
+	gitRepo(t, filepath.Dir(path), path, true)
+
+	out, err := run(t, "--file", path, "archive", "--yes", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res struct {
+		Board string `json:"board"`
+		Count int    `json:"count"`
+		Tasks []struct {
+			Title string `json:"title"`
+		} `json:"tasks"`
+	}
+	if err := json.Unmarshal([]byte(out), &res); err != nil {
+		t.Fatal(err)
+	}
+	if res.Board != "Done" || res.Count != 3 || len(res.Tasks) != 3 {
+		t.Errorf("result = %+v", res)
+	}
+	// The board itself stays, and other boards are untouched.
+	out, _ = run(t, "--file", path, "boards", "--json")
+	if !strings.Contains(out, `"name": "Done"`) {
+		t.Error("archive should keep the board, only clear it")
+	}
+	out, _ = run(t, "--file", path, "list")
+	if !strings.Contains(out, "still open") || strings.Contains(out, "finished") {
+		t.Errorf("wrong tasks left:\n%s", out)
+	}
+}
+
+func TestArchiveDryRunChangesNothing(t *testing.T) {
+	path := testFile(t)
+	doneTasks(t, path, 2)
+	before, _ := os.ReadFile(path)
+
+	out, err := run(t, "--file", path, "archive", "--dry-run")
+	if err != nil {
+		t.Fatal(err) // a dry run works even where a real one would refuse
+	}
+	if !strings.Contains(out, "would archive 2 tasks") || !strings.Contains(out, "permanent") {
+		t.Errorf("dry run should preview and warn:\n%s", out)
+	}
+	after, _ := os.ReadFile(path)
+	if string(before) != string(after) {
+		t.Error("dry run modified the file")
+	}
+}
+
+// --to keeps the tasks, so it doesn't need git history to be safe.
+func TestArchiveToFile(t *testing.T) {
+	path := testFile(t)
+	id := addOne(t, path, "shipped it", "--priority", "high", "--tag", "rel")
+	if _, err := run(t, "--file", path, "comment", id, "--author", "ai", "done"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "done", id); err != nil {
+		t.Fatal(err)
+	}
+	dest := filepath.Join(filepath.Dir(path), "ARCHIVE.md")
+
+	if _, err := run(t, "--file", path, "archive", "--to", dest, "--yes"); err != nil {
+		t.Fatalf("--to should not need git: %v", err)
+	}
+	// The destination is a valid board holding the task, metadata and all.
+	out, err := run(t, "--file", dest, "show", id, "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tk struct {
+		Title    string `json:"title"`
+		Priority string `json:"priority"`
+		Tags     []string
+		Comments []struct{ Text string }
+	}
+	json.Unmarshal([]byte(out), &tk)
+	if tk.Title != "shipped it" || tk.Priority != "high" || len(tk.Comments) != 1 {
+		t.Errorf("archived task lost detail: %+v", tk)
+	}
+
+	// Archiving again appends rather than replacing.
+	id2 := addOne(t, path, "shipped again")
+	if _, err := run(t, "--file", path, "done", id2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "archive", "--to", dest, "--yes"); err != nil {
+		t.Fatal(err)
+	}
+	out, _ = run(t, "--file", dest, "list")
+	if !strings.Contains(out, "shipped it") || !strings.Contains(out, "shipped again") {
+		t.Errorf("second archive should append:\n%s", out)
+	}
+}
+
+func TestArchiveEdgeCases(t *testing.T) {
+	path := testFile(t)
+	// Empty board: nothing to do, and not an error.
+	out, err := run(t, "--file", path, "archive", "--yes")
+	if err != nil || !strings.Contains(out, "nothing to archive") {
+		t.Errorf("empty Done: %v %q", err, out)
+	}
+	// Unknown board is an error, not a silent no-op.
+	if _, err := run(t, "--file", path, "archive", "--board", "Nope", "--yes"); err == nil {
+		t.Error("unknown board should error")
+	}
+	// Bulk deletion never proceeds unattended without --yes — even when the
+	// file is committed and everything would be recoverable.
+	doneTasks(t, path, 1)
+	gitRepo(t, filepath.Dir(path), path, true)
+	if _, err := run(t, "--file", path, "archive"); err == nil ||
+		!strings.Contains(err.Error(), "--yes") {
+		t.Errorf("non-interactive archive without --yes should refuse, got %v", err)
 	}
 }

@@ -72,6 +72,7 @@ todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
 todomd delete 3f2a --yes
 todomd boards --json
+todomd archive --dry-run              # what clearing Done would remove
 todomd changes --as claude --ignore-author claude --json
 ```
 
@@ -232,6 +233,12 @@ one glance has stopped being a board.
 - **Delete Done tasks once they've been reviewed** — `todomd delete <id>
   --yes` (or `d` in the TUI). Agents should clear confirmed Done items as
   part of their loop instead of letting the board grow.
+- **`todomd archive` clears the whole Done board in one go.** Because that is
+  bulk and destructive it confirms first, and it refuses unless the tasks
+  would survive somewhere: either the file is committed to git (so
+  `git log -p TODO.md` still has them) or you pass `--to FILE` to move them
+  into another markdown board. `--dry-run` previews, `--force` overrides the
+  git check, `--yes` skips the prompt (required when not on a terminal).
 - **Archive and history are git's job.** Keep `TODO.md` in version control
   and nothing is ever lost: every task, move, and comment lives in the
   file's history (`git log -p TODO.md`), which beats any archive board.

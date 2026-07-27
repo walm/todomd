@@ -228,7 +228,7 @@ func newRoot() *cobra.Command {
 	root.PersistentFlags().StringVarP(&flagFile, "file", "f", "", "path to the todo markdown file (default: TODO.md, searched upward; env TODOMD_FILE)")
 
 	root.AddCommand(newInit(), newList(), newShow(), newAdd(), newUpdate(),
-		newMove(), newDone(), newComment(), newDelete(), newBoards(), newChanges(),
+		newMove(), newDone(), newComment(), newDelete(), newBoards(), newChanges(), newArchive(),
 		newUpgrade())
 
 	// Mention a newer release at the end of --help. It goes to stderr so the
