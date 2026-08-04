@@ -69,6 +69,7 @@ type keyMap struct {
 	Editor                   key.Binding
 	Priority                 key.Binding
 	Delete, Done, Reload     key.Binding
+	MarkAllRead              key.Binding
 	Help, Quit               key.Binding
 }
 
@@ -93,8 +94,10 @@ func newKeyMap() keyMap {
 		Delete:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		Done:      key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "done")),
 		Reload:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reload")),
-		Help:      key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-		Quit:      key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+		MarkAllRead: key.NewBinding(key.WithKeys("A"),
+			key.WithHelp("A", "mark all read")),
+		Help: key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+		Quit: key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 	}
 }
 
@@ -108,6 +111,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.MoveLeft, k.MoveDown, k.Done, k.Delete},
 		{k.Add, k.Edit, k.Editor, k.Comment},
 		{k.Priority, k.Delete, k.Done, k.Reload},
+		{k.MarkAllRead},
 		{k.Help, k.Quit},
 	}
 }
@@ -401,6 +405,12 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				_, err := store.Move(f, id, "Done", 0)
 				return err
 			}, id, "moved to Done")
+		}
+	case key.Matches(msg, k.MarkAllRead):
+		if n := m.unread.markAllRead(m.file); n > 0 {
+			m.setStatus(fmt.Sprintf("marked %s as read", plural(n, "card")), false)
+		} else {
+			m.setStatus("nothing unread", false)
 		}
 	case key.Matches(msg, k.Reload):
 		m.reload()

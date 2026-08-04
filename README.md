@@ -143,6 +143,7 @@ todomd changes --json                # only what others did
 | | (in the add/edit form, priority is a `←`/`→` select) |
 | `c` | Comment on task |
 | `d` / `D` | Delete (confirm) / move to Done |
+| `A` | Mark every card as read (clear all badges) |
 | `r` | Reload from disk |
 | `?` / `q` | Toggle help / quit |
 
@@ -163,8 +164,9 @@ shift-click to select text for copying while mouse mode is on.
 The TUI tracks what changed since *you* last looked (its own `tui` change
 cursor): cards added by someone else show `●` with a green border, cards
 updated/moved/commented show `○` with a yellow border, and the status line
-counts them on startup. Opening a card marks it read; your own actions never
-badge; unread state persists across sessions.
+counts them on startup. Opening a card marks it read, `A` marks the whole
+board read at once; your own actions never badge; unread state persists across
+sessions.
 
 While you idle on the board, the TUI auto-reloads: it stats the file every
 2s and refreshes (badging changed cards, keeping your selection) whenever

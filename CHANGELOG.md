@@ -4,6 +4,14 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `A` in the TUI marks every card as read, clearing all unread badges in one
+  keystroke instead of opening each card. Later changes are still noticed —
+  the cursor advances rather than switching off.
+
 ## v0.5.0 — 2026-07-27
 
 ### Added
