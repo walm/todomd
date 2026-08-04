@@ -847,3 +847,73 @@ func TestOversizedCardIsClipped(t *testing.T) {
 		t.Error("oversized selected card should still be rendered")
 	}
 }
+
+func TestMarkAllRead(t *testing.T) {
+	m := newTestModel(t, 2, 2)
+	ids := []string{m.file.Boards[0].Tasks[0].ID, m.file.Boards[1].Tasks[0].ID}
+
+	// Someone else changes two tasks and adds a third.
+	err := m.store.Mutate(func(f *task.File) error {
+		for _, id := range ids {
+			if _, err := store.AddComment(f, id, "agent", "ping"); err != nil {
+				return err
+			}
+		}
+		_, err := store.Add(f, "A", &task.Task{Title: "brand new"})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.updateBoard(keyMsg("r"))
+	if len(m.unread.marks) != 3 {
+		t.Fatalf("marks = %d, want 3", len(m.unread.marks))
+	}
+
+	m.updateBoard(keyMsg("A"))
+	if len(m.unread.marks) != 0 {
+		t.Errorf("marks after A = %v", m.unread.marks)
+	}
+	if !strings.Contains(m.status, "3 cards") {
+		t.Errorf("status = %q, want the count", m.status)
+	}
+	if strings.Contains(m.viewBoard(), "●") || strings.Contains(m.viewBoard(), "○") {
+		t.Error("badges still drawn after marking all read")
+	}
+
+	// It sticks: a fresh session reads the same cursor and stays quiet.
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2 := newModel(m.store, f)
+	if len(m2.unread.marks) != 0 {
+		t.Errorf("marks came back in a new session: %v", m2.unread.marks)
+	}
+	if m2.status != "" {
+		t.Errorf("new session status = %q, want no unread notice", m2.status)
+	}
+
+	// And later changes are still noticed — the cursor advanced, not broke.
+	if err := m.store.Mutate(func(f *task.File) error {
+		_, err := store.Add(f, "A", &task.Task{Title: "after the sweep"})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	m2.updateBoard(keyMsg("r"))
+	if len(m2.unread.marks) != 1 {
+		t.Errorf("marks after a later change = %v, want 1", m2.unread.marks)
+	}
+}
+
+func TestMarkAllReadWithNothingUnread(t *testing.T) {
+	m := newTestModel(t, 1, 2)
+	m.updateBoard(keyMsg("A"))
+	if m.status != "nothing unread" {
+		t.Errorf("status = %q", m.status)
+	}
+	if m.isError {
+		t.Error("a no-op should not be an error")
+	}
+}

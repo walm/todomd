@@ -85,6 +85,22 @@ func (u *unread) recompute(cur *task.File) {
 	}
 }
 
+// markAllRead accepts the whole file as seen: the baseline becomes the current
+// state, so nothing is left badged. Unlike markRead there is no per-task
+// surgery to do — this is exactly what the cursor is for.
+func (u *unread) markAllRead(cur *task.File) int {
+	n := len(u.marks)
+	if n == 0 {
+		return 0
+	}
+	u.baseline = snapshot(cur)
+	u.marks = map[string]markKind{}
+	if u.path != "" {
+		_ = changes.SaveCursor(u.path, markdown.Write(cur))
+	}
+	return n
+}
+
 // markRead syncs one task into the baseline and persists the cursor.
 // Called when the user opens a card or mutates it themselves.
 func (u *unread) markRead(cur *task.File, id string) {
