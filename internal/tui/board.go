@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/walm/todomd/internal/selfupdate"
 	"github.com/walm/todomd/internal/task"
 )
 
@@ -268,7 +269,7 @@ var footerActions = []struct{ label, key string }{
 
 // footerHelp renders the short help with hover highlighting and records its
 // plain text for hit-testing; the expanded (?) help stays bubbles/help.
-func (m *model) footerHelp() string {
+func (m *model) footerHelp(budget int) string {
 	if m.help.ShowAll {
 		m.plainFooter = ""
 		return m.help.View(m.keys)
@@ -288,12 +289,42 @@ func (m *model) footerHelp() string {
 	}
 	// Keep the line inside the terminal: a wrapped footer would throw the
 	// board's height calculation off.
-	if lipgloss.Width(styled) > m.width {
-		styled = ansi.Truncate(styled, m.width, "…")
-		plain = ansi.Truncate(plain, m.width, "…")
+	if lipgloss.Width(styled) > budget {
+		styled = ansi.Truncate(styled, budget, "…")
+		plain = ansi.Truncate(plain, budget, "…")
 	}
 	m.plainFooter = plain
 	return styled
+}
+
+// versionLabel is the build shown in the corner. A pseudo-version is far too
+// long for a footer, so anything that isn't a release just reads "dev" —
+// todomd --version still gives the full string.
+func (m *model) versionLabel() string {
+	if m.version == "" {
+		return ""
+	}
+	if selfupdate.IsRelease(m.version) {
+		return m.version
+	}
+	return "dev"
+}
+
+// withVersion right-aligns the version on the footer's last line, when there
+// is room to spare after the help.
+func (m *model) withVersion(help string) string {
+	v := m.versionLabel()
+	if v == "" {
+		return help
+	}
+	lines := strings.Split(help, "\n")
+	last := len(lines) - 1
+	gap := m.width - lipgloss.Width(lines[last]) - lipgloss.Width(v)
+	if gap < 1 {
+		return help // the help matters more than the version
+	}
+	lines[last] += strings.Repeat(" ", gap) + hintStyle.Render(v)
+	return strings.Join(lines, "\n")
 }
 
 func (m *model) viewFooter() string {
@@ -323,6 +354,11 @@ func (m *model) viewFooter() string {
 	if status != "" {
 		lines = append(lines, status)
 	}
-	lines = append(lines, m.footerHelp())
+	// Reserve the corner for the version before laying out the help.
+	budget := m.width
+	if v := m.versionLabel(); v != "" && m.width-lipgloss.Width(v)-2 >= 20 {
+		budget = m.width - lipgloss.Width(v) - 2
+	}
+	lines = append(lines, m.withVersion(m.footerHelp(budget)))
 	return strings.Join(lines, "\n")
 }
