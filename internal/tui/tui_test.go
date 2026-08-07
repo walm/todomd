@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
@@ -1106,4 +1107,74 @@ func TestMutationsWorkWhileFiltered(t *testing.T) {
 	if got := m.selectedTask(); got == nil || got.ID != id {
 		t.Errorf("selection should follow the moved card, got %v", got)
 	}
+}
+
+func TestVersionInFooterCorner(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.width, m.height = 100, 24
+
+	// Nothing to show before Run sets a version (as in these tests).
+	if strings.Contains(m.viewFooter(), "v0.") {
+		t.Error("no version should be drawn when it is unknown")
+	}
+
+	m.version = "v0.6.0"
+	footer := m.viewFooter()
+	last := strings.Split(footer, "\n")
+	line := last[len(last)-1]
+	if !strings.HasSuffix(ansi.Strip(line), "v0.6.0") {
+		t.Errorf("version should end the last footer line: %q", ansi.Strip(line))
+	}
+	if got := lipgloss.Width(line); got != m.width {
+		t.Errorf("footer line width = %d, want exactly %d (flush right)", got, m.width)
+	}
+
+	// A source build says "dev" rather than a 40-character pseudo-version.
+	m.version = "v0.6.1-0.20260807120000-abcdef123456+dirty"
+	line = lastLine(m.viewFooter())
+	if !strings.HasSuffix(ansi.Strip(line), "dev") {
+		t.Errorf("source build should read dev: %q", ansi.Strip(line))
+	}
+
+	// Narrow terminal: the help gives way, the version keeps its corner, and
+	// the line still fits exactly.
+	m.version, m.width = "v0.6.0", 50
+	line = lastLine(m.viewFooter())
+	if lipgloss.Width(line) > m.width {
+		t.Errorf("footer overflows a narrow terminal: %d > %d", lipgloss.Width(line), m.width)
+	}
+	if !strings.HasSuffix(ansi.Strip(line), "v0.6.0") {
+		t.Errorf("version dropped on a narrow terminal: %q", ansi.Strip(line))
+	}
+
+	// Too narrow for both: help wins, and nothing wraps.
+	m.width = 20
+	line = lastLine(m.viewFooter())
+	if lipgloss.Width(line) > m.width {
+		t.Errorf("footer overflows at %d cols: %q", m.width, ansi.Strip(line))
+	}
+}
+
+// The version sits past the labels, so clicking them still lands.
+func TestFooterClicksSurviveVersion(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.width, m.height = 100, 24
+	m.version = "v0.6.0"
+	m.viewBoard()
+	i := labelCol(m.plainFooter, "a add")
+	if i < 0 {
+		t.Fatalf("plainFooter = %q", m.plainFooter)
+	}
+	if strings.Contains(m.plainFooter, "v0.6.0") {
+		t.Error("the version should stay out of the hit-testing text")
+	}
+	m.handleMouse(click(i+1, m.height-1))
+	if m.mode != modeForm {
+		t.Errorf("footer click stopped working, mode=%d", m.mode)
+	}
+}
+
+func lastLine(s string) string {
+	lines := strings.Split(s, "\n")
+	return lines[len(lines)-1]
 }

@@ -11,6 +11,9 @@ breaking changes to the file format or CLI (they will be called out).
 - `/` in the TUI filters the board as you type, matching titles, tags,
   descriptions, comment text and ids. `enter` keeps the query, `esc` restores
   what was there before.
+- The TUI shows its version in the bottom-right corner — the release tag, or
+  `dev` for a build from source. It yields to the key help on narrow
+  terminals.
 - `u` filters the board down to cards that changed since your last visit, and
   `esc` clears any active filter. The two compose, column headers show
   `(shown/total)` while filtering, and the footer names what is applied.
