@@ -37,6 +37,11 @@ func (m *model) viewBoard() string {
 			statusStyle.Render("no boards yet — press q and run: todomd add --board Backlog \"my first task\""))
 		return empty + "\n" + footer
 	}
+	if shown, _ := m.matchCount(); shown == 0 && m.filter.active() {
+		empty := lipgloss.Place(m.width, bodyH, lipgloss.Center, lipgloss.Center,
+			hintStyle.Render("no cards match "+m.filter.describe()+" — esc to clear"))
+		return empty + "\n" + footer
+	}
 
 	nVis, colW := m.layout()
 	// Keep the selected column on screen.
@@ -80,7 +85,12 @@ func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel i
 	if active {
 		hdrStyle = colHeaderActive
 	}
-	hdrText := fmt.Sprintf("%s %s", b.Name, countStyle.Render(fmt.Sprintf("(%d)", len(b.Tasks))))
+	tasks := m.visibleTasks(bi)
+	count := fmt.Sprintf("(%d)", len(tasks))
+	if m.filter.active() {
+		count = fmt.Sprintf("(%d/%d)", len(tasks), len(b.Tasks))
+	}
+	hdrText := fmt.Sprintf("%s %s", b.Name, countStyle.Render(count))
 	hdr := hdrStyle.Render(ansi.Truncate(hdrText, w-3, "…"))
 	if overflow != "" {
 		pad := w - lipgloss.Width(hdr) - 2
@@ -90,7 +100,7 @@ func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel i
 		hdr += pagerStyle.Render(overflow)
 	}
 	frame := lipgloss.NewStyle().Width(w).Height(h).MaxHeight(h)
-	if len(b.Tasks) == 0 {
+	if len(tasks) == 0 {
 		return frame.Render(hdr)
 	}
 
@@ -103,7 +113,7 @@ func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel i
 		if c, ok := cache[i]; ok {
 			return c
 		}
-		t := b.Tasks[i]
+		t := tasks[i]
 		c := renderCard(t, w-2, active && i == sel, m.unread.marks[t.ID])
 		cache[i] = c
 		return c
@@ -113,7 +123,7 @@ func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel i
 	// the cards above the window — only of the ones we draw.
 	top := 0
 	if active {
-		top = min(max(m.cardTop, 0), len(b.Tasks)-1)
+		top = min(max(m.cardTop, 0), len(tasks)-1)
 	}
 	if sel >= 0 {
 		// Walk back from the selection to find the earliest card that still
@@ -142,7 +152,7 @@ func (m *model) renderColumn(bi int, b *task.Board, w, h int, active bool, sel i
 	}
 	var window []slot
 	used := 0
-	for i := top; i < len(b.Tasks) && used < cardH; i++ {
+	for i := top; i < len(tasks) && used < cardH; i++ {
 		cl := strings.Split(render(i), "\n")
 		window = append(window, slot{i, cl})
 		used += len(cl)
@@ -253,7 +263,7 @@ func renderCard(t *task.Task, w int, selected bool, mark markKind) string {
 // clickable and highlight on hover.
 var footerActions = []struct{ label, key string }{
 	{"h/l column", ""}, {"j/k card", ""}, {"enter open", ""}, {"a add", "a"},
-	{"H/L move task", ""}, {"D done", ""}, {"? help", "?"}, {"q quit", "q"},
+	{"/ search", "/"}, {"u only changed", "u"}, {"? help", "?"}, {"q quit", "q"},
 }
 
 // footerHelp renders the short help with hover highlighting and records its
@@ -275,6 +285,12 @@ func (m *model) footerHelp() string {
 		} else {
 			styled += hintStyle.Render(a.label)
 		}
+	}
+	// Keep the line inside the terminal: a wrapped footer would throw the
+	// board's height calculation off.
+	if lipgloss.Width(styled) > m.width {
+		styled = ansi.Truncate(styled, m.width, "…")
+		plain = ansi.Truncate(plain, m.width, "…")
 	}
 	m.plainFooter = plain
 	return styled
@@ -298,6 +314,9 @@ func (m *model) viewFooter() string {
 		}
 	}
 	lines := []string{}
+	if m.mode == modeSearch {
+		lines = append(lines, m.search.View())
+	}
 	if m.updateNotice != "" {
 		lines = append(lines, hintStyle.Render(m.updateNotice))
 	}

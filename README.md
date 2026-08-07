@@ -144,6 +144,9 @@ todomd changes --json                # only what others did
 | `c` | Comment on task |
 | `d` / `D` | Delete (confirm) / move to Done |
 | `A` | Mark every card as read (clear all badges) |
+| `/` | Search: filters as you type (`enter` keeps it, `esc` cancels) |
+| `u` | Show only changed/unread cards |
+| `esc` | Clear the active filter |
 | `r` | Reload from disk |
 | `?` / `q` | Toggle help / quit |
 
