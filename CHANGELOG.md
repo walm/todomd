@@ -4,6 +4,19 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `/` in the TUI filters the board as you type, matching titles, tags,
+  descriptions, comment text and ids. `enter` keeps the query, `esc` restores
+  what was there before.
+- `u` filters the board down to cards that changed since your last visit, and
+  `esc` clears any active filter. The two compose, column headers show
+  `(shown/total)` while filtering, and the footer names what is applied.
+  `J`/`K` reordering is refused while filtered, since positions are relative
+  to the whole board.
+
 ## v0.6.0 — 2026-08-04
 
 ### Added

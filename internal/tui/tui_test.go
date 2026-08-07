@@ -917,3 +917,193 @@ func TestMarkAllReadWithNothingUnread(t *testing.T) {
 		t.Error("a no-op should not be an error")
 	}
 }
+
+// typeInto feeds a string to whatever field currently has focus.
+func typeInto(m *model, s string) {
+	for _, r := range s {
+		m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+}
+
+func TestSearchFilter(t *testing.T) {
+	m := newTestModel(t, 2, 0)
+	seed := []struct {
+		board int
+		t     *task.Task
+	}{
+		{0, &task.Task{ID: "aaaa", Title: "Fix the parser bug", Tags: []string{"parser"}}},
+		{0, &task.Task{ID: "bbbb", Title: "Write release notes", Description: "mention the PARSER work"}},
+		{0, &task.Task{ID: "cccc", Title: "Refactor the store"}},
+		{1, &task.Task{ID: "dddd", Title: "Benchmarks",
+			Comments: []task.Comment{{Author: "ai", Text: "parser is the hot path"}}}},
+	}
+	for _, s := range seed {
+		m.file.Boards[s.board].Tasks = append(m.file.Boards[s.board].Tasks, s.t)
+	}
+
+	// / opens the prompt; typing filters live across boards and fields.
+	m.updateBoard(keyMsg("/"))
+	if m.mode != modeSearch {
+		t.Fatalf("/ should open the search prompt, mode=%d", m.mode)
+	}
+	typeInto(m, "parser")
+	got := map[string]bool{}
+	for bi := range m.file.Boards {
+		for _, tk := range m.visibleTasks(bi) {
+			got[tk.ID] = true
+		}
+	}
+	// title, description, tag and comment all count as matches; nothing else does.
+	for _, id := range []string{"aaaa", "bbbb", "dddd"} {
+		if !got[id] {
+			t.Errorf("%s should match", id)
+		}
+	}
+	if got["cccc"] {
+		t.Error("cccc should not match")
+	}
+	if shown, total := m.matchCount(); shown != 3 || total != 4 {
+		t.Errorf("counts = %d/%d, want 3/4", shown, total)
+	}
+
+	// enter keeps the query and returns to the board.
+	m.updateSearch(tea.KeyMsg{Type: tea.KeyEnter})
+	if m.mode != modeBoard || m.filter.query != "parser" {
+		t.Errorf("after enter: mode=%d query=%q", m.mode, m.filter.query)
+	}
+	// esc on the board clears it.
+	m.updateBoard(keyMsg("esc"))
+	if m.filter.active() {
+		t.Errorf("esc should clear the filter, got %q", m.filter.describe())
+	}
+	if len(m.visibleTasks(0)) != 3 {
+		t.Errorf("all cards should be back, got %d", len(m.visibleTasks(0)))
+	}
+}
+
+// Cancelling a search restores the query it started from, rather than
+// clearing whatever was already applied.
+func TestSearchCancelRestoresPreviousQuery(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.file.Boards[0].Tasks = []*task.Task{
+		{ID: "aaaa", Title: "alpha"}, {ID: "bbbb", Title: "beta"},
+	}
+	m.updateBoard(keyMsg("/"))
+	typeInto(m, "alpha")
+	m.updateSearch(tea.KeyMsg{Type: tea.KeyEnter})
+
+	m.updateBoard(keyMsg("/")) // start a second search…
+	typeInto(m, "xyz")
+	if len(m.visibleTasks(0)) != 0 {
+		t.Error("live filter should apply while typing")
+	}
+	m.updateSearch(tea.KeyMsg{Type: tea.KeyEsc}) // …and abandon it
+	if m.filter.query != "alpha" {
+		t.Errorf("query = %q, want the previous alpha", m.filter.query)
+	}
+}
+
+func TestUnreadFilter(t *testing.T) {
+	m := newTestModel(t, 1, 3)
+	id := m.file.Boards[0].Tasks[1].ID
+	if err := m.store.Mutate(func(f *task.File) error {
+		_, err := store.AddComment(f, id, "agent", "ping")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	m.updateBoard(keyMsg("r"))
+
+	m.updateBoard(keyMsg("u"))
+	vis := m.visibleTasks(0)
+	if len(vis) != 1 || vis[0].ID != id {
+		t.Fatalf("unread filter shows %d cards, want just the changed one", len(vis))
+	}
+	if !strings.Contains(m.status, "1 of 3") {
+		t.Errorf("status = %q", m.status)
+	}
+	// The selection lands on a card that's actually shown.
+	if got := m.selectedTask(); got == nil || got.ID != id {
+		t.Errorf("selection = %v, want the visible card", got)
+	}
+	// Reading it empties the view — that's the point of an unread filter.
+	m.updateBoard(keyMsg("enter"))
+	m.updateDetail(keyMsg("esc"))
+	if len(m.visibleTasks(0)) != 0 {
+		t.Errorf("card should leave the unread filter once read")
+	}
+	if m.selectedTask() != nil {
+		t.Error("selection should be empty when nothing is visible")
+	}
+	if !strings.Contains(m.viewBoard(), "no cards match") {
+		t.Error("empty filtered board should say so")
+	}
+	// Toggling off brings everything back.
+	m.updateBoard(keyMsg("u"))
+	if len(m.visibleTasks(0)) != 3 {
+		t.Errorf("visible = %d, want 3", len(m.visibleTasks(0)))
+	}
+}
+
+// Both filters at once means both have to pass.
+func TestFiltersCompose(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.file.Boards[0].Tasks = []*task.Task{
+		{ID: "aaaa", Title: "parser work"},
+		{ID: "bbbb", Title: "parser docs"},
+		{ID: "cccc", Title: "unrelated"},
+	}
+	m.unread.marks = map[string]markKind{"bbbb": markUpdated, "cccc": markNew}
+	m.filter = filter{unreadOnly: true, query: "parser"}
+	vis := m.visibleTasks(0)
+	if len(vis) != 1 || vis[0].ID != "bbbb" {
+		t.Errorf("composed filter = %v, want only bbbb", vis)
+	}
+	if d := m.filter.describe(); !strings.Contains(d, "unread") || !strings.Contains(d, "/parser") {
+		t.Errorf("describe = %q", d)
+	}
+}
+
+// Reordering is relative to the whole board, so it refuses while filtered
+// rather than moving a card past cards it can't see.
+func TestReorderRefusedWhileFiltering(t *testing.T) {
+	m := newTestModel(t, 1, 3)
+	before := m.file.Boards[0].Tasks[0].ID
+	m.filter = filter{query: "task"} // matches every seeded title
+	m.updateBoard(keyMsg("J"))
+	if !m.isError || !strings.Contains(m.status, "filter") {
+		t.Errorf("expected a refusal, status=%q isErr=%v", m.status, m.isError)
+	}
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Boards[0].Tasks[0].ID != before {
+		t.Error("order changed despite the refusal")
+	}
+}
+
+// Mutating a filtered board still works, because those act by id.
+func TestMutationsWorkWhileFiltered(t *testing.T) {
+	m := newTestModel(t, 2, 2)
+	id := m.file.Boards[0].Tasks[1].ID
+	m.filter = filter{query: "task"}
+	m.selectByID(id)
+	m.updateBoard(keyMsg("L")) // move to the next board
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, tk := range f.Boards[1].Tasks {
+		if tk.ID == id {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("move should work under a filter")
+	}
+	if got := m.selectedTask(); got == nil || got.ID != id {
+		t.Errorf("selection should follow the moved card, got %v", got)
+	}
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -58,6 +59,7 @@ const (
 	modeDetail
 	modeForm
 	modeConfirm
+	modeSearch
 )
 
 type keyMap struct {
@@ -70,6 +72,7 @@ type keyMap struct {
 	Priority                 key.Binding
 	Delete, Done, Reload     key.Binding
 	MarkAllRead              key.Binding
+	Unread, Search, Clear    key.Binding
 	Help, Quit               key.Binding
 }
 
@@ -96,8 +99,11 @@ func newKeyMap() keyMap {
 		Reload:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reload")),
 		MarkAllRead: key.NewBinding(key.WithKeys("A"),
 			key.WithHelp("A", "mark all read")),
-		Help: key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-		Quit: key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+		Unread: key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "only changed")),
+		Search: key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "search")),
+		Clear:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear filter")),
+		Help:   key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+		Quit:   key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 	}
 }
 
@@ -111,7 +117,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.MoveLeft, k.MoveDown, k.Done, k.Delete},
 		{k.Add, k.Edit, k.Editor, k.Comment},
 		{k.Priority, k.Delete, k.Done, k.Reload},
-		{k.MarkAllRead},
+		{k.MarkAllRead, k.Unread, k.Search, k.Clear},
 		{k.Help, k.Quit},
 	}
 }
@@ -151,6 +157,10 @@ type model struct {
 
 	version      string // running version, for the update check
 	updateNotice string // "vX.Y.Z available" hint, empty when up to date
+
+	filter     filter          // narrows which cards the board shows
+	search     textinput.Model // the / prompt, while modeSearch is active
+	savedQuery string          // restored when a search is cancelled
 }
 
 // autoReloadEvery is the stat-poll interval: the board picks up external
@@ -181,6 +191,9 @@ func (m *model) fileChanged() bool {
 
 func newModel(s *store.Store, f *task.File) *model {
 	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap(), hintHover: -1, footHover: -1}
+	m.search = textinput.New()
+	m.search.Prompt = "/"
+	m.search.Placeholder = "search titles, tags, descriptions, comments"
 	m.unread = loadUnread(s.Path, f)
 	m.recordStat()
 	if n := len(m.unread.marks); n > 0 {
@@ -194,14 +207,11 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) selectedTask() *task.Task {
-	if m.boardIdx >= len(m.file.Boards) {
+	vis := m.visibleTasks(m.boardIdx)
+	if m.cardIdx >= len(vis) {
 		return nil
 	}
-	b := m.file.Boards[m.boardIdx]
-	if m.cardIdx >= len(b.Tasks) {
-		return nil
-	}
-	return b.Tasks[m.cardIdx]
+	return vis[m.cardIdx]
 }
 
 func (m *model) clamp() {
@@ -213,7 +223,7 @@ func (m *model) clamp() {
 	if m.boardIdx < 0 {
 		m.boardIdx = 0
 	}
-	n := len(m.file.Boards[m.boardIdx].Tasks)
+	n := len(m.visibleTasks(m.boardIdx))
 	if m.cardIdx >= n {
 		m.cardIdx = n - 1
 	}
@@ -223,9 +233,10 @@ func (m *model) clamp() {
 }
 
 // selectByID points the selection at the task with the given ID, if present.
+// selectByID points the selection at a task if the filter still shows it.
 func (m *model) selectByID(id string) {
-	for bi, b := range m.file.Boards {
-		for ti, t := range b.Tasks {
+	for bi := range m.file.Boards {
+		for ti, t := range m.visibleTasks(bi) {
 			if t.ID == id {
 				m.boardIdx, m.cardIdx = bi, ti
 				return
@@ -303,6 +314,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateForm(msg)
 		case modeConfirm:
 			return m.updateConfirm(msg)
+		case modeSearch:
+			return m.updateSearch(msg)
 		}
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
@@ -343,7 +356,7 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cardIdx = 0
 		}
 	case key.Matches(msg, k.Down):
-		if t := m.file; m.boardIdx < len(t.Boards) && m.cardIdx < len(t.Boards[m.boardIdx].Tasks)-1 {
+		if m.cardIdx < len(m.visibleTasks(m.boardIdx))-1 {
 			m.cardIdx++
 		}
 	case key.Matches(msg, k.Up):
@@ -353,9 +366,7 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, k.First):
 		m.cardIdx = 0
 	case key.Matches(msg, k.Last):
-		if m.boardIdx < len(m.file.Boards) {
-			m.cardIdx = max(0, len(m.file.Boards[m.boardIdx].Tasks)-1)
-		}
+		m.cardIdx = max(0, len(m.visibleTasks(m.boardIdx))-1)
 	case key.Matches(msg, k.MoveLeft):
 		m.moveToAdjacent(-1)
 	case key.Matches(msg, k.MoveRight):
@@ -406,6 +417,20 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return err
 			}, id, "moved to Done")
 		}
+	case key.Matches(msg, k.Unread):
+		m.filter.unreadOnly = !m.filter.unreadOnly
+		m.afterFilterChange()
+	case key.Matches(msg, k.Search):
+		m.savedQuery = m.filter.query
+		m.search.SetValue(m.filter.query)
+		m.search.CursorEnd()
+		m.search.Focus()
+		m.mode = modeSearch
+	case key.Matches(msg, k.Clear):
+		if m.filter.active() {
+			m.filter = filter{}
+			m.afterFilterChange()
+		}
 	case key.Matches(msg, k.MarkAllRead):
 		if n := m.unread.markAllRead(m.file); n > 0 {
 			m.setStatus(fmt.Sprintf("marked %s as read", plural(n, "card")), false)
@@ -442,6 +467,13 @@ func (m *model) reorder(dir int) {
 	if t == nil {
 		return
 	}
+	if m.filter.active() {
+		// Position is relative to the whole board; with cards hidden, "one
+		// down" has no honest meaning. Say so instead of moving it somewhere
+		// surprising.
+		m.setStatus("clear the filter to reorder (esc)", true)
+		return
+	}
 	b := m.file.Boards[m.boardIdx]
 	newIdx := m.cardIdx + dir
 	if newIdx < 0 || newIdx >= len(b.Tasks) {
@@ -471,6 +503,59 @@ func (m *model) cyclePriority() {
 		_, err := store.Update(f, id, store.UpdateOpts{Priority: &next})
 		return err
 	}, id, "priority: "+next.String())
+}
+
+// afterFilterChange keeps the selection on the card the user was looking at
+// when it survives the new filter, and reports what is now on screen.
+func (m *model) afterFilterChange(keep ...string) {
+	id := ""
+	if len(keep) > 0 {
+		id = keep[0]
+	} else if t := m.selectedTask(); t != nil {
+		id = t.ID
+	}
+	m.cardTop = 0
+	m.clamp()
+	if id != "" {
+		m.selectByID(id)
+	}
+	if !m.filter.active() {
+		m.setStatus("", false)
+		return
+	}
+	shown, total := m.matchCount()
+	m.setStatus(fmt.Sprintf("filter %s — %d of %d cards", m.filter.describe(), shown, total), false)
+}
+
+// updateSearch runs the / prompt: the board filters as you type, enter keeps
+// the query, esc puts back whatever was there before.
+func (m *model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	sel := ""
+	if t := m.selectedTask(); t != nil {
+		sel = t.ID
+	}
+	switch msg.String() {
+	case "enter":
+		m.search.Blur()
+		m.mode = modeBoard
+		m.afterFilterChange(sel)
+		return m, nil
+	case "esc", "ctrl+c":
+		m.filter.query = m.savedQuery
+		m.search.Blur()
+		m.mode = modeBoard
+		m.afterFilterChange(sel)
+		return m, nil
+	}
+	var cmd tea.Cmd
+	m.search, cmd = m.search.Update(msg)
+	m.filter.query = m.search.Value()
+	m.cardTop = 0
+	m.clamp()
+	if sel != "" {
+		m.selectByID(sel)
+	}
+	return m, cmd
 }
 
 func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
