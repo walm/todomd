@@ -150,8 +150,10 @@ todomd changes --json                # only what others did
 | `r` | Reload from disk |
 | `?` / `q` | Toggle help / quit |
 
-Inside the open task, `e`, `E`, and `c` work too and return you to the task
-afterwards.
+Inside the open task: `j`/`k` scroll, `ctrl+d`/`ctrl+u` half a page, `g`/`G`
+jump to the top and bottom, and the title, id, board, tags, priority and due
+date stay pinned above the scrolling body. `e`, `E`, `c` and `p` work there too
+and return you to the task afterwards.
 
 🖱️ Mouse works alongside the keys: click a card to select it, click it again to
 open; inside the open task the footer hints (`e edit · E editor ·

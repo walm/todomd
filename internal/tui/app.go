@@ -132,11 +132,12 @@ type model struct {
 	colOffset     int
 	cardTop       int // first visible card in the active column
 
-	mode      mode
-	vp        viewport.Model
-	form      *form
-	formFrom  mode // view to return to when the form closes
-	confirmID string
+	mode       mode
+	vp         viewport.Model
+	detailHead string // sticky header of the open task
+	form       *form
+	formFrom   mode // view to return to when the form closes
+	confirmID  string
 
 	status       string
 	isError      bool
@@ -584,6 +585,12 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "p":
 		m.cyclePriority()
 		m.openDetail() // re-render with the new priority
+		return m, nil
+	case "g", "home":
+		m.vp.GotoTop()
+		return m, nil
+	case "G", "end":
+		m.vp.GotoBottom()
 		return m, nil
 	}
 	var cmd tea.Cmd

@@ -34,6 +34,56 @@ func (m *model) detailSize() (w, maxH int) {
 	return w - 4, maxH - 3 // border + padding; border + hint line
 }
 
+// detailHeader renders the part of the task that stays put while the body
+// scrolls: what it is, where it lives, and how it's marked up.
+func (m *model) detailHeader(t *task.Task, board string, w int) string {
+	title := titleStyle.Foreground(accent).Width(w).Render(t.Title)
+	if tl := strings.Split(title, "\n"); len(tl) > 2 {
+		tl = tl[:2]
+		tl[1] = ansi.Truncate(tl[1], w-1, "") + "…"
+		title = strings.Join(tl, "\n")
+	}
+
+	meta := []string{countStyle.Render(t.ID), lipgloss.NewStyle().Bold(true).Render(board)}
+	if len(t.Tags) > 0 {
+		meta = append(meta, tagStyle.Render("#"+strings.Join(t.Tags, " #")))
+	}
+	switch t.Priority {
+	case task.PriorityHigh:
+		meta = append(meta, prioHigh.Render("▲ high"))
+	case task.PriorityLow:
+		meta = append(meta, prioLow.Render("▼ low"))
+	}
+	if t.Due != nil {
+		style := dueStyle
+		switch d := t.Due.DaysUntil(task.Today()); {
+		case d < 0:
+			style = overdueStyle
+		case d <= 3:
+			style = dueSoonStyle
+		}
+		meta = append(meta, style.Render("due "+t.Due.String()))
+	}
+	line := ansi.Truncate(strings.Join(meta, hintStyle.Render(" · ")), w, "…")
+	return title + "\n" + line
+}
+
+// headerWidth is how wide the header would like to be, so the modal can size
+// itself around the header as well as the body.
+func (m *model) headerWidth(t *task.Task, board string) int {
+	meta := t.ID + " · " + board
+	if len(t.Tags) > 0 {
+		meta += " · #" + strings.Join(t.Tags, " #")
+	}
+	if t.Priority != task.PriorityNormal {
+		meta += " · ▲ high"
+	}
+	if t.Due != nil {
+		meta += " · due " + t.Due.String()
+	}
+	return max(lipgloss.Width(t.Title), lipgloss.Width(meta))
+}
+
 // openDetail (re)builds the detail viewport for the selected task.
 func (m *model) openDetail() {
 	t := m.selectedTask()
@@ -43,27 +93,23 @@ func (m *model) openDetail() {
 	m.unread.markRead(m.file, t.ID)
 	board := m.file.Boards[m.boardIdx].Name
 
+	// The title and metadata live in the sticky header, so the scrolling
+	// body is just the task's content.
 	var md strings.Builder
-	fmt.Fprintf(&md, "# %s\n\n", t.Title)
-	fmt.Fprintf(&md, "`%s` · **%s**", t.ID, board)
-	if len(t.Tags) > 0 {
-		fmt.Fprintf(&md, " · #%s", strings.Join(t.Tags, " #"))
-	}
-	if t.Priority != task.PriorityNormal {
-		fmt.Fprintf(&md, " · priority **%s**", t.Priority)
-	}
-	if t.Due != nil {
-		fmt.Fprintf(&md, " · due **%s**", t.Due)
-	}
-	md.WriteString("\n")
 	if t.Description != "" {
-		fmt.Fprintf(&md, "\n%s\n", t.Description)
+		fmt.Fprintf(&md, "%s\n", t.Description)
 	}
 	if len(t.Comments) > 0 {
-		fmt.Fprintf(&md, "\n---\n\n## Comments (%d)\n\n", len(t.Comments))
+		if t.Description != "" {
+			md.WriteString("\n---\n")
+		}
+		fmt.Fprintf(&md, "\n## Comments (%d)\n\n", len(t.Comments))
 		for _, c := range t.Comments {
 			fmt.Fprintf(&md, "**%s** · %s\n\n%s\n\n", c.Author, c.Date, c.Text)
 		}
+	}
+	if md.Len() == 0 {
+		md.WriteString("*No description yet — press e to add one.*\n")
 	}
 
 	w, maxH := m.detailSize()
@@ -97,13 +143,16 @@ func (m *model) openDetail() {
 	}
 	content = strings.Join(lines, "\n")
 
-	// The modal shrinks to its content (with a readable floor); only long
-	// tasks fill maxH and scroll.
+	// The modal shrinks to its content (with a readable floor), sized for the
+	// header as well as the body; only long tasks fill maxH and scroll.
 	if !m.smallScreen() {
 		floor := min(44, w)
-		w = max(min(lipgloss.Width(content), w), floor)
+		want := max(lipgloss.Width(content), m.headerWidth(t, board))
+		w = max(min(want, w), floor)
 	}
-	h := min(lipgloss.Height(content), maxH)
+	m.detailHead = m.detailHeader(t, board, w)
+	bodyH := maxH - lipgloss.Height(m.detailHead) - 1 // -1 for the rule
+	h := min(lipgloss.Height(content), bodyH)
 	m.vp = viewport.New(w, max(1, h))
 	m.vp.SetContent(content)
 }
@@ -113,7 +162,7 @@ func (m *model) openDetail() {
 func (m *model) detailHint() string {
 	prefix := ""
 	if m.vp.TotalLineCount() > m.vp.Height {
-		prefix = fmt.Sprintf("%3.0f%% · j/k scroll · ", m.vp.ScrollPercent()*100)
+		prefix = fmt.Sprintf("%3.0f%% · j/k g/G scroll · ", m.vp.ScrollPercent()*100)
 	}
 	plain, styled := prefix, hintStyle.Render(prefix)
 	for i, a := range hintActions {
@@ -132,14 +181,25 @@ func (m *model) detailHint() string {
 	return styled
 }
 
+// detailPane stacks the sticky header, a rule spanning the whole pane, the
+// scrolling body and the hint. The rule is sized last, once every part's width
+// is known — the hint is usually the widest of them.
+func (m *model) detailPane(minWidth int) string {
+	body, hint := m.vp.View(), m.detailHint()
+	w := max(minWidth, max(lipgloss.Width(m.detailHead),
+		max(lipgloss.Width(body), lipgloss.Width(hint))))
+	rule := hintStyle.Render(strings.Repeat("─", w))
+	return m.detailHead + "\n" + rule + "\n" + body + "\n" + hint
+}
+
 func (m *model) viewDetail() string {
 	if m.smallScreen() {
-		out := m.vp.View() + "\n " + m.detailHint()
+		out := m.detailPane(m.width - 1)
 		m.plainHint = "" // no hint buttons; full-screen, so no tap-outside either
 		m.detailRect = rect{0, 0, m.width, m.height}
 		return out
 	}
-	box := detailBox.Render(m.vp.View() + "\n" + m.detailHint())
+	box := detailBox.Render(m.detailPane(0))
 	w, h := lipgloss.Width(box), lipgloss.Height(box)
 	m.detailRect = rect{max(0, (m.width-w)/2), max(0, (m.height-h)/2), w, h}
 	return compose(m.viewBoard(), box, m.width, m.height)
