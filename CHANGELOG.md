@@ -4,6 +4,19 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `g`/`G` in the open task jump to the top and bottom of its content, matching
+  the board's own `g`/`G`.
+
+### Changed
+
+- The open task now keeps its title, id, board, tags, priority and due date
+  pinned above the scrolling body, so you can still tell what you're reading
+  half way down a long description.
+
 ## v0.7.0 — 2026-08-07
 
 ### Added

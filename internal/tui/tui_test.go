@@ -1178,3 +1178,117 @@ func lastLine(s string) string {
 	lines := strings.Split(s, "\n")
 	return lines[len(lines)-1]
 }
+
+func longTask() *task.Task {
+	due, _ := task.ParseDate("2026-08-15")
+	return &task.Task{
+		ID: "51jp", Title: "Fix the parser bug in metadata handling",
+		Tags: []string{"parser", "core"}, Priority: task.PriorityHigh, Due: &due,
+		Description: strings.Repeat("A paragraph of description that has to be scrolled.\n\n", 12),
+		Comments: []task.Comment{
+			{Author: "ai", Date: due, Text: "the last thing in the body"},
+		},
+	}
+}
+
+func TestDetailStickyHeader(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.width, m.height = 100, 24
+	m.glamourStyle = "notty"
+	m.file.Boards[0].Tasks = []*task.Task{longTask()}
+	m.updateBoard(keyMsg("enter"))
+
+	// Everything identifying the task is in the header, not the scroll area.
+	for _, want := range []string{"Fix the parser bug", "51jp", "A", "#parser #core", "high", "2026-08-15"} {
+		if !strings.Contains(ansi.Strip(m.detailHead), want) {
+			t.Errorf("header missing %q:\n%s", want, ansi.Strip(m.detailHead))
+		}
+	}
+	// The body carries the content and does not repeat the title.
+	body := ansi.Strip(m.vp.View())
+	if strings.Contains(body, "Fix the parser bug") {
+		t.Errorf("title duplicated into the scrolling body:\n%s", body)
+	}
+	if !strings.Contains(body, "paragraph of description") {
+		t.Errorf("body missing the description:\n%s", body)
+	}
+
+	// Scrolled to the bottom, the header is still on screen.
+	m.updateDetail(keyMsg("G"))
+	view := ansi.Strip(m.viewDetail())
+	if !strings.Contains(view, "Fix the parser bug") || !strings.Contains(view, "51jp") {
+		t.Error("header scrolled away with the body")
+	}
+	if !strings.Contains(ansi.Strip(m.vp.View()), "the last thing in the body") {
+		t.Error("G should reach the end of the content")
+	}
+}
+
+func TestDetailTopBottomKeys(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.width, m.height = 100, 24
+	m.glamourStyle = "notty"
+	m.file.Boards[0].Tasks = []*task.Task{longTask()}
+	m.updateBoard(keyMsg("enter"))
+	if m.vp.TotalLineCount() <= m.vp.Height {
+		t.Fatal("test premise: the body should overflow the viewport")
+	}
+
+	m.updateDetail(keyMsg("G"))
+	if !m.vp.AtBottom() {
+		t.Errorf("G should jump to the bottom (offset %d)", m.vp.YOffset)
+	}
+	m.updateDetail(keyMsg("g"))
+	if !m.vp.AtTop() {
+		t.Errorf("g should jump back to the top (offset %d)", m.vp.YOffset)
+	}
+	// Still scrolls a line at a time, and g/G are advertised while scrollable.
+	m.updateDetail(keyMsg("j"))
+	if m.vp.YOffset != 1 {
+		t.Errorf("j should scroll one line, offset = %d", m.vp.YOffset)
+	}
+	m.viewDetail() // the hint is recorded while rendering
+	if !strings.Contains(m.plainHint, "g/G") {
+		t.Errorf("hint should mention g/G: %q", m.plainHint)
+	}
+}
+
+func TestDetailEmptyTaskStillHasHeader(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.width, m.height = 100, 24
+	m.glamourStyle = "notty"
+	m.file.Boards[0].Tasks = []*task.Task{{ID: "0k61", Title: "Bare task"}}
+	m.updateBoard(keyMsg("enter"))
+	head := ansi.Strip(m.detailHead)
+	if !strings.Contains(head, "Bare task") || !strings.Contains(head, "0k61") {
+		t.Errorf("header = %q", head)
+	}
+	if !strings.Contains(ansi.Strip(m.vp.View()), "No description yet") {
+		t.Errorf("empty task should say so: %q", ansi.Strip(m.vp.View()))
+	}
+}
+
+// The rule under the header spans the pane, whatever is widest inside it.
+func TestDetailRuleSpansPane(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.width, m.height = 100, 24
+	m.glamourStyle = "notty"
+	m.file.Boards[0].Tasks = []*task.Task{longTask()}
+	m.updateBoard(keyMsg("enter"))
+	pane := strings.Split(ansi.Strip(m.detailPane(0)), "\n")
+	widest, rule := 0, -1
+	for i, l := range pane {
+		if w := lipgloss.Width(l); w > widest {
+			widest = w
+		}
+		if strings.HasPrefix(l, "───") {
+			rule = i
+		}
+	}
+	if rule < 0 {
+		t.Fatal("no rule in the pane")
+	}
+	if got := lipgloss.Width(pane[rule]); got != widest {
+		t.Errorf("rule is %d wide, pane is %d", got, widest)
+	}
+}
