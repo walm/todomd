@@ -72,6 +72,7 @@ todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
 todomd delete 3f2a --yes
 todomd boards --json
+todomd boards delete Review           # --force if it still holds tasks
 todomd archive --dry-run              # what clearing Done would remove
 todomd changes --as claude --ignore-author claude --json
 ```
@@ -120,7 +121,9 @@ todomd changes --json                # only what others did
 - **Exit codes**: `0` ok · `1` general error · `2` task not found ·
   `3` ambiguous ID prefix.
 - Boards are matched case-insensitively and created on demand (new boards land
-  before `Done`).
+  before `Done`). `boards delete <name>` removes one; an empty board goes
+  straight away, one holding tasks needs `--force` because its tasks go with
+  it.
 - Concurrent invocations are safe: every write takes an advisory lock
   (kept in `~/.local/state/todomd`, never next to your file) and replaces
   the file atomically.
@@ -142,7 +145,8 @@ todomd changes --json                # only what others did
 | `p` | Cycle priority (normal → high → low) |
 | | (in the add/edit form, priority is a `←`/`→` select) |
 | `c` | Comment on task |
-| `d` / `D` | Delete (confirm) / move to Done |
+| `d` / `D` | Delete task (confirm) / move to Done |
+| `X` | Delete the current board (asks first if it holds tasks) |
 | `A` | Mark every card as read (clear all badges) |
 | `/` | Search: filters as you type (`enter` keeps it, `esc` cancels) |
 | `u` | Show only changed/unread cards |

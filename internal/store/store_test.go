@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -250,5 +251,75 @@ func TestDiscover(t *testing.T) {
 	}
 	if _, err := Discover(""); err == nil {
 		t.Error("walk should stop at .git and fail")
+	}
+}
+
+func TestDeleteBoard(t *testing.T) {
+	s := newTestStore(t)
+
+	// An empty board goes without ceremony.
+	err := s.Mutate(func(f *task.File) error {
+		b, err := DeleteBoard(f, "In Progress", false)
+		if err == nil && b.Name != "In Progress" {
+			t.Errorf("returned board = %q", b.Name)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatalf("empty board should delete without force: %v", err)
+	}
+	f, _ := s.Load()
+	if FindBoard(f, "In Progress") != nil {
+		t.Error("board still present")
+	}
+
+	// One with tasks refuses, and says how many would go with it.
+	id := addTask(t, s, "Backlog", "keep me")
+	err = s.Mutate(func(f *task.File) error {
+		_, err := DeleteBoard(f, "Backlog", false)
+		return err
+	})
+	var notEmpty *BoardNotEmptyError
+	if !errors.As(err, &notEmpty) || notEmpty.Tasks != 1 {
+		t.Fatalf("want BoardNotEmptyError with 1 task, got %v", err)
+	}
+	f, _ = s.Load()
+	if _, _, err := FindTask(f, id); err != nil {
+		t.Error("a refused delete must leave the tasks alone")
+	}
+
+	// With force, the board and its tasks go.
+	if err := s.Mutate(func(f *task.File) error {
+		_, err := DeleteBoard(f, "backlog", true) // name match is case-insensitive
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f, _ = s.Load()
+	if FindBoard(f, "Backlog") != nil {
+		t.Error("forced board still present")
+	}
+	if _, _, err := FindTask(f, id); err == nil {
+		t.Error("the board's tasks should have gone with it")
+	}
+
+	// Unknown board is an error, not a silent no-op.
+	if err := s.Mutate(func(f *task.File) error {
+		_, err := DeleteBoard(f, "Nope", true)
+		return err
+	}); err == nil {
+		t.Error("unknown board should error")
+	}
+
+	// Deleting the last board is allowed; the file just has none.
+	if err := s.Mutate(func(f *task.File) error {
+		_, err := DeleteBoard(f, "Done", false)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f, _ = s.Load()
+	if len(f.Boards) != 0 {
+		t.Errorf("boards left = %d", len(f.Boards))
 	}
 }

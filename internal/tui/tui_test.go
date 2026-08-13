@@ -1292,3 +1292,105 @@ func TestDetailRuleSpansPane(t *testing.T) {
 		t.Errorf("rule is %d wide, pane is %d", got, widest)
 	}
 }
+
+func TestDeleteEmptyBoardImmediately(t *testing.T) {
+	m := newTestModel(t, 3, 0)
+	m.updateBoard(keyMsg("X"))
+	if m.mode != modeBoard {
+		t.Errorf("an empty board shouldn't ask, mode=%d", m.mode)
+	}
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Boards) != 2 {
+		t.Errorf("boards left = %d, want 2", len(f.Boards))
+	}
+	if !strings.Contains(m.status, "deleted board") {
+		t.Errorf("status = %q", m.status)
+	}
+}
+
+func TestDeleteBoardWithTasksAsksFirst(t *testing.T) {
+	m := newTestModel(t, 2, 2)
+	name := m.file.Boards[0].Name
+
+	m.updateBoard(keyMsg("X"))
+	if m.mode != modeConfirm || m.confirm == nil {
+		t.Fatalf("a board with tasks should ask, mode=%d", m.mode)
+	}
+	if !strings.Contains(m.confirm.prompt, name) || !strings.Contains(m.confirm.prompt, "2 tasks") {
+		t.Errorf("prompt should name the board and the cost: %q", m.confirm.prompt)
+	}
+	if !strings.Contains(m.viewFooter(), "(y/n)") {
+		t.Error("the question should be visible in the footer")
+	}
+
+	// Anything but y walks away.
+	m.updateConfirm(keyMsg("n"))
+	if m.mode != modeBoard || m.confirm != nil {
+		t.Errorf("n should dismiss the question, mode=%d", m.mode)
+	}
+	f, _ := m.store.Load()
+	if len(f.Boards) != 2 {
+		t.Fatal("board deleted despite answering n")
+	}
+
+	// y goes through, taking the tasks with it.
+	m.updateBoard(keyMsg("X"))
+	m.updateConfirm(keyMsg("y"))
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Boards) != 1 || f.Boards[0].Name == name {
+		t.Errorf("boards after delete = %d", len(f.Boards))
+	}
+	if len(f.AllTasks()) != 2 {
+		t.Errorf("tasks left = %d, want the other board's 2", len(f.AllTasks()))
+	}
+	// The selection lands somewhere valid.
+	if m.boardIdx != 0 || m.selectedTask() == nil {
+		t.Errorf("selection after delete: board=%d task=%v", m.boardIdx, m.selectedTask())
+	}
+}
+
+// Deleting every board must leave a usable, if empty, screen.
+func TestDeleteAllBoards(t *testing.T) {
+	m := newTestModel(t, 2, 0)
+	m.updateBoard(keyMsg("X"))
+	m.updateBoard(keyMsg("X"))
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Boards) != 0 {
+		t.Fatalf("boards left = %d", len(f.Boards))
+	}
+	if m.viewBoard() == "" {
+		t.Error("empty board view should still render")
+	}
+	m.updateBoard(keyMsg("X")) // must not panic with nothing to delete
+	m.updateBoard(keyMsg("j"))
+}
+
+// The confirmation is generic now, so task deletion still works through it.
+func TestTaskDeleteStillConfirms(t *testing.T) {
+	m := newTestModel(t, 1, 2)
+	id := m.file.Boards[0].Tasks[0].ID
+	m.updateBoard(keyMsg("d"))
+	if m.mode != modeConfirm || m.confirm == nil || !strings.Contains(m.confirm.prompt, "delete") {
+		t.Fatalf("d should ask, confirm=%+v", m.confirm)
+	}
+	m.updateConfirm(keyMsg("y"))
+	f, err := m.store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Boards[0].Tasks) != 1 {
+		t.Errorf("tasks left = %d", len(f.Boards[0].Tasks))
+	}
+	if _, _, err := store.FindTask(f, id); err == nil {
+		t.Error("the selected task should be gone")
+	}
+}

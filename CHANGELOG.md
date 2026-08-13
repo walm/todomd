@@ -4,6 +4,17 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `todomd boards delete <name>` removes a board. An empty one goes straight
+  away; one that still holds tasks needs `--force`, because its tasks are
+  deleted with it. If the file isn't committed to git, the forced case warns
+  that those tasks aren't recoverable.
+- `X` in the TUI deletes the current board — immediately when it's empty, and
+  after a `delete board X and its N tasks? (y/n)` confirmation when it isn't.
+
 ## v0.8.0 — 2026-08-11
 
 ### Added
