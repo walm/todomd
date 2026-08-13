@@ -415,6 +415,35 @@ func Delete(f *task.File, ref string) (*task.Task, string, error) {
 	return t, b.Name, nil
 }
 
+// BoardNotEmptyError: the board still holds tasks and force wasn't given.
+type BoardNotEmptyError struct {
+	Name  string
+	Tasks int
+}
+
+func (e *BoardNotEmptyError) Error() string {
+	return fmt.Sprintf("board %q still holds %d task(s), which would be deleted with it", e.Name, e.Tasks)
+}
+
+// DeleteBoard removes a board and returns it. A board with tasks needs force,
+// because its tasks go with it.
+func DeleteBoard(f *task.File, name string, force bool) (*task.Board, error) {
+	b := FindBoard(f, name)
+	if b == nil {
+		return nil, fmt.Errorf("no board named %q", name)
+	}
+	if len(b.Tasks) > 0 && !force {
+		return nil, &BoardNotEmptyError{Name: b.Name, Tasks: len(b.Tasks)}
+	}
+	for i, x := range f.Boards {
+		if x == b {
+			f.Boards = append(f.Boards[:i], f.Boards[i+1:]...)
+			break
+		}
+	}
+	return b, nil
+}
+
 // AddComment appends a comment dated today to the task matching ref.
 func AddComment(f *task.File, ref, author, text string) (*task.Task, error) {
 	b, i, err := FindTask(f, ref)

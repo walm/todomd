@@ -330,13 +330,8 @@ func (m *model) withVersion(help string) string {
 func (m *model) viewFooter() string {
 	var status string
 	switch {
-	case m.mode == modeConfirm:
-		t := m.selectedTask()
-		title := ""
-		if t != nil {
-			title = t.Title
-		}
-		status = errorStyle.Render(fmt.Sprintf("delete %q? (y/n)", ansi.Truncate(title, 40, "…")))
+	case m.mode == modeConfirm && m.confirm != nil:
+		status = errorStyle.Render(m.confirm.prompt + " (y/n)")
 	case m.status != "":
 		if m.isError {
 			status = errorStyle.Render(m.status)

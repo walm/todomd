@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
@@ -52,6 +53,13 @@ func Run(s *store.Store, version string) error {
 	return err
 }
 
+// confirmation is a pending yes/no question. Holding the action alongside the
+// prompt keeps updateConfirm from having to know what it is confirming.
+type confirmation struct {
+	prompt string
+	run    func()
+}
+
 type mode int
 
 const (
@@ -73,6 +81,7 @@ type keyMap struct {
 	Delete, Done, Reload     key.Binding
 	MarkAllRead              key.Binding
 	Unread, Search, Clear    key.Binding
+	DeleteBoard              key.Binding
 	Help, Quit               key.Binding
 }
 
@@ -99,11 +108,12 @@ func newKeyMap() keyMap {
 		Reload:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "reload")),
 		MarkAllRead: key.NewBinding(key.WithKeys("A"),
 			key.WithHelp("A", "mark all read")),
-		Unread: key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "only changed")),
-		Search: key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "search")),
-		Clear:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear filter")),
-		Help:   key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-		Quit:   key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+		DeleteBoard: key.NewBinding(key.WithKeys("X"), key.WithHelp("X", "delete board")),
+		Unread:      key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "only changed")),
+		Search:      key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "search")),
+		Clear:       key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear filter")),
+		Help:        key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+		Quit:        key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 	}
 }
 
@@ -118,6 +128,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.Add, k.Edit, k.Editor, k.Comment},
 		{k.Priority, k.Delete, k.Done, k.Reload},
 		{k.MarkAllRead, k.Unread, k.Search, k.Clear},
+		{k.DeleteBoard},
 		{k.Help, k.Quit},
 	}
 }
@@ -136,8 +147,8 @@ type model struct {
 	vp         viewport.Model
 	detailHead string // sticky header of the open task
 	form       *form
-	formFrom   mode // view to return to when the form closes
-	confirmID  string
+	formFrom   mode          // view to return to when the form closes
+	confirm    *confirmation // pending y/n question, nil when none
 
 	status       string
 	isError      bool
@@ -407,9 +418,16 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case key.Matches(msg, k.Delete):
 		if t := m.selectedTask(); t != nil {
-			m.confirmID = t.ID
-			m.mode = modeConfirm
+			id, title := t.ID, t.Title
+			m.ask(fmt.Sprintf("delete %q?", ansi.Truncate(title, 40, "…")), func() {
+				m.mutate(func(f *task.File) error {
+					_, _, err := store.Delete(f, id)
+					return err
+				}, "", "deleted")
+			})
 		}
+	case key.Matches(msg, k.DeleteBoard):
+		m.deleteBoard()
 	case key.Matches(msg, k.Done):
 		if t := m.selectedTask(); t != nil {
 			id := t.ID
@@ -681,20 +699,47 @@ func (m *model) submitForm() {
 	}
 }
 
+// ask puts a yes/no question in the footer, to be answered before anything
+// else happens.
+func (m *model) ask(prompt string, run func()) {
+	m.confirm = &confirmation{prompt: prompt, run: run}
+	m.mode = modeConfirm
+}
+
 func (m *model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "Y":
-		id := m.confirmID
-		m.mutate(func(f *task.File) error {
-			_, _, err := store.Delete(f, id)
-			return err
-		}, "", "deleted")
-	case "ctrl+c":
+	if msg.String() == "ctrl+c" {
 		return m, tea.Quit
 	}
-	m.confirmID = ""
+	c := m.confirm
+	m.confirm = nil
 	m.mode = modeBoard
+	if c != nil && (msg.String() == "y" || msg.String() == "Y") {
+		c.run()
+	}
 	return m, nil
+}
+
+// deleteBoard removes the selected column. An empty one goes straight away;
+// one holding tasks asks first, because they go with it.
+func (m *model) deleteBoard() {
+	if m.boardIdx >= len(m.file.Boards) {
+		return
+	}
+	b := m.file.Boards[m.boardIdx]
+	name, n := b.Name, len(b.Tasks)
+	remove := func() {
+		m.mutate(func(f *task.File) error {
+			_, err := store.DeleteBoard(f, name, true)
+			return err
+		}, "", fmt.Sprintf("deleted board %s", name))
+		m.boardIdx = min(m.boardIdx, max(0, len(m.file.Boards)-1))
+		m.cardIdx, m.cardTop = 0, 0
+	}
+	if n == 0 {
+		remove()
+		return
+	}
+	m.ask(fmt.Sprintf("delete board %s and its %s?", name, plural(n, "task")), remove)
 }
 
 func (m *model) View() string {

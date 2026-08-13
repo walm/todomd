@@ -22,6 +22,7 @@ import (
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
 	"github.com/walm/todomd/internal/tui"
+	"github.com/walm/todomd/internal/vcs"
 )
 
 type commentJSON struct {
@@ -614,6 +615,66 @@ func newDelete() *cobra.Command {
 	return cmd
 }
 
+// newBoardsDelete is `todomd boards delete <name>`.
+func newBoardsDelete() *cobra.Command {
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "delete <board>",
+		Short: "Delete a board (needs --force if it still holds tasks)",
+		Long: `Delete a board. An empty board goes straight away; one that still holds
+tasks needs --force, because its tasks are deleted with it.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			s, err := newStore(false)
+			if err != nil {
+				return err
+			}
+			var gone *task.Board
+			before, after, err := s.MutateTracked(func(f *task.File) error {
+				b, err := store.DeleteBoard(f, args[0], force)
+				gone = b
+				return err
+			})
+			if err != nil {
+				return err
+			}
+			skipOwnChange(s.Path, before, after)
+			// The tasks are gone with the board; say where they can be found
+			// again if this file isn't in git.
+			if len(gone.Tasks) > 0 {
+				if st := vcs.FileState(s.Path); !st.Recoverable() {
+					fmt.Fprintf(os.Stderr, "todomd: warning: %s is %s, so those %s are not recoverable\n",
+						s.Path, st, plural(len(gone.Tasks), "task"))
+				}
+			}
+			if flagJSON {
+				return printJSON(struct {
+					Board string     `json:"board"`
+					Tasks []taskJSON `json:"tasks"`
+				}{gone.Name, boardTasksJSON(gone)})
+			}
+			if len(gone.Tasks) == 0 {
+				fmt.Printf("deleted empty board %s\n", gone.Name)
+			} else {
+				fmt.Printf("deleted board %s with %s\n", gone.Name, plural(len(gone.Tasks), "task"))
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&force, "force", false, "delete even when the board still holds tasks")
+	asFlag(cmd)
+	jsonFlag(cmd)
+	return cmd
+}
+
+func boardTasksJSON(b *task.Board) []taskJSON {
+	out := []taskJSON{}
+	for _, t := range b.Tasks {
+		out = append(out, toJSON(t, b.Name))
+	}
+	return out
+}
+
 func newBoards() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "boards",
@@ -649,5 +710,6 @@ func newBoards() *cobra.Command {
 		},
 	}
 	jsonFlag(cmd)
+	cmd.AddCommand(newBoardsDelete())
 	return cmd
 }

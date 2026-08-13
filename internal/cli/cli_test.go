@@ -801,3 +801,54 @@ func TestArchiveEdgeCases(t *testing.T) {
 		t.Errorf("non-interactive archive without --yes should refuse, got %v", err)
 	}
 }
+
+func TestBoardsDelete(t *testing.T) {
+	path := testFile(t)
+	addOne(t, path, "keep me")
+
+	// Empty board: no ceremony.
+	out, err := run(t, "--file", path, "boards", "delete", "In Progress")
+	if err != nil {
+		t.Fatalf("empty board should delete without --force: %v", err)
+	}
+	if !strings.Contains(out, "deleted empty board") {
+		t.Errorf("out = %q", out)
+	}
+
+	// Non-empty: refuses, and the tasks stay.
+	_, err = run(t, "--file", path, "boards", "delete", "Backlog")
+	if err == nil || !strings.Contains(err.Error(), "still holds 1 task") {
+		t.Fatalf("want a refusal naming the cost, got %v", err)
+	}
+	out, _ = run(t, "--file", path, "list")
+	if !strings.Contains(out, "keep me") {
+		t.Error("a refused board delete must leave its tasks alone")
+	}
+
+	// --force takes the board and its tasks, and reports them.
+	out, err = run(t, "--file", path, "boards", "delete", "backlog", "--force", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res struct {
+		Board string `json:"board"`
+		Tasks []struct {
+			Title string `json:"title"`
+		} `json:"tasks"`
+	}
+	if err := json.Unmarshal([]byte(out), &res); err != nil {
+		t.Fatal(err)
+	}
+	if res.Board != "Backlog" || len(res.Tasks) != 1 || res.Tasks[0].Title != "keep me" {
+		t.Errorf("result = %+v", res)
+	}
+
+	// Bare `boards` still lists, and unknown boards error.
+	out, err = run(t, "--file", path, "boards")
+	if err != nil || !strings.Contains(out, "Done") {
+		t.Errorf("boards listing broke: %v %q", err, out)
+	}
+	if _, err := run(t, "--file", path, "boards", "delete", "Nope", "--force"); err == nil {
+		t.Error("unknown board should error")
+	}
+}
