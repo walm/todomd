@@ -22,12 +22,25 @@ import (
 type ParseError struct {
 	Line int // 1-based
 	Msg  string
+	// Code classifies the error the way todomd.online does: "parse_error"
+	// (also when empty) for structure, and for strict parses
+	// "missing_ids", "invalid_id" or "duplicate_board".
+	Code string
 }
 
 func (e *ParseError) Error() string { return fmt.Sprintf("line %d: %s", e.Line, e.Msg) }
 
+// ErrCode is Code, defaulting to "parse_error".
+func (e *ParseError) ErrCode() string {
+	if e.Code == "" {
+		return "parse_error"
+	}
+	return e.Code
+}
+
 var (
 	idRe        = regexp.MustCompile(`^<!--\s*id:\s*([0-9a-z]+)\s*-->\s*$`)
+	idLikeRe    = regexp.MustCompile(`^<!--\s*id:`)
 	tagTokRe    = regexp.MustCompile("^`#([a-z0-9_-]+)`$")
 	commentRe   = regexp.MustCompile(`^- \*\*(.+?)\*\* \((\d{4}-\d{2}-\d{2})\): ?(.*)$`)
 	commentsHdr = regexp.MustCompile(`^#### Comments[ \t]*$`)
@@ -165,7 +178,16 @@ func parseMetadata(line string) (m meta, ok bool) {
 
 // Parse reads a TODO.md. Input line endings may be CRLF; the model is
 // LF-only. Every task in the returned File has a valid unique ID.
-func Parse(data []byte) (*task.File, error) {
+func Parse(data []byte) (*task.File, error) { return parse(data, false) }
+
+// ParseStrict is Parse without the silent repairs, matching what
+// todomd.online accepts: a task with a missing, malformed or duplicate
+// `<!-- id: -->`, or two boards whose names differ only in case, is an error
+// (Code "missing_ids", "invalid_id" or "duplicate_board") instead of being
+// fixed up.
+func ParseStrict(data []byte) (*task.File, error) { return parse(data, true) }
+
+func parse(data []byte, strict bool) (*task.File, error) {
 	text := strings.ReplaceAll(string(data), "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 	lines := strings.Split(text, "\n")
@@ -186,6 +208,8 @@ func Parse(data []byte) (*task.File, error) {
 	}
 
 	f := &task.File{}
+	taskLines := map[*task.Task]int{}
+	boardLines := map[string]bool{}
 	i := 0
 	for i < len(lines) && isBlank(lines[i]) {
 		i++
@@ -199,7 +223,7 @@ func Parse(data []byte) (*task.File, error) {
 	preStart := i
 	for i < len(lines) && !isHeading(i, "## ") {
 		if isHeading(i, "### ") {
-			return nil, &ParseError{i + 1, "task heading before any '## board' heading"}
+			return nil, &ParseError{Line: i + 1, Msg: "task heading before any '## board' heading"}
 		}
 		i++
 	}
@@ -214,7 +238,15 @@ func Parse(data []byte) (*task.File, error) {
 		}
 		name := strings.TrimSpace(lines[i][3:])
 		if name == "" {
-			return nil, &ParseError{i + 1, "empty board name"}
+			return nil, &ParseError{Line: i + 1, Msg: "empty board name"}
+		}
+		if strict {
+			key := task.BoardKey(name)
+			if boardLines[key] {
+				return nil, &ParseError{Line: i + 1, Code: "duplicate_board",
+					Msg: fmt.Sprintf("duplicate board %q (board names are compared case-insensitively)", name)}
+			}
+			boardLines[key] = true
 		}
 		board := &task.Board{Name: name}
 		f.Boards = append(f.Boards, board)
@@ -226,12 +258,13 @@ func Parse(data []byte) (*task.File, error) {
 				continue
 			}
 			if !isHeading(i, "### ") {
-				return nil, &ParseError{i + 1, fmt.Sprintf("unexpected content under board %q, expected '### task'", name)}
+				return nil, &ParseError{Line: i + 1, Msg: fmt.Sprintf("unexpected content under board %q, expected '### task'", name)}
 			}
 			t := &task.Task{Title: strings.TrimSpace(lines[i][4:])}
 			if t.Title == "" {
-				return nil, &ParseError{i + 1, "empty task title"}
+				return nil, &ParseError{Line: i + 1, Msg: "empty task title"}
 			}
+			taskLines[t] = i + 1
 			board.Tasks = append(board.Tasks, t)
 			i++
 
@@ -244,6 +277,8 @@ func Parse(data []byte) (*task.File, error) {
 				if m := idRe.FindStringSubmatch(lines[j]); m != nil {
 					t.ID = m[1]
 					i = j + 1
+				} else if strict && idLikeRe.MatchString(lines[j]) {
+					return nil, &ParseError{Line: j + 1, Msg: "malformed task id", Code: "invalid_id"}
 				}
 			}
 			// Metadata: the first non-blank line after the id comment (or
@@ -305,26 +340,26 @@ func Parse(data []byte) (*task.File, error) {
 					case isBlank(l):
 						pendingBlanks++
 					case structural[i] && commentsHdr.MatchString(l):
-						return nil, &ParseError{i + 1, "duplicate '#### Comments' section"}
+						return nil, &ParseError{Line: i + 1, Msg: "duplicate '#### Comments' section"}
 					case strings.HasPrefix(l, "- "):
 						m := commentRe.FindStringSubmatch(l)
 						if m == nil {
-							return nil, &ParseError{i + 1, "malformed comment item (want '- **author** (YYYY-MM-DD): text')"}
+							return nil, &ParseError{Line: i + 1, Msg: "malformed comment item (want '- **author** (YYYY-MM-DD): text')"}
 						}
 						d, err := task.ParseDate(m[2])
 						if err != nil {
-							return nil, &ParseError{i + 1, err.Error()}
+							return nil, &ParseError{Line: i + 1, Msg: err.Error()}
 						}
 						flush()
 						cur = &task.Comment{Author: m[1], Date: d, Text: m[3]}
 					case strings.HasPrefix(l, " "):
 						if cur == nil {
-							return nil, &ParseError{i + 1, "comment continuation without a comment item"}
+							return nil, &ParseError{Line: i + 1, Msg: "comment continuation without a comment item"}
 						}
 						cur.Text += strings.Repeat("\n", pendingBlanks+1) + stripIndent(l)
 						pendingBlanks = 0
 					default:
-						return nil, &ParseError{i + 1, "unexpected line in comments section"}
+						return nil, &ParseError{Line: i + 1, Msg: "unexpected line in comments section"}
 					}
 					i++
 				}
@@ -333,7 +368,26 @@ func Parse(data []byte) (*task.File, error) {
 		}
 	}
 
-	f.AssignIDs()
+	if strict {
+		seen := map[string]bool{}
+		for _, t := range f.AllTasks() {
+			line := taskLines[t]
+			switch {
+			case t.ID == "":
+				return nil, &ParseError{Line: line, Code: "missing_ids",
+					Msg: fmt.Sprintf("task %q has no <!-- id: --> comment", t.Title)}
+			case !task.ValidID(t.ID):
+				return nil, &ParseError{Line: line, Code: "invalid_id",
+					Msg: fmt.Sprintf("task %q has a malformed id \"%s\"", t.Title, t.ID)}
+			case seen[t.ID]:
+				return nil, &ParseError{Line: line, Code: "invalid_id",
+					Msg: fmt.Sprintf("duplicate task id \"%s\"", t.ID)}
+			}
+			seen[t.ID] = true
+		}
+	} else {
+		f.AssignIDs()
+	}
 	return f, nil
 }
 

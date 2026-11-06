@@ -106,7 +106,12 @@ todomd move 3f2a --to "In Progress"  # mine: won't come back as an event
 todomd comment 3f2a --author claude "done, please review"
 # …later…
 todomd changes --json                # only what others did
+todomd changes --wait --timeout 15m --json   # block until someone else acts
 ```
+
+`--wait` blocks until there is something to report (or the timeout passes,
+which reports no events and `"timed_out": true`) — the way to wait for a
+human's reply. On a file linked to todomd.online it syncs while it waits.
 
 - **File resolution**: `--file` flag > `TODOMD_FILE` env > `TODO.md` searched
   from the cwd upward (stopping at the repo root).
@@ -119,7 +124,9 @@ todomd changes --json                # only what others did
   the ordering to you. `"priority"` is always present in JSON, so an agent
   never has to infer the default.
 - **Exit codes**: `0` ok · `1` general error · `2` task not found ·
-  `3` ambiguous ID prefix.
+  `3` ambiguous ID prefix · and for todomd.online sync (below):
+  `4` not logged in · `5` not linked · `6` unreachable (retry later) ·
+  `7` this todomd is too old.
 - Boards are matched case-insensitively and created on demand (new boards land
   before `Done`). `boards delete <name>` removes one; an empty board goes
   straight away, one holding tasks needs `--force` because its tasks go with
@@ -192,6 +199,77 @@ useful for terminals that don't answer OSC color queries.
 Prefer a browser? [**todomd-web**](https://github.com/walm/todomd-web) is a
 separate application serving the same board over HTTP — one Go binary, no
 database, the same `TODO.md` as the source of truth.
+
+## ☁️ todomd.online sync
+
+[todomd.online](https://todomd.online) hosts a board online — open it from any
+browser, share it — and the CLI keeps it and your `TODO.md` in step, both ways.
+
+```sh
+todomd login            # once per machine: approve it in a browser (GitHub or an emailed code)
+todomd link             # once per TODO.md: create the project, or pick one (matched by git remote)
+todomd sync             # push your edits and pull the board's, merged per task
+todomd sync --watch     # stay running: live in both directions
+```
+
+- **Login** shows a short code and a URL; approve the machine in any browser,
+  on your phone if you're on ssh. Credentials live in
+  `~/.config/todomd/hosts.json` (mode 0600). `todomd whoami` and
+  `todomd logout` do what they say. Agents don't log in: they use the
+  machine's login, or a project-scoped token made on the web, through
+  `TODOMD_TOKEN` (or `todomd login --with-token`).
+- **Sync merges, it doesn't overwrite.** Both sides' changes to different
+  tasks, fields, or lines of a description combine. When both changed the
+  same thing, the online version wins and yours is kept as a comment by
+  `todomd-sync` on that task — nothing is lost, and the conflict is reported.
+  Only changes travel, not whole files.
+- **Online edits land in the file like any other edit**, through todomd's
+  lock and atomic write: `todomd changes`, the TUI's unread badges and
+  todomd-web all see them. With `sync --watch` running (or the TUI open on a
+  linked file — it syncs on its own, showing `⇅ rev N` in the corner), an
+  edit on either side shows up on the other within a couple of seconds.
+- **Agents**: run `todomd sync --watch` in the background and keep using
+  `todomd changes --json`; or call `todomd sync --json` before reading and
+  after writing. `sync --json` reports `pushed` and `pulled` events in the
+  `changes` schema, plus `conflicts` and `renamed_ids` (a task whose id
+  collided with one added online gets a new id).
+- **Git.** Once synced, todomd.online keeps the history, so `link` offers to
+  stop tracking `TODO.md` in git (added to `.gitignore`, removed from the
+  index only — you commit that). If you keep it in git (`--git track`), sync
+  refuses a file with conflict markers in it, and a change that arrives with
+  a checkout or pull never deletes anything online. A deleted `TODO.md` is
+  restored from the project on the next sync, never synced as a deletion.
+- `todomd sync status` shows the link, base revision and last sync;
+  `todomd open` opens the board; `todomd unlink` forgets the link (the file
+  and the project stay). The link lives in `~/.local/state/todomd`, next to
+  the lock and cursors — never in your repository.
+- `--host` / `TODOMD_HOST` point at another server, e.g. a local one for
+  development (plain `http` only for localhost).
+
+### 🖼️ Images
+
+```sh
+todomd attach 3f2a ~/Desktop/screenshot.png   # copies it in, links it from the task
+todomd sync                                   # uploads it; the board online shows it
+```
+
+- In `TODO.md` an image is a **local path** — `~/.local/state/todomd/attachments/<project>/att_<hash>/<name>`
+  — so an agent or the TUI opens it like any file. Online the same image is
+  a todomd.online URL. Sync translates between the two by rule, so moving
+  `TODO.md` changes nothing, and a path written on another machine (arriving
+  through git, say) is recognised and works here too.
+- **Images pasted on the web board are downloaded** on the next sync and
+  linked by local path.
+- **Only images in todomd's own folder are ever uploaded** — a regular file
+  whose real path is inside it, whose content matches its id, PNG, JPEG, GIF
+  or WebP, at most 5 MB. A link to any other file (`![x](/Users/you/.ssh/id_rsa)`,
+  say) is never read, let alone sent; downloads come only from the linked
+  host, and the token goes nowhere else.
+- Anything that can't sync keeps its link and is listed under `skipped` in
+  `sync --json` (with `uploaded` and `downloaded`). `sync --no-attachments`
+  moves no image bytes at all (links then stay URLs), for CI machines.
+- Images attached in todomd-web are offered for copying into todomd's folder
+  when you `todomd link`, after which they sync like the rest.
 
 ## 📝 The file format
 

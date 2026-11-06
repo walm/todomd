@@ -1,6 +1,7 @@
 // Package cli wires the todomd command tree. All mutating commands support
 // --json (printing the affected task in the pinned schema); errors map to
-// exit codes: 1 general, 2 task not found, 3 ambiguous ID prefix.
+// exit codes: 1 general, 2 task not found, 3 ambiguous ID prefix, and for
+// todomd.online 4 not logged in, 5 not linked, 6 unreachable, 7 too old.
 package cli
 
 import (
@@ -17,6 +18,8 @@ import (
 	"golang.org/x/term"
 
 	"github.com/walm/todomd/internal/changes"
+	"github.com/walm/todomd/internal/cloud"
+	"github.com/walm/todomd/internal/cloudsync"
 	"github.com/walm/todomd/internal/markdown"
 	"github.com/walm/todomd/internal/selfupdate"
 	"github.com/walm/todomd/internal/store"
@@ -58,6 +61,8 @@ func toJSON(t *task.Task, board string) taskJSON {
 	}
 	return out
 }
+
+func jsonEncoder() *json.Encoder { return json.NewEncoder(os.Stdout) }
 
 func printJSON(v any) error {
 	enc := json.NewEncoder(os.Stdout)
@@ -188,17 +193,20 @@ func mutate(fn func(*task.File) (*task.Task, error), msg func(t *task.Task, boar
 func Execute() int {
 	root := newRoot()
 	if err := root.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, "todomd: "+err.Error())
+		fmt.Fprintln(os.Stderr, "todomd: "+explain(err))
 		return classify(err)
 	}
 	return 0
 }
 
 // classify maps an error to the process exit code: 0 none, 2 task not
-// found, 3 ambiguous ID prefix, 1 anything else.
+// found, 3 ambiguous ID prefix, 4 not logged in (or the token was revoked),
+// 5 not linked (or the project is gone), 6 todomd.online unreachable,
+// 7 this todomd is too old for the service, 1 anything else.
 func classify(err error) int {
 	var nf *store.NotFoundError
 	var amb *store.AmbiguousError
+	var unavailable *cloud.UnavailableError
 	switch {
 	case err == nil:
 		return 0
@@ -206,9 +214,31 @@ func classify(err error) int {
 		return 2
 	case errors.As(err, &amb):
 		return 3
+	case errors.Is(err, cloud.ErrNotLoggedIn), errors.Is(err, cloudsync.ErrAccessRevoked), cloud.IsStatus(err, 401, ""):
+		return 4
+	case errors.Is(err, cloudsync.ErrNotLinked), errors.Is(err, cloudsync.ErrProjectDeleted), cloud.IsStatus(err, 404, ""):
+		return 5
+	case errors.As(err, &unavailable):
+		return 6
+	case cloud.IsStatus(err, 426, ""):
+		return 7
 	default:
 		return 1
 	}
+}
+
+// explain adds what to do next to the errors that need a person.
+func explain(err error) string {
+	msg := err.Error()
+	switch {
+	case cloud.IsStatus(err, 401, ""):
+		return msg + " (the login is no longer valid: run 'todomd login')"
+	case cloud.IsStatus(err, 426, ""):
+		return msg
+	case cloud.IsStatus(err, 404, "") && !errors.Is(err, cloudsync.ErrProjectDeleted):
+		return msg + " (the linked project is gone or no longer shared with you: run 'todomd unlink')"
+	}
+	return msg
 }
 
 func newRoot() *cobra.Command {
@@ -223,14 +253,15 @@ func newRoot() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return tui.Run(s, resolveVersion())
+			return tui.Run(s, resolveVersion(), tuiSync())
 		},
 	}
 	root.PersistentFlags().StringVarP(&flagFile, "file", "f", "", "path to the todo markdown file (default: TODO.md, searched upward; env TODOMD_FILE)")
 
 	root.AddCommand(newInit(), newList(), newShow(), newAdd(), newUpdate(),
 		newMove(), newDone(), newComment(), newDelete(), newBoards(), newChanges(), newArchive(),
-		newUpgrade())
+		newUpgrade(), newLogin(), newLogout(), newWhoami(), newLink(), newUnlink(), newSync(), newOpen(), newAttach(),
+		newCanonicalize(), newDelta(), newMergeCmd())
 
 	// Mention a newer release at the end of --help. It goes to stderr so the
 	// help text on stdout stays byte-identical for anything parsing it, and it

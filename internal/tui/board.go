@@ -301,13 +301,22 @@ func (m *model) footerHelp(budget int) string {
 // long for a footer, so anything that isn't a release just reads "dev" —
 // todomd --version still gives the full string.
 func (m *model) versionLabel() string {
-	if m.version == "" {
-		return ""
+	v := ""
+	switch {
+	case m.version == "":
+	case selfupdate.IsRelease(m.version):
+		v = m.version
+	default:
+		v = "dev"
 	}
-	if selfupdate.IsRelease(m.version) {
-		return m.version
+	// The sync state shares the corner, ahead of the version.
+	if m.syncStatus != "" {
+		if v == "" {
+			return m.syncStatus
+		}
+		return m.syncStatus + "  " + v
 	}
-	return "dev"
+	return v
 }
 
 // withVersion right-aligns the version on the footer's last line, when there

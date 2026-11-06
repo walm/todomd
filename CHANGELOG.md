@@ -4,6 +4,32 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- Sync with [todomd.online](https://todomd.online): `todomd login` (device
+  flow: approve the machine in a browser), `logout`, `whoami`, `link`
+  (create a project or pick one, matched by git remote; merges an existing
+  board after a preview), `unlink`, `sync` (push and pull in one round,
+  merged per task and field, online wins conflicts and yours is kept as a
+  `todomd-sync` comment), `sync --watch` (live both ways over server-sent
+  events), `sync status` and `open`.
+- Images sync too: `todomd attach <id> <image>` copies an image into
+  todomd's attachment folder and links it from the task; sync uploads it.
+  Images pasted on the web board are downloaded and linked by local path.
+  Only images inside todomd's own folder are ever uploaded.
+  `sync --no-attachments` skips images; `link` offers to bring over images
+  attached in todomd-web.
+- The TUI syncs a linked file on its own while it's open, with the state in
+  the footer corner.
+- `todomd changes --wait [--timeout]` blocks until there are changes to
+  report.
+- New exit codes for sync: `4` not logged in, `5` not linked, `6`
+  todomd.online unreachable, `7` this todomd is too old for the service.
+- Hidden `canonicalize`, `delta` and `merge` commands, for checking the Go
+  and todomd.online implementations of the format against each other.
+
 ## v0.9.0 — 2026-08-13
 
 ### Added

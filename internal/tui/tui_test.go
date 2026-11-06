@@ -1394,3 +1394,24 @@ func TestTaskDeleteStillConfirms(t *testing.T) {
 		t.Error("the selected task should be gone")
 	}
 }
+
+// The todomd.online sync state shares the corner, ahead of the version, and
+// arrives as a message from the background watcher.
+func TestSyncStatusInFooterCorner(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	m.width, m.height = 100, 24
+	m.version = "v0.6.0"
+	m.Update(syncStatusMsg("⇅ rev 58"))
+	line := lastLine(m.viewFooter())
+	if !strings.HasSuffix(ansi.Strip(line), "⇅ rev 58  v0.6.0") {
+		t.Errorf("corner = %q", ansi.Strip(line))
+	}
+	if got := lipgloss.Width(line); got != m.width {
+		t.Errorf("footer line width = %d, want %d", got, m.width)
+	}
+	m.version = ""
+	m.Update(syncStatusMsg("⇅ offline"))
+	if line := lastLine(m.viewFooter()); !strings.HasSuffix(ansi.Strip(line), "⇅ offline") {
+		t.Errorf("corner without a version = %q", ansi.Strip(line))
+	}
+}
