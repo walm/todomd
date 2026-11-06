@@ -5,6 +5,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -21,9 +22,18 @@ import (
 	"github.com/walm/todomd/internal/task"
 )
 
+// SyncFunc runs in the background for as long as the TUI is open — the CLI
+// wires it to the todomd.online watcher for a linked file. It reports a short
+// status for the footer corner ("⇅ rev 58", "⇅ offline") through report, and
+// must return once ctx is done. Its writes reach the board through the usual
+// auto-reload, so online edits get unread badges like any other.
+type SyncFunc func(ctx context.Context, report func(status string))
+
+type syncStatusMsg string
+
 // Run starts the TUI over the given store. version is the running build, used
-// for the (human-only) update notice.
-func Run(s *store.Store, version string) error {
+// for the (human-only) update notice. sync may be nil.
+func Run(s *store.Store, version string, sync SyncFunc) error {
 	f, err := s.Load()
 	if err != nil {
 		return err
@@ -49,6 +59,15 @@ func Run(s *store.Store, version string) error {
 	m.glamourStyle = style
 	m.version = version
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
+	if sync != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			sync(ctx, func(status string) { p.Send(syncStatusMsg(status)) })
+		}()
+		defer func() { cancel(); <-done }()
+	}
 	_, err = p.Run()
 	return err
 }
@@ -169,6 +188,7 @@ type model struct {
 
 	version      string // running version, for the update check
 	updateNotice string // "vX.Y.Z available" hint, empty when up to date
+	syncStatus   string // todomd.online sync state for the corner, "" when not syncing
 
 	filter     filter          // narrows which cards the board shows
 	search     textinput.Model // the / prompt, while modeSearch is active
@@ -335,6 +355,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.applyEditor(msg)
 	case updateNoticeMsg:
 		m.updateNotice = string(msg)
+		return m, nil
+	case syncStatusMsg:
+		m.syncStatus = string(msg)
 		return m, nil
 	case tickMsg:
 		// Auto-reload only while idling on the board — never yank the file
