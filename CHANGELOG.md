@@ -6,6 +6,12 @@ breaking changes to the file format or CLI (they will be called out).
 
 ## Unreleased
 
+### Added
+
+- `todomd download <id> [file] [-o dir] [--json]` fetches a file a task
+  links to on todomd.online (any type, up to 25 MB), using the stored login,
+  and checks it against its attachment id. It never overwrites a file.
+
 ### Fixed
 
 - Sync leaves links to files that aren't images (PDF, zip, CSV…, which

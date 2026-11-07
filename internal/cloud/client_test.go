@@ -69,3 +69,30 @@ func TestIsImageName(t *testing.T) {
 		}
 	}
 }
+
+func TestDownloadFileChecksTheContent(t *testing.T) {
+	body := []byte("%PDF-1.7 file")
+	att := ImageID(body)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer tok" || r.Header.Get("Accept") == "image/*" {
+			w.WriteHeader(406)
+			return
+		}
+		w.Header().Set("Content-Disposition", `attachment; filename="report.pdf"`)
+		if strings.Contains(r.URL.Path, att) {
+			w.Write(body)
+		} else {
+			w.Write([]byte("something else"))
+		}
+	}))
+	defer srv.Close()
+	c := New(srv.URL, srv.URL+"/api/v1", "tok", "test")
+	var buf strings.Builder
+	served, err := c.DownloadFile(context.Background(), "p", att, "report.pdf", &buf)
+	if err != nil || served != "report.pdf" || buf.String() != string(body) {
+		t.Fatalf("got %q %q %v", served, buf.String(), err)
+	}
+	if _, err := c.DownloadFile(context.Background(), "p", "att_00000000000000000000", "x.pdf", &strings.Builder{}); err == nil || !strings.Contains(err.Error(), "doesn't match") {
+		t.Errorf("wrong content accepted: %v", err)
+	}
+}

@@ -266,7 +266,7 @@ func newRoot() *cobra.Command {
 
 	root.AddCommand(newInit(), newList(), newShow(), newAdd(), newUpdate(),
 		newMove(), newDone(), newComment(), newDelete(), newBoards(), newChanges(), newArchive(),
-		newUpgrade(), newLogin(), newLogout(), newWhoami(), newLink(), newUnlink(), newSync(), newOpen(), newAttach(),
+		newUpgrade(), newLogin(), newLogout(), newWhoami(), newLink(), newUnlink(), newSync(), newOpen(), newAttach(), newDownload(),
 		newCanonicalize(), newDelta(), newMergeCmd())
 
 	// Mention a newer release at the end of --help. It goes to stderr so the

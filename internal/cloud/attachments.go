@@ -7,17 +7,25 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/text/unicode/norm"
 )
 
 // MaxImageBytes is the largest image todomd.online stores.
 const MaxImageBytes = 5 * 1024 * 1024
+
+// MaxFileBytes is the largest file (of any type) todomd.online stores.
+const MaxFileBytes = 25 * 1024 * 1024
+
+// FileTimeout bounds one DownloadFile.
+const FileTimeout = 5 * time.Minute
 
 // SniffImage returns the image type from the file signature (never from a
 // name or a header), or "" for anything but PNG, JPEG, GIF and WebP — the
@@ -155,4 +163,52 @@ func (c *Client) DownloadAttachment(ctx context.Context, projectID, att, name st
 		served = params["filename"]
 	}
 	return body, strings.TrimSpace(served), nil
+}
+
+// DownloadFile streams /a/{project}/{att}/{name} — an image or any other
+// file — from the client's own host into w, checking that the bytes hash to
+// att. It returns the name the server records for the file. Unlike the
+// image download it accepts any type and isn't held to the small-response
+// limit, up to MaxFileBytes.
+func (c *Client) DownloadFile(ctx context.Context, projectID, att, name string, w io.Writer) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, FileTimeout)
+	defer cancel()
+	u := c.Host + "/a/" + url.PathEscape(projectID) + "/" + url.PathEscape(att) + "/" + url.PathEscape(name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Accept", "*/*")
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return "", ctx.Err()
+		}
+		return "", &UnavailableError{Err: err}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+		return "", apiError(resp.StatusCode, body)
+	}
+	h := sha256.New()
+	n, err := io.Copy(io.MultiWriter(w, h), io.LimitReader(resp.Body, MaxFileBytes+1))
+	if err != nil {
+		return "", &UnavailableError{Err: err}
+	}
+	if n > MaxFileBytes {
+		return "", fmt.Errorf("the server sent more than %d MB", MaxFileBytes>>20)
+	}
+	if got := "att_" + hex.EncodeToString(h.Sum(nil))[:20]; got != att {
+		return "", errors.New("the server sent something other than that file (its content doesn't match its id)")
+	}
+	served := ""
+	if _, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition")); err == nil {
+		served = strings.TrimSpace(params["filename"])
+	}
+	return served, nil
 }

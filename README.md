@@ -282,6 +282,13 @@ todomd sync                                   # uploads it; the board online sho
   moves no image bytes at all (links then stay URLs), for CI machines.
 - Images attached in todomd-web are offered for copying into todomd's folder
   when you `todomd link`, after which they sync like the rest.
+- **Other files** attached on the web board (a PDF, a zip, a CSV…, up to
+  25 MB) stay todomd.online links in `TODO.md`; sync doesn't download them.
+  Fetch one when you need it:
+
+  ```sh
+  todomd download 3f2a report.pdf -o ~/Downloads   # name or att_ id; optional if the task links to one
+  ```
 
 ## 📝 The file format
 

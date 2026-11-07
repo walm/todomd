@@ -74,6 +74,44 @@ type images struct {
 	bare    *regexp.Regexp
 }
 
+// wireRe matches a link's attachment URLs; groups are the att id and name.
+func wireRe(l *Link) *regexp.Regexp {
+	return regexp.MustCompile(regexp.QuoteMeta(l.Host) + `/a/` + regexp.QuoteMeta(l.ProjectID) + `/(att_[0-9a-f]{20})/(` + nameRe + `)`)
+}
+
+// FileLink is an attachment a task links to by URL.
+type FileLink struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// TaskLinks lists the attachments of the linked project that a task's
+// description and comments link to by URL — files, and images not (yet)
+// held on this machine — once each, in order of appearance.
+func TaskLinks(l *Link, t *task.Task) []FileLink {
+	re := wireRe(l)
+	var out []FileLink
+	seen := map[string]bool{}
+	for _, s := range append([]string{t.Description}, commentTexts(t)...) {
+		for _, m := range re.FindAllStringSubmatch(s, -1) {
+			if !seen[m[1]] {
+				seen[m[1]] = true
+				out = append(out, FileLink{ID: m[1], Name: m[2], URL: m[0]})
+			}
+		}
+	}
+	return out
+}
+
+func commentTexts(t *task.Task) []string {
+	out := make([]string, len(t.Comments))
+	for i, c := range t.Comments {
+		out[i] = c.Text
+	}
+	return out
+}
+
 func newImages(c *cloud.Client, l *Link, rep *AttachmentReport) (*images, error) {
 	root, err := AttachmentRoot(l.Host)
 	if err != nil {
@@ -84,7 +122,7 @@ func newImages(c *cloud.Client, l *Link, rep *AttachmentReport) (*images, error)
 	return &images{
 		client: c, host: l.Host, project: l.ProjectID, dir: filepath.Join(root, l.ProjectID), rep: rep,
 		known: map[string]bool{},
-		wire:  regexp.MustCompile(regexp.QuoteMeta(l.Host) + `/a/` + p + `/(att_[0-9a-f]{20})/(` + nameRe + `)`),
+		wire:  wireRe(l),
 		// A path in angle brackets may hold spaces; a bare one may not.
 		angle: regexp.MustCompile(`<(/[^<>\n]*?/` + tail + `)>`),
 		bare:  regexp.MustCompile(`(^|[\s(\[<"'=])(/(?:[^\s<>()\[\]"'` + "`" + `]*/)?` + tail + `)`),

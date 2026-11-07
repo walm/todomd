@@ -1069,3 +1069,14 @@ func TestBoardsChangesAndAs(t *testing.T) {
 		t.Errorf("the writer should not see its own rename: %v %s", err, out)
 	}
 }
+
+func TestSafeFileName(t *testing.T) {
+	for in, want := range map[string]string{
+		"report.pdf": "report.pdf", "../../etc/passwd": "passwd", `..\..\x.zip`: "x.zip",
+		".hidden": "hidden", "..": "", "": "", "my file (1).csv": "my-file-1-.csv",
+	} {
+		if got := safeFileName(in); got != want {
+			t.Errorf("safeFileName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
