@@ -17,6 +17,12 @@ breaking changes to the file format or CLI (they will be called out).
 - The three take `--json` (the board, its position, task count and the board
   order after the change) and `--as`, like every other write. A name another
   board already has, ignoring case, exits with the new code `8`.
+- `todomd sync` reports board changes: adding, reordering or renaming a board
+  read as "up to date" before, because only task changes were counted. The
+  summary now says e.g. `pushed 1 board change`, and `sync --json` has
+  `pushed_board_ops` and `pulled_board_ops`. No new sync ops: these are the
+  `board.*` ops sync already sends.
+
 ### Changed
 
 - An unknown board is now exit code `2` (not found), as for tasks; `boards

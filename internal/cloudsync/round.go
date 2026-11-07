@@ -66,6 +66,14 @@ type Result struct {
 	Restored  bool // the file was missing and was written from the project
 	Import    bool // the local change came with a git HEAD move (track mode)
 	Note      string
+
+	// PushedBoards and PulledBoards are the board-level ops (board.add,
+	// board.delete, board.order, board.spelling) of the same two diffs. Task
+	// events don't show a board added, reordered or renamed while empty, so
+	// without these such a round would read as "up to date".
+	PushedBoards []ops.Op
+	PulledBoards []ops.Op
+
 	// Attachments is what the round did with images.
 	Attachments AttachmentReport
 }
@@ -98,6 +106,26 @@ func sha(b []byte) string {
 
 func diffEvents(a, b *task.File) []changes.Event {
 	return changes.Diff(a, b)
+}
+
+// boardOps lists the board-level ops among those that take a to b.
+func boardOps(a, b *task.File) []ops.Op {
+	var out []ops.Op
+	for _, op := range ops.Delta(a, b) {
+		switch op.Op {
+		case ops.BoardAdd, ops.BoardDelete, ops.BoardOrder, ops.BoardSpelling:
+			out = append(out, op)
+		}
+	}
+	return out
+}
+
+func (r *Result) setPushed(a, b *task.File) {
+	r.Pushed, r.PushedBoards = diffEvents(a, b), boardOps(a, b)
+}
+
+func (r *Result) setPulled(a, b *task.File) {
+	r.Pulled, r.PulledBoards = diffEvents(a, b), boardOps(a, b)
 }
 
 // fullFile reports whether this link currently sends whole files, clearing
@@ -206,10 +234,10 @@ func (s *Syncer) Round(ctx context.Context, opts Options) (*Result, error) {
 	}
 	res.Rev = rev
 	if changed && !res.ReadOnly {
-		res.Pushed = diffEvents(base, local)
+		res.setPushed(base, local)
 	}
 	if opts.DryRun {
-		res.Pulled = diffEvents(fileForm, s.im.toLocal(result))
+		res.setPulled(fileForm, s.im.toLocal(result))
 		return res, nil
 	}
 	if !s.NoAttachments {
@@ -361,7 +389,7 @@ func (s *Syncer) writeBack(raw []byte, missing bool, mergeBase, result *task.Fil
 		cur, err := os.ReadFile(s.Path)
 		if errors.Is(err, os.ErrNotExist) {
 			out := im.toLocal(result)
-			res.Pulled = diffEvents(im.toLocal(mergeBase), out)
+			res.setPulled(im.toLocal(mergeBase), out)
 			return s.Store.Save(out)
 		}
 		if err != nil {
@@ -398,7 +426,7 @@ func (s *Syncer) writeBack(raw []byte, missing bool, mergeBase, result *task.Fil
 			return err
 		}
 		out := im.toLocal(written)
-		res.Pulled = diffEvents(prev, out)
+		res.setPulled(prev, out)
 		if bytes.Equal(markdown.Write(out), cur) {
 			return nil
 		}

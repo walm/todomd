@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -353,5 +354,144 @@ func TestLinkBringsOverTodomdWebImages(t *testing.T) {
 	}
 	if srv.Uploads != 1 {
 		t.Errorf("uploads = %d", srv.Uploads)
+	}
+}
+
+// Board commands need no new sync ops: a dry run sends (and shows) the
+// existing board ops, and a board-only change no longer reads as "up to
+// date" in either direction.
+func TestSyncBoardCommands(t *testing.T) {
+	srv, path := cloudEnv(t)
+	login(t)
+	addOne(t, path, "one", "--board", "Backlog")
+	out, err := run(t, "--file", path, "link", "--create", "--name", "proj", "--json")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var linked struct{ Project struct{ ID string } }
+	if err := json.Unmarshal([]byte(out), &linked); err != nil {
+		t.Fatal(err)
+	}
+
+	type opJSON struct {
+		Op     string   `json:"op"`
+		Board  string   `json:"board"`
+		Name   string   `json:"name"`
+		After  *string  `json:"after"`
+		Boards []string `json:"boards"`
+	}
+	kinds := func(list []opJSON) string {
+		var k []string
+		for _, op := range list {
+			k = append(k, op.Op)
+		}
+		return strings.Join(k, ",")
+	}
+	// dryRun runs `sync --dry-run --json` and returns its result and the ops
+	// it sent to the server.
+	dryRun := func() (syncJSON, []opJSON) {
+		t.Helper()
+		out, err := run(t, "--file", path, "sync", "--dry-run", "--json")
+		if err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+		var res syncJSON
+		if err := json.Unmarshal([]byte(out), &res); err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+		call := srv.Requests[len(srv.Requests)-1]
+		if !res.DryRun || !call.DryRun || call.Form != "ops" {
+			t.Fatalf("want a dry-run ops request, got %+v\n%s", call, out)
+		}
+		data, _ := json.Marshal(call.Raw["ops"])
+		var sent []opJSON
+		if err := json.Unmarshal(data, &sent); err != nil {
+			t.Fatal(err)
+		}
+		return res, sent
+	}
+	syncNow := func() string {
+		t.Helper()
+		out, err := run(t, "--file", path, "sync")
+		if err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+		return out
+	}
+	board := func(args ...string) {
+		t.Helper()
+		if out, err := run(t, append([]string{"--file", path, "boards"}, args...)...); err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, out)
+		}
+	}
+
+	// add → board.add, before Done.
+	board("add", "Review")
+	res, sent := dryRun()
+	if kinds(sent) != "board.add" || sent[0].Board != "Review" || sent[0].After == nil || *sent[0].After != "In Progress" {
+		t.Errorf("add sent %+v", sent)
+	}
+	if len(res.Pushed) != 0 || len(res.PushedBoard) != 1 || res.PushedBoard[0].Op != "board.add" {
+		t.Errorf("add dry run: pushed %+v boards %+v", res.Pushed, res.PushedBoard)
+	}
+	if out, _ := run(t, "--file", path, "sync", "--dry-run"); !strings.HasPrefix(out, "Would sync: pushed 1 board change ·") {
+		t.Errorf("dry run text: %q", out)
+	}
+	if strings.Contains(srv.Head(linked.Project.ID), "Review") {
+		t.Fatal("a dry run must not change the project")
+	}
+	if out := syncNow(); !strings.HasPrefix(out, "Synced: pushed 1 board change ·") {
+		t.Errorf("sync text: %q", out)
+	}
+
+	// move → board.order with the complete order.
+	board("move", "Done", "--to", "1")
+	if _, sent := dryRun(); kinds(sent) != "board.order" || strings.Join(sent[0].Boards, ",") != "Done,Backlog,In Progress,Review" {
+		t.Errorf("move sent %+v", sent)
+	}
+	syncNow()
+
+	// rename → board.add, a task.move per task, board.delete.
+	board("rename", "Backlog", "Todo")
+	res, sent = dryRun()
+	if kinds(sent) != "board.add,task.move,board.delete" || sent[0].Board != "Todo" || sent[2].Board != "Backlog" {
+		t.Errorf("rename sent %+v", sent)
+	}
+	if len(res.Pushed) != 1 || res.Pushed[0].Type != "task_moved" || len(res.PushedBoard) != 2 {
+		t.Errorf("rename dry run: pushed %+v boards %+v", res.Pushed, res.PushedBoard)
+	}
+	if out := syncNow(); !strings.HasPrefix(out, "Synced: pushed 1 change, 2 board changes ·") {
+		t.Errorf("rename sync text: %q", out)
+	}
+
+	// Case only → board.spelling.
+	board("rename", "Todo", "TODO")
+	if _, sent := dryRun(); kinds(sent) != "board.spelling" || sent[0].Board != "Todo" || sent[0].Name != "TODO" {
+		t.Errorf("case-only rename sent %+v", sent)
+	}
+	syncNow()
+
+	head := srv.Head(linked.Project.ID)
+	if !regexp.MustCompile(`(?s)## Done.*## TODO\n\n### one.*## In Progress.*## Review`).MatchString(head) || strings.Contains(head, "Backlog") {
+		t.Errorf("project after the board commands:\n%s", head)
+	}
+
+	// A reorder made online is reported as pulled, not "up to date".
+	srv.Edit(linked.Project.ID, func(f *task.File) {
+		f.Boards[0], f.Boards[1] = f.Boards[1], f.Boards[0]
+	})
+	out, err = run(t, "--file", path, "sync", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pulled syncJSON
+	if err := json.Unmarshal([]byte(out), &pulled); err != nil {
+		t.Fatal(err)
+	}
+	if len(pulled.PulledBoard) != 1 || pulled.PulledBoard[0].Op != "board.order" || len(pulled.Pulled) != 0 {
+		t.Errorf("pulled reorder: %s", out)
+	}
+	if !strings.Contains(out, `"pushed_board_ops": []`) {
+		t.Errorf("pushed_board_ops should be an empty list, not absent: %s", out)
 	}
 }
