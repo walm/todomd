@@ -74,6 +74,44 @@ type images struct {
 	bare    *regexp.Regexp
 }
 
+// wireRe matches a link's attachment URLs; groups are the att id and name.
+func wireRe(l *Link) *regexp.Regexp {
+	return regexp.MustCompile(regexp.QuoteMeta(l.Host) + `/a/` + regexp.QuoteMeta(l.ProjectID) + `/(att_[0-9a-f]{20})/(` + nameRe + `)`)
+}
+
+// FileLink is an attachment a task links to by URL.
+type FileLink struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// TaskLinks lists the attachments of the linked project that a task's
+// description and comments link to by URL — files, and images not (yet)
+// held on this machine — once each, in order of appearance.
+func TaskLinks(l *Link, t *task.Task) []FileLink {
+	re := wireRe(l)
+	var out []FileLink
+	seen := map[string]bool{}
+	for _, s := range append([]string{t.Description}, commentTexts(t)...) {
+		for _, m := range re.FindAllStringSubmatch(s, -1) {
+			if !seen[m[1]] {
+				seen[m[1]] = true
+				out = append(out, FileLink{ID: m[1], Name: m[2], URL: m[0]})
+			}
+		}
+	}
+	return out
+}
+
+func commentTexts(t *task.Task) []string {
+	out := make([]string, len(t.Comments))
+	for i, c := range t.Comments {
+		out[i] = c.Text
+	}
+	return out
+}
+
 func newImages(c *cloud.Client, l *Link, rep *AttachmentReport) (*images, error) {
 	root, err := AttachmentRoot(l.Host)
 	if err != nil {
@@ -84,7 +122,7 @@ func newImages(c *cloud.Client, l *Link, rep *AttachmentReport) (*images, error)
 	return &images{
 		client: c, host: l.Host, project: l.ProjectID, dir: filepath.Join(root, l.ProjectID), rep: rep,
 		known: map[string]bool{},
-		wire:  regexp.MustCompile(regexp.QuoteMeta(l.Host) + `/a/` + p + `/(att_[0-9a-f]{20})/(` + nameRe + `)`),
+		wire:  wireRe(l),
 		// A path in angle brackets may hold spaces; a bare one may not.
 		angle: regexp.MustCompile(`<(/[^<>\n]*?/` + tail + `)>`),
 		bare:  regexp.MustCompile(`(^|[\s(\[<"'=])(/(?:[^\s<>()\[\]"'` + "`" + `]*/)?` + tail + `)`),
@@ -125,10 +163,15 @@ func mapTexts(f *task.File, fn func(string) string) *task.File {
 }
 
 // refs lists this project's images a wire-form model links to: att → name.
+// Links to other files (a PDF, a zip, …) are not images: they stay links,
+// and are never downloaded.
 func (im *images) refs(f *task.File) map[string]string {
 	out := map[string]string{}
 	visit := func(s string) {
 		for _, m := range im.wire.FindAllStringSubmatch(s, -1) {
+			if !cloud.IsImageName(m[2]) {
+				continue
+			}
 			if _, ok := out[m[1]]; !ok {
 				out[m[1]] = m[2]
 			}
@@ -304,11 +347,14 @@ func (im *images) toWire(ctx context.Context, f *task.File, known map[string]str
 }
 
 // toLocal turns this project's image URLs into paths, for the images this
-// machine holds; the rest stay URLs.
+// machine holds; the rest, and links to files that aren't images, stay URLs.
 func (im *images) toLocal(f *task.File) *task.File {
 	return mapTexts(f, func(s string) string {
 		return im.wire.ReplaceAllStringFunc(s, func(m string) string {
 			sm := im.wire.FindStringSubmatch(m)
+			if !cloud.IsImageName(sm[2]) {
+				return m
+			}
 			if name := im.findLocal(sm[1], sm[2]); name != "" {
 				return im.link(sm[1], name)
 			}
@@ -320,7 +366,7 @@ func (im *images) toLocal(f *task.File) *task.File {
 // download fetches the images f links to that this machine lacks: only from
 // the linked host, only under this project, verified by hash and type, and
 // stored under the name the server records (cleaned), never one taken from
-// the link text.
+// the link text. Links to files that aren't images stay links, quietly.
 func (im *images) download(ctx context.Context, f *task.File) {
 	refs := im.refs(f)
 	atts := make([]string, 0, len(refs))
@@ -334,6 +380,9 @@ func (im *images) download(ctx context.Context, f *task.File) {
 			continue
 		}
 		data, served, err := im.client.DownloadAttachment(ctx, im.project, att, name)
+		if cloud.IsNotAnImage(err) {
+			continue // a file with an image's name: it stays a link
+		}
 		if err != nil {
 			im.rep.Skipped = append(im.rep.Skipped, Skip{att, name, "download failed: " + apiReason(err)})
 			continue

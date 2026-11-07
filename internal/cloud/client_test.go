@@ -58,3 +58,41 @@ func TestUserAgent(t *testing.T) {
 		t.Errorf("UserAgent = %q", ua)
 	}
 }
+
+func TestIsImageName(t *testing.T) {
+	for name, want := range map[string]bool{
+		"shot.png": true, "a.JPG": true, "b.jpeg": true, "c.gif": true, "d.WebP": true,
+		"report.pdf": false, "data.zip": false, "png": false, "file": false, "x.svg": false, "x.png.txt": false,
+	} {
+		if got := IsImageName(name); got != want {
+			t.Errorf("IsImageName(%q) = %v", name, got)
+		}
+	}
+}
+
+func TestDownloadFileChecksTheContent(t *testing.T) {
+	body := []byte("%PDF-1.7 file")
+	att := ImageID(body)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer tok" || r.Header.Get("Accept") == "image/*" {
+			w.WriteHeader(406)
+			return
+		}
+		w.Header().Set("Content-Disposition", `attachment; filename="report.pdf"`)
+		if strings.Contains(r.URL.Path, att) {
+			w.Write(body)
+		} else {
+			w.Write([]byte("something else"))
+		}
+	}))
+	defer srv.Close()
+	c := New(srv.URL, srv.URL+"/api/v1", "tok", "test")
+	var buf strings.Builder
+	served, err := c.DownloadFile(context.Background(), "p", att, "report.pdf", &buf)
+	if err != nil || served != "report.pdf" || buf.String() != string(body) {
+		t.Fatalf("got %q %q %v", served, buf.String(), err)
+	}
+	if _, err := c.DownloadFile(context.Background(), "p", "att_00000000000000000000", "x.pdf", &strings.Builder{}); err == nil || !strings.Contains(err.Error(), "doesn't match") {
+		t.Errorf("wrong content accepted: %v", err)
+	}
+}

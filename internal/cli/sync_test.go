@@ -495,3 +495,69 @@ func TestSyncBoardCommands(t *testing.T) {
 		t.Errorf("pushed_board_ops should be an empty list, not absent: %s", out)
 	}
 }
+
+func TestDownloadFetchesAFile(t *testing.T) {
+	srv, path := cloudEnv(t)
+	login(t)
+	id := addOne(t, path, "Task with files")
+	out, err := run(t, "--file", path, "link", "--create", "--name", "proj", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var linked struct{ Project struct{ ID string } }
+	json.Unmarshal([]byte(out), &linked)
+	p := linked.Project.ID
+
+	if _, err := run(t, "--file", path, "download", id); err == nil {
+		t.Error("download with no links succeeded")
+	}
+	pdfData := []byte("%PDF-1.7 the report")
+	pdf := srv.AddFile(p, pdfData, "report.pdf", "application/pdf")
+	csv := srv.AddFile(p, []byte("a,b\n1,2\n"), "data.csv", "text/csv")
+	srv.Edit(p, func(f *task.File) {
+		f.Boards[0].Tasks[0].Description = "[report.pdf](" + pdf + ")"
+		f.Boards[0].Tasks[0].Comments = []task.Comment{{Author: "walm", Date: task.Date{Year: 2026, Month: 11, Day: 7}, Text: "[data.csv](" + csv + ")"}}
+	})
+	out, err = run(t, "--file", path, "sync", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res syncJSON
+	json.Unmarshal([]byte(out), &res)
+	if len(res.Attachments.Skipped) != 0 || len(res.Attachments.Downloaded) != 0 {
+		t.Fatalf("sync touched the files: %s", out)
+	}
+
+	// Two links: the file must be named.
+	if _, err := run(t, "--file", path, "download", id); err == nil || !strings.Contains(err.Error(), "report.pdf, data.csv") {
+		t.Errorf("ambiguous download: %v", err)
+	}
+	dir := filepath.Join(t.TempDir(), "out")
+	out, err = run(t, "--file", path, "download", id, "report.pdf", "-o", dir, "--json")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	var got struct {
+		Name, Path string
+		Size       int
+	}
+	json.Unmarshal([]byte(out), &got)
+	data, err := os.ReadFile(filepath.Join(dir, "report.pdf"))
+	if err != nil || string(data) != string(pdfData) || got.Name != "report.pdf" || got.Size != len(pdfData) {
+		t.Fatalf("saved %q (%v), json %s", data, err, out)
+	}
+	if _, err := run(t, "--file", path, "download", id, "report.pdf", "-o", dir); err == nil || !strings.Contains(err.Error(), "exists") {
+		t.Errorf("overwrote an existing file: %v", err)
+	}
+	// By att id, into the current folder's stand-in.
+	att := strings.Split(csv, "/")[5]
+	if _, err := run(t, "--file", path, "download", id, att, "-o", dir); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(dir, "data.csv")); string(data) != "a,b\n1,2\n" {
+		t.Errorf("data.csv: %q", data)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 2 {
+		t.Errorf("left temp files behind: %v", entries)
+	}
+}

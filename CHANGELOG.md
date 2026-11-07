@@ -4,6 +4,21 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `todomd download <id> [file] [-o dir] [--json]` fetches a file a task
+  links to on todomd.online (any type, up to 25 MB), using the stored login,
+  and checks it against its attachment id. It never overwrites a file.
+
+### Fixed
+
+- Sync leaves links to files that aren't images (PDF, zip, CSV…, which
+  todomd.online now accepts as attachments) as todomd.online links, quietly:
+  no download attempt and no "download failed" note on every sync. Images
+  still download, whether linked as `![]()` or as a plain link.
+
 ## v0.11.0 — 2026-11-07
 
 ### Added

@@ -226,3 +226,46 @@ func TestReadOnlyImageStaysLocal(t *testing.T) {
 		t.Error("local edit lost")
 	}
 }
+
+// Files that aren't images (todomd.online takes any file now) stay links:
+// never downloaded, never reported. An image is still fetched, even from a
+// plain link, and a file that only has an image's name is refused by the
+// server (406) and left alone just as quietly.
+func TestFileLinksStayLinks(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	p := e.s.Link.ProjectID
+	img := e.srv.AddImage(p, png("plain link"), "shot.png")
+	pdf := e.srv.AddFile(p, []byte("%PDF-1.7 report"), "report.pdf", "application/pdf")
+	zip := e.srv.AddFile(p, []byte("PK\x03\x04 archive"), "data.zip", "application/zip")
+	fake := e.srv.AddFile(p, []byte("not really a png"), "fake.png", "application/octet-stream")
+	e.srv.Edit(p, func(f *task.File) {
+		f.Boards[0].Tasks[0].Description = "[shot.png](" + img + ")\n\n[report.pdf](" + pdf + ")\n\n![fake](" + fake + ")"
+		f.Boards[0].Tasks[0].Comments = []task.Comment{{Author: "x", Date: task.Date{Year: 2026, Month: 11, Day: 7}, Text: "[data.zip](" + zip + ")"}}
+	})
+	r := e.round()
+	if len(r.Attachments.Downloaded) != 1 || len(r.Attachments.Skipped) != 0 {
+		t.Fatalf("want one image downloaded and nothing skipped: %+v", r.Attachments)
+	}
+	text := e.fileText()
+	for _, u := range []string{pdf, zip, fake} {
+		if !strings.Contains(text, u) {
+			t.Errorf("file link %s did not stay a link:\n%s", u, text)
+		}
+	}
+	if strings.Contains(text, img) || !strings.Contains(text, "/todomd/attachments/") {
+		t.Errorf("the image should be a local path:\n%s", text)
+	}
+	if e.srv.Downloads != 1 || e.srv.Refused != 1 {
+		t.Errorf("downloads %d (want 1), refused %d (want 1: only the file named .png is asked for)", e.srv.Downloads, e.srv.Refused)
+	}
+	for i := 0; i < 2; i++ {
+		r := e.round()
+		if !r.Unchanged || len(r.Attachments.Skipped) != 0 {
+			t.Fatalf("round %d not idle and quiet: pushed %v, %+v", i, r.Pushed, r.Attachments)
+		}
+	}
+	if head := e.srv.Head(p); !strings.Contains(head, pdf) || !strings.Contains(head, zip) {
+		t.Errorf("file links lost online:\n%s", head)
+	}
+}
