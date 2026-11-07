@@ -72,6 +72,9 @@ todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
 todomd delete 3f2a --yes
 todomd boards --json
+todomd boards add Review              # before Done; or --after/--before <board>
+todomd boards rename Review QA        # tasks and position stay
+todomd boards move QA --to 1          # or --after/--before <board>
 todomd boards delete Review           # --force if it still holds tasks
 todomd archive --dry-run              # what clearing Done would remove
 todomd changes --as claude --ignore-author claude --json
@@ -91,6 +94,9 @@ Events: `task_added` (includes the full task as `detail`), `task_deleted`,
 `task_moved` (`from`/`to`), `task_updated` (`fields` with old/new per
 changed field — renames stay the same task, identity is the ID),
 `comment_added` (the comment). Reorders within a board are not reported.
+Events are about tasks: renaming a board reports a `task_moved` (old name →
+new) for each of its tasks, while adding, reordering or renaming an empty
+board reports nothing.
 
 **A consumer is never notified about its own writes.** Pass the same `--as`
 name when you write (or set `TODOMD_CURSOR` once) and that write is folded
@@ -123,14 +129,20 @@ human's reply. On a file linked to todomd.online it syncs while it waits.
   is to work High first, then Normal, then Low — todomd records it and leaves
   the ordering to you. `"priority"` is always present in JSON, so an agent
   never has to infer the default.
-- **Exit codes**: `0` ok · `1` general error · `2` task not found ·
-  `3` ambiguous ID prefix · and for todomd.online sync (below):
-  `4` not logged in · `5` not linked · `6` unreachable (retry later) ·
-  `7` this todomd is too old.
+- **Exit codes**: `0` ok · `1` general error · `2` task or board not found ·
+  `3` ambiguous ID prefix · `8` board name already taken · and for
+  todomd.online sync (below): `4` not logged in · `5` not linked ·
+  `6` unreachable (retry later) · `7` this todomd is too old.
 - Boards are matched case-insensitively and created on demand (new boards land
-  before `Done`). `boards delete <name>` removes one; an empty board goes
-  straight away, one holding tasks needs `--force` because its tasks go with
-  it.
+  before `Done`). `boards add <name>` creates an empty one there, or
+  `--after`/`--before` another board. `boards rename <board> <new name>` keeps
+  its tasks and position (a change of case is fine). `boards move <board>`
+  takes `--to <pos>` (1-based), `--after` or `--before`. A name another
+  board already has, in any case, is refused with exit code `8`.
+  `boards delete <name>` removes one; an empty board goes straight away, one
+  holding tasks needs `--force` because its tasks go with it. All of them
+  take `--json` (the board, its position and the new board order) and
+  `--as`.
 - Concurrent invocations are safe: every write takes an advisory lock
   (kept in `~/.local/state/todomd`, never next to your file) and replaces
   the file atomically.

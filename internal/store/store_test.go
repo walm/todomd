@@ -323,3 +323,212 @@ func TestDeleteBoard(t *testing.T) {
 		t.Errorf("boards left = %d", len(f.Boards))
 	}
 }
+
+func boardNames(f *task.File) string {
+	names := make([]string, len(f.Boards))
+	for i, b := range f.Boards {
+		names[i] = b.Name
+	}
+	return strings.Join(names, ",")
+}
+
+func TestAddBoard(t *testing.T) {
+	f := &task.File{Boards: []*task.Board{{Name: "Backlog"}, {Name: "In Progress"}, {Name: "Done"}}}
+	steps := []struct {
+		name string
+		at   BoardPlace
+		want string
+	}{
+		{"Review", BoardPlace{}, "Backlog,In Progress,Review,Done"},                        // default: before Done
+		{" Ideas ", BoardPlace{After: "backlog"}, "Backlog,Ideas,In Progress,Review,Done"}, // trimmed, case-insensitive ref
+		{"Inbox", BoardPlace{Before: "Backlog"}, "Inbox,Backlog,Ideas,In Progress,Review,Done"},
+		{"Later", BoardPlace{After: "Done"}, "Inbox,Backlog,Ideas,In Progress,Review,Done,Later"},
+		{"Second", BoardPlace{Pos: 2}, "Inbox,Second,Backlog,Ideas,In Progress,Review,Done,Later"},
+		{"Last", BoardPlace{Pos: 99}, "Inbox,Second,Backlog,Ideas,In Progress,Review,Done,Later,Last"},
+	}
+	for _, st := range steps {
+		b, err := AddBoard(f, st.name, st.at)
+		if err != nil {
+			t.Fatalf("AddBoard(%q, %+v): %v", st.name, st.at, err)
+		}
+		if b.Name != strings.TrimSpace(st.name) || len(b.Tasks) != 0 {
+			t.Errorf("returned board %+v", b)
+		}
+		if got := boardNames(f); got != st.want {
+			t.Errorf("after adding %q: %s, want %s", st.name, got, st.want)
+		}
+	}
+
+	// Without a Done board, the default is last.
+	g := &task.File{Boards: []*task.Board{{Name: "A"}}}
+	if _, err := AddBoard(g, "B", BoardPlace{}); err != nil || boardNames(g) != "A,B" {
+		t.Errorf("no Done: %s %v", boardNames(g), err)
+	}
+	// An empty file gets its first board.
+	e := &task.File{}
+	if _, err := AddBoard(e, "Only", BoardPlace{}); err != nil || boardNames(e) != "Only" {
+		t.Errorf("empty file: %s %v", boardNames(e), err)
+	}
+
+	before := boardNames(f)
+	var exists *BoardExistsError
+	if _, err := AddBoard(f, "REVIEW", BoardPlace{}); !errors.As(err, &exists) || exists.Existing != "Review" {
+		t.Errorf("duplicate ignoring case: want BoardExistsError naming Review, got %v", err)
+	}
+	var nf *BoardNotFoundError
+	if _, err := AddBoard(f, "X", BoardPlace{After: "Nope"}); !errors.As(err, &nf) {
+		t.Errorf("unknown --after: want BoardNotFoundError, got %v", err)
+	}
+	for _, bad := range []string{"", "  ", "two\nlines"} {
+		if _, err := AddBoard(f, bad, BoardPlace{}); err == nil {
+			t.Errorf("name %q should be refused", bad)
+		}
+	}
+	if _, err := AddBoard(f, "X", BoardPlace{After: "Done", Before: "Inbox"}); err == nil {
+		t.Error("two places at once should be refused")
+	}
+	if _, err := AddBoard(f, "X", BoardPlace{Pos: -1}); err == nil {
+		t.Error("negative position should be refused")
+	}
+	if got := boardNames(f); got != before {
+		t.Errorf("refused adds changed the boards: %s", got)
+	}
+}
+
+func TestRenameBoard(t *testing.T) {
+	s := newTestStore(t)
+	id := addTask(t, s, "Backlog", "keep me")
+
+	err := s.Mutate(func(f *task.File) error {
+		b, old, err := RenameBoard(f, "backlog", "Todo")
+		if err == nil && (b.Name != "Todo" || old != "Backlog" || len(b.Tasks) != 1) {
+			t.Errorf("returned %q (was %q) with %d tasks", b.Name, old, len(b.Tasks))
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, _ := s.Load()
+	if got := boardNames(f); got != "Todo,In Progress,Done" {
+		t.Errorf("boards = %s (position must stay)", got)
+	}
+	if b, _, err := FindTask(f, id); err != nil || b.Name != "Todo" {
+		t.Errorf("task should stay on the renamed board: %v", err)
+	}
+
+	// Case only, and the exact current name (a no-op), are fine.
+	for _, name := range []string{"TODO", "TODO"} {
+		if err := s.Mutate(func(f *task.File) error {
+			_, _, err := RenameBoard(f, "todo", name)
+			return err
+		}); err != nil {
+			t.Fatalf("rename to %q: %v", name, err)
+		}
+	}
+	f, _ = s.Load()
+	if got := boardNames(f); got != "TODO,In Progress,Done" {
+		t.Errorf("boards = %s", got)
+	}
+
+	var exists *BoardExistsError
+	var nf *BoardNotFoundError
+	cases := []struct {
+		from, to string
+		check    func(error) bool
+	}{
+		{"TODO", "done", func(err error) bool { return errors.As(err, &exists) && exists.Existing == "Done" }},
+		{"TODO", "In progress", func(err error) bool { return errors.As(err, &exists) }},
+		{"Nope", "X", func(err error) bool { return errors.As(err, &nf) }},
+		{"TODO", "", func(err error) bool { return err != nil }},
+		{"TODO", " \t", func(err error) bool { return err != nil }},
+		{"TODO", "a\nb", func(err error) bool { return err != nil }},
+	}
+	for _, c := range cases {
+		err := s.Mutate(func(f *task.File) error {
+			_, _, err := RenameBoard(f, c.from, c.to)
+			return err
+		})
+		if !c.check(err) {
+			t.Errorf("rename %q → %q: unexpected error %v", c.from, c.to, err)
+		}
+	}
+	f, _ = s.Load()
+	if got := boardNames(f); got != "TODO,In Progress,Done" {
+		t.Errorf("refused renames changed the file: %s", got)
+	}
+}
+
+func TestMoveBoard(t *testing.T) {
+	newFile := func() *task.File {
+		return &task.File{Boards: []*task.Board{{Name: "A"}, {Name: "B"}, {Name: "C"}, {Name: "D", Tasks: []*task.Task{{ID: "t1", Title: "x"}}}}}
+	}
+	cases := []struct {
+		board string
+		at    BoardPlace
+		want  string
+	}{
+		{"A", BoardPlace{Pos: 1}, "A,B,C,D"},
+		{"A", BoardPlace{Pos: 3}, "B,C,A,D"},
+		{"a", BoardPlace{Pos: 4}, "B,C,D,A"},
+		{"A", BoardPlace{Pos: 99}, "B,C,D,A"},
+		{"D", BoardPlace{Pos: 1}, "D,A,B,C"},
+		{"A", BoardPlace{After: "c"}, "B,C,A,D"},
+		{"A", BoardPlace{After: "D"}, "B,C,D,A"},
+		{"D", BoardPlace{Before: "A"}, "D,A,B,C"},
+		{"D", BoardPlace{Before: "C"}, "A,B,D,C"},
+		{"B", BoardPlace{After: "A"}, "A,B,C,D"}, // already there
+	}
+	for _, c := range cases {
+		f := newFile()
+		b, err := MoveBoard(f, c.board, c.at)
+		if err != nil {
+			t.Errorf("MoveBoard(%q, %+v): %v", c.board, c.at, err)
+			continue
+		}
+		if got := boardNames(f); got != c.want {
+			t.Errorf("MoveBoard(%q, %+v) = %s, want %s", c.board, c.at, got, c.want)
+		}
+		if !strings.EqualFold(b.Name, c.board) {
+			t.Errorf("returned %q", b.Name)
+		}
+	}
+
+	// Tasks travel with the board.
+	f := newFile()
+	if _, err := MoveBoard(f, "D", BoardPlace{Pos: 1}); err != nil || len(f.Boards[0].Tasks) != 1 {
+		t.Errorf("tasks should move with their board: %v", err)
+	}
+
+	var nf *BoardNotFoundError
+	bad := []struct {
+		board string
+		at    BoardPlace
+		check func(error) bool
+	}{
+		{"Nope", BoardPlace{Pos: 1}, func(err error) bool { return errors.As(err, &nf) }},
+		{"A", BoardPlace{After: "Nope"}, func(err error) bool { return errors.As(err, &nf) }},
+		{"A", BoardPlace{}, func(err error) bool { return err != nil }},
+		{"A", BoardPlace{After: "a"}, func(err error) bool { return err != nil && strings.Contains(err.Error(), "itself") }},
+		{"A", BoardPlace{Pos: 1, Before: "B"}, func(err error) bool { return err != nil }},
+		{"A", BoardPlace{Pos: -2}, func(err error) bool { return err != nil }},
+	}
+	for _, c := range bad {
+		f := newFile()
+		_, err := MoveBoard(f, c.board, c.at)
+		if !c.check(err) {
+			t.Errorf("MoveBoard(%q, %+v): unexpected error %v", c.board, c.at, err)
+		}
+		if got := boardNames(f); got != "A,B,C,D" {
+			t.Errorf("a refused move changed the boards: %s", got)
+		}
+	}
+}
+
+func TestDeleteBoardNotFoundIsTyped(t *testing.T) {
+	f := &task.File{Boards: []*task.Board{{Name: "A"}}}
+	var nf *BoardNotFoundError
+	if _, err := DeleteBoard(f, "Nope", true); !errors.As(err, &nf) {
+		t.Errorf("want BoardNotFoundError, got %v", err)
+	}
+}

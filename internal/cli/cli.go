@@ -1,7 +1,8 @@
 // Package cli wires the todomd command tree. All mutating commands support
 // --json (printing the affected task in the pinned schema); errors map to
-// exit codes: 1 general, 2 task not found, 3 ambiguous ID prefix, and for
-// todomd.online 4 not logged in, 5 not linked, 6 unreachable, 7 too old.
+// exit codes: 1 general, 2 task or board not found, 3 ambiguous ID prefix,
+// for todomd.online 4 not logged in, 5 not linked, 6 unreachable, 7 too old,
+// and 8 board name already taken.
 package cli
 
 import (
@@ -199,18 +200,21 @@ func Execute() int {
 	return 0
 }
 
-// classify maps an error to the process exit code: 0 none, 2 task not
-// found, 3 ambiguous ID prefix, 4 not logged in (or the token was revoked),
-// 5 not linked (or the project is gone), 6 todomd.online unreachable,
-// 7 this todomd is too old for the service, 1 anything else.
+// classify maps an error to the process exit code: 0 none, 2 task or board
+// not found, 3 ambiguous ID prefix, 4 not logged in (or the token was
+// revoked), 5 not linked (or the project is gone), 6 todomd.online
+// unreachable, 7 this todomd is too old for the service, 8 board name
+// already taken, 1 anything else.
 func classify(err error) int {
 	var nf *store.NotFoundError
+	var bnf *store.BoardNotFoundError
+	var exists *store.BoardExistsError
 	var amb *store.AmbiguousError
 	var unavailable *cloud.UnavailableError
 	switch {
 	case err == nil:
 		return 0
-	case errors.As(err, &nf):
+	case errors.As(err, &nf), errors.As(err, &bnf):
 		return 2
 	case errors.As(err, &amb):
 		return 3
@@ -222,6 +226,8 @@ func classify(err error) int {
 		return 6
 	case cloud.IsStatus(err, 426, ""):
 		return 7
+	case errors.As(err, &exists):
+		return 8
 	default:
 		return 1
 	}
@@ -741,6 +747,6 @@ func newBoards() *cobra.Command {
 		},
 	}
 	jsonFlag(cmd)
-	cmd.AddCommand(newBoardsDelete())
+	cmd.AddCommand(newBoardsAdd(), newBoardsRename(), newBoardsMove(), newBoardsDelete())
 	return cmd
 }

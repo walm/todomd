@@ -359,11 +359,11 @@ func Describe(r *Result) string {
 	if r.Restored {
 		parts = append(parts, "restored the file from the project")
 	}
-	if n := len(r.Pushed); n > 0 {
-		parts = append(parts, fmt.Sprintf("pushed %d change%s", n, plural(n)))
+	if c := countChanges(len(r.Pushed), len(r.PushedBoards)); c != "" {
+		parts = append(parts, "pushed "+c)
 	}
-	if n := len(r.Pulled); n > 0 {
-		parts = append(parts, fmt.Sprintf("pulled %d change%s", n, plural(n)))
+	if c := countChanges(len(r.Pulled), len(r.PulledBoards)); c != "" {
+		parts = append(parts, "pulled "+c)
 	}
 	if n := len(r.Conflicts); n > 0 {
 		parts = append(parts, fmt.Sprintf("%d conflict%s", n, plural(n)))
@@ -381,6 +381,19 @@ func Describe(r *Result) string {
 		parts = append(parts, "up to date")
 	}
 	return strings.Join(parts, " · ") + fmt.Sprintf(" · rev %d", r.Rev)
+}
+
+// countChanges words task and board change counts: "2 changes",
+// "1 board change", "2 changes, 1 board change", or "" for none.
+func countChanges(tasks, boards int) string {
+	var out []string
+	if tasks > 0 {
+		out = append(out, fmt.Sprintf("%d change%s", tasks, plural(tasks)))
+	}
+	if boards > 0 {
+		out = append(out, fmt.Sprintf("%d board change%s", boards, plural(boards)))
+	}
+	return strings.Join(out, ", ")
 }
 
 func plural(n int) string {

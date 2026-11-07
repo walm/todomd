@@ -19,6 +19,7 @@ import (
 	"github.com/walm/todomd/internal/cloud"
 	"github.com/walm/todomd/internal/cloudsync"
 	"github.com/walm/todomd/internal/merge"
+	"github.com/walm/todomd/internal/ops"
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/tui"
 )
@@ -825,6 +826,13 @@ func conflictsOf(r *cloudsync.Result) []merge.Conflict {
 	return r.Conflicts
 }
 
+func opsOf(list []ops.Op) []ops.Op {
+	if list == nil {
+		return []ops.Op{}
+	}
+	return list
+}
+
 func renamedOf(r *cloudsync.Result) []merge.Rename {
 	if r.Renamed == nil {
 		return []merge.Rename{}
@@ -838,6 +846,8 @@ type syncJSON struct {
 	Rev         int                        `json:"rev"`
 	Pushed      []eventJSON                `json:"pushed"`
 	Pulled      []eventJSON                `json:"pulled"`
+	PushedBoard []ops.Op                   `json:"pushed_board_ops"`
+	PulledBoard []ops.Op                   `json:"pulled_board_ops"`
 	Conflicts   []merge.Conflict           `json:"conflicts"`
 	RenamedIDs  []merge.Rename             `json:"renamed_ids"`
 	Unchanged   bool                       `json:"unchanged"`
@@ -857,6 +867,8 @@ func toSyncJSON(s *cloudsync.Syncer, r *cloudsync.Result) syncJSON {
 		Rev:         r.Rev,
 		Pushed:      eventsJSON(r.Pushed),
 		Pulled:      eventsJSON(r.Pulled),
+		PushedBoard: opsOf(r.PushedBoards),
+		PulledBoard: opsOf(r.PulledBoards),
 		Conflicts:   conflictsOf(r),
 		RenamedIDs:  renamedOf(r),
 		Unchanged:   r.Unchanged,
