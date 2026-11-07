@@ -125,10 +125,15 @@ func mapTexts(f *task.File, fn func(string) string) *task.File {
 }
 
 // refs lists this project's images a wire-form model links to: att → name.
+// Links to other files (a PDF, a zip, …) are not images: they stay links,
+// and are never downloaded.
 func (im *images) refs(f *task.File) map[string]string {
 	out := map[string]string{}
 	visit := func(s string) {
 		for _, m := range im.wire.FindAllStringSubmatch(s, -1) {
+			if !cloud.IsImageName(m[2]) {
+				continue
+			}
 			if _, ok := out[m[1]]; !ok {
 				out[m[1]] = m[2]
 			}
@@ -304,11 +309,14 @@ func (im *images) toWire(ctx context.Context, f *task.File, known map[string]str
 }
 
 // toLocal turns this project's image URLs into paths, for the images this
-// machine holds; the rest stay URLs.
+// machine holds; the rest, and links to files that aren't images, stay URLs.
 func (im *images) toLocal(f *task.File) *task.File {
 	return mapTexts(f, func(s string) string {
 		return im.wire.ReplaceAllStringFunc(s, func(m string) string {
 			sm := im.wire.FindStringSubmatch(m)
+			if !cloud.IsImageName(sm[2]) {
+				return m
+			}
 			if name := im.findLocal(sm[1], sm[2]); name != "" {
 				return im.link(sm[1], name)
 			}
@@ -320,7 +328,7 @@ func (im *images) toLocal(f *task.File) *task.File {
 // download fetches the images f links to that this machine lacks: only from
 // the linked host, only under this project, verified by hash and type, and
 // stored under the name the server records (cleaned), never one taken from
-// the link text.
+// the link text. Links to files that aren't images stay links, quietly.
 func (im *images) download(ctx context.Context, f *task.File) {
 	refs := im.refs(f)
 	atts := make([]string, 0, len(refs))
@@ -334,6 +342,9 @@ func (im *images) download(ctx context.Context, f *task.File) {
 			continue
 		}
 		data, served, err := im.client.DownloadAttachment(ctx, im.project, att, name)
+		if cloud.IsNotAnImage(err) {
+			continue // a file with an image's name: it stays a link
+		}
 		if err != nil {
 			im.rep.Skipped = append(im.rep.Skipped, Skip{att, name, "download failed: " + apiReason(err)})
 			continue

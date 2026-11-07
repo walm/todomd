@@ -59,11 +59,13 @@ type Server struct {
 	images    map[string]map[string]image // project → att → image
 	Uploads   int                         // image uploads accepted
 	Downloads int                         // image downloads served
+	Refused   int                         // file downloads refused with 406
 }
 
 type image struct {
 	name, typ string
 	data      []byte
+	file      bool // a file attachment (a PDF, a zip, …), not an image
 }
 
 // SyncCall records one /sync request.
@@ -662,8 +664,22 @@ func (s *Server) AddImage(projectID string, data []byte, name string) string {
 	if s.images[projectID] == nil {
 		s.images[projectID] = map[string]image{}
 	}
-	s.images[projectID][att] = image{clean, typ, data}
+	s.images[projectID][att] = image{name: clean, typ: typ, data: data}
 	return s.URL + "/a/" + projectID + "/" + att + "/" + clean
+}
+
+// AddFile stores a file that isn't an image (a PDF, a zip, …), as the web
+// does since files can be attached, and returns its URL. The name is kept
+// as given; the caller passes one the server would store.
+func (s *Server) AddFile(projectID string, data []byte, name, typ string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	att := cloud.ImageID(data)
+	if s.images[projectID] == nil {
+		s.images[projectID] = map[string]image{}
+	}
+	s.images[projectID][att] = image{name: name, typ: typ, data: data, file: true}
+	return s.URL + "/a/" + projectID + "/" + att + "/" + name
 }
 
 // HasImage reports whether the project holds an image.
@@ -741,6 +757,12 @@ func (s *Server) serveImage(w http.ResponseWriter, r *http.Request, parts []stri
 	}
 	s.mu.Lock()
 	img, ok := s.images[parts[0]][parts[1]]
+	if ok && img.file && !accepts(r.Header.Get("Accept"), img.typ) {
+		s.Refused++
+		s.mu.Unlock()
+		fail(w, 406, "not_an_image", "this attachment is a file, not an image")
+		return
+	}
 	if ok {
 		s.Downloads++
 	}
@@ -750,6 +772,34 @@ func (s *Server) serveImage(w http.ResponseWriter, r *http.Request, parts []stri
 		return
 	}
 	w.Header().Set("Content-Type", img.typ)
-	w.Header().Set("Content-Disposition", `inline; filename="`+img.name+`"`)
+	disp := "inline"
+	if img.file {
+		disp = "attachment"
+	}
+	w.Header().Set("Content-Disposition", disp+`; filename="`+img.name+`"`)
 	w.Write(img.data)
+}
+
+// accepts mirrors the server: whether an Accept header admits a type. No
+// header admits everything.
+func accepts(header, typ string) bool {
+	if header == "" {
+		return true
+	}
+	major, _, _ := strings.Cut(typ, "/")
+	for _, part := range strings.Split(header, ",") {
+		fields := strings.Split(part, ";")
+		rng := strings.ToLower(strings.TrimSpace(fields[0]))
+		zero := false
+		for _, p := range fields[1:] {
+			p = strings.ToLower(strings.TrimSpace(p))
+			if v, ok := strings.CutPrefix(p, "q="); ok && strings.Trim(v, "0.") == "" {
+				zero = true
+			}
+		}
+		if !zero && (rng == "*/*" || rng == major+"/*" || rng == typ) {
+			return true
+		}
+	}
+	return false
 }

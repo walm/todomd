@@ -58,3 +58,14 @@ func TestUserAgent(t *testing.T) {
 		t.Errorf("UserAgent = %q", ua)
 	}
 }
+
+func TestIsImageName(t *testing.T) {
+	for name, want := range map[string]bool{
+		"shot.png": true, "a.JPG": true, "b.jpeg": true, "c.gif": true, "d.WebP": true,
+		"report.pdf": false, "data.zip": false, "png": false, "file": false, "x.svg": false, "x.png.txt": false,
+	} {
+		if got := IsImageName(name); got != want {
+			t.Errorf("IsImageName(%q) = %v", name, got)
+		}
+	}
+}

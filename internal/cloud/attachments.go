@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"mime"
 	"net/http"
@@ -39,6 +40,26 @@ func SniffImage(b []byte) string {
 }
 
 var imageExt = map[string]string{"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp"}
+
+// IsImageName reports whether an attachment's file name has the extension of
+// an image type todomd.online accepts. The server always names an image with
+// one (see CleanName); any other attachment is a file (a PDF, a zip, …),
+// which sync leaves as a link.
+func IsImageName(name string) bool {
+	switch strings.ToLower(extRe.FindString(name)) {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp":
+		return true
+	}
+	return false
+}
+
+// IsNotAnImage reports whether a download was refused because the attachment
+// is a file, not an image: the server answers 406 to a client that accepts
+// only images.
+func IsNotAnImage(err error) bool {
+	var ae *APIError
+	return errors.As(err, &ae) && ae.Status == http.StatusNotAcceptable
+}
 
 var (
 	extRe     = regexp.MustCompile(`\.[^.]*$`)
