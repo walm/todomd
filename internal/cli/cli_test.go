@@ -852,3 +852,220 @@ func TestBoardsDelete(t *testing.T) {
 		t.Error("unknown board should error")
 	}
 }
+
+type boardResult struct {
+	Board    string   `json:"board"`
+	From     string   `json:"from"`
+	Position int      `json:"position"`
+	Count    int      `json:"count"`
+	Boards   []string `json:"boards"`
+}
+
+func runBoard(t *testing.T, path string, args ...string) boardResult {
+	t.Helper()
+	out, err := run(t, append(append([]string{"--file", path, "boards"}, args...), "--json")...)
+	if err != nil {
+		t.Fatalf("boards %v: %v\n%s", args, err, out)
+	}
+	var r boardResult
+	if err := json.Unmarshal([]byte(out), &r); err != nil {
+		t.Fatalf("bad json: %v\n%s", err, out)
+	}
+	return r
+}
+
+func boardOrder(t *testing.T, path string) string {
+	t.Helper()
+	out, err := run(t, "--file", path, "boards", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res struct{ Boards []struct{ Name string } }
+	if err := json.Unmarshal([]byte(out), &res); err != nil {
+		t.Fatal(err)
+	}
+	names := []string{}
+	for _, b := range res.Boards {
+		names = append(names, b.Name)
+	}
+	return strings.Join(names, ",")
+}
+
+func TestBoardsAdd(t *testing.T) {
+	path := testFile(t)
+
+	out, err := run(t, "--file", path, "boards", "add", "Review")
+	if err != nil || out != "added board Review at position 3 of 4\n" {
+		t.Fatalf("default add: %v %q", err, out)
+	}
+	r := runBoard(t, path, "add", "Ideas", "--after", "backlog")
+	if r.Board != "Ideas" || r.Position != 2 || r.Count != 0 || strings.Join(r.Boards, ",") != "Backlog,Ideas,In Progress,Review,Done" {
+		t.Errorf("--after: %+v", r)
+	}
+	if r := runBoard(t, path, "add", "Inbox", "--before", "Backlog"); r.Position != 1 {
+		t.Errorf("--before: %+v", r)
+	}
+
+	exits := []struct {
+		args []string
+		code int
+		msg  string
+	}{
+		{[]string{"add", "review"}, 8, `taken by "Review"`},
+		{[]string{"add", "Done"}, 8, "already exists"},
+		{[]string{"add", "X", "--after", "Nope"}, 2, `no board named "Nope"`},
+		{[]string{"add", "X", "--after", "Done", "--before", "Done"}, 1, "only one of"},
+		{[]string{"add", "  "}, 1, "must not be empty"},
+		{[]string{"add", "X", "--after", ""}, 1, "need a board name"},
+		{[]string{"add"}, 1, "accepts 1 arg"},
+	}
+	for _, e := range exits {
+		_, err := run(t, append([]string{"--file", path, "boards"}, e.args...)...)
+		if classify(err) != e.code || err == nil || !strings.Contains(err.Error(), e.msg) {
+			t.Errorf("boards %v: exit %d (%v), want %d with %q", e.args, classify(err), err, e.code, e.msg)
+		}
+	}
+	if got := boardOrder(t, path); got != "Inbox,Backlog,Ideas,In Progress,Review,Done" {
+		t.Errorf("refusals changed the boards: %s", got)
+	}
+}
+
+func TestBoardsRename(t *testing.T) {
+	path := testFile(t)
+	id := addOne(t, path, "keep me", "--board", "Backlog")
+
+	out, err := run(t, "--file", path, "boards", "rename", "backlog", "Todo")
+	if err != nil || out != "renamed board Backlog to Todo\n" {
+		t.Fatalf("rename: %v %q", err, out)
+	}
+	r := runBoard(t, path, "rename", "todo", "TODO") // case only
+	if r.Board != "TODO" || r.From != "Todo" || r.Position != 1 || r.Count != 1 {
+		t.Errorf("case-only rename: %+v", r)
+	}
+	out, _ = run(t, "--file", path, "show", id, "--json")
+	if !strings.Contains(out, `"board": "TODO"`) {
+		t.Errorf("task should stay on the renamed board: %s", out)
+	}
+	out, err = run(t, "--file", path, "boards", "rename", "TODO", "TODO")
+	if err != nil || !strings.Contains(out, "already has that name") {
+		t.Errorf("same-name rename should be a no-op: %v %q", err, out)
+	}
+
+	exits := []struct {
+		args []string
+		code int
+	}{
+		{[]string{"rename", "TODO", "done"}, 8},
+		{[]string{"rename", "TODO", "In progress"}, 8},
+		{[]string{"rename", "Nope", "X"}, 2},
+		{[]string{"rename", "TODO", ""}, 1},
+		{[]string{"rename", "TODO"}, 1},
+	}
+	for _, e := range exits {
+		if _, err := run(t, append([]string{"--file", path, "boards"}, e.args...)...); classify(err) != e.code {
+			t.Errorf("boards %v: exit %d (%v), want %d", e.args, classify(err), err, e.code)
+		}
+	}
+	if got := boardOrder(t, path); got != "TODO,In Progress,Done" {
+		t.Errorf("boards = %s", got)
+	}
+}
+
+func TestBoardsMove(t *testing.T) {
+	path := testFile(t)
+	addOne(t, path, "travels", "--board", "Done")
+
+	out, err := run(t, "--file", path, "boards", "move", "done", "--to", "1")
+	if err != nil || out != "moved board Done to position 1 of 3\n" {
+		t.Fatalf("move --to: %v %q", err, out)
+	}
+	if r := runBoard(t, path, "move", "Done", "--after", "In Progress"); r.Position != 3 || r.Count != 1 ||
+		strings.Join(r.Boards, ",") != "Backlog,In Progress,Done" {
+		t.Errorf("--after: %+v", r)
+	}
+	if r := runBoard(t, path, "move", "Backlog", "--before", "Done"); strings.Join(r.Boards, ",") != "In Progress,Backlog,Done" {
+		t.Errorf("--before: %+v", r)
+	}
+	if r := runBoard(t, path, "move", "In Progress", "--to", "99"); r.Position != 3 {
+		t.Errorf("--to past the end should mean last: %+v", r)
+	}
+	out, _ = run(t, "--file", path, "list", "--board", "Done")
+	if !strings.Contains(out, "travels") {
+		t.Error("tasks should move with their board")
+	}
+
+	exits := []struct {
+		args []string
+		code int
+		msg  string
+	}{
+		{[]string{"move", "Done"}, 1, "pass one of --to, --after, --before"},
+		{[]string{"move", "Done", "--to", "1", "--after", "Backlog"}, 1, "only one of"},
+		{[]string{"move", "Done", "--to", "0"}, 1, "--to must be >= 1"},
+		{[]string{"move", "Done", "--after", "done"}, 1, "itself"},
+		{[]string{"move", "Nope", "--to", "1"}, 2, "no board"},
+		{[]string{"move", "Done", "--before", "Nope"}, 2, "no board"},
+	}
+	for _, e := range exits {
+		_, err := run(t, append([]string{"--file", path, "boards"}, e.args...)...)
+		if classify(err) != e.code || err == nil || !strings.Contains(err.Error(), e.msg) {
+			t.Errorf("boards %v: exit %d (%v), want %d with %q", e.args, classify(err), err, e.code, e.msg)
+		}
+	}
+	if got := boardOrder(t, path); got != "Backlog,Done,In Progress" {
+		t.Errorf("boards = %s", got)
+	}
+	// Board-level not found is exit 2 for delete too now.
+	if _, err := run(t, "--file", path, "boards", "delete", "Nope"); classify(err) != 2 {
+		t.Errorf("boards delete unknown: exit %d", classify(err))
+	}
+}
+
+// Board commands are writes like any other: a rename shows up in other
+// cursors as task_moved for each task, and --as keeps it from the writer.
+func TestBoardsChangesAndAs(t *testing.T) {
+	path := testFile(t)
+	addOne(t, path, "one", "--board", "Backlog")
+	addOne(t, path, "two", "--board", "Backlog")
+	for _, c := range []string{"watcher", "writer"} {
+		if _, err := run(t, "--file", path, "changes", "--as", c); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, step := range [][]string{
+		{"boards", "add", "Review", "--as", "writer"},
+		{"boards", "move", "Review", "--to", "1", "--as", "writer"},
+		{"boards", "rename", "Backlog", "Todo", "--as", "writer"},
+	} {
+		if out, err := run(t, append([]string{"--file", path}, step...)...); err != nil {
+			t.Fatalf("%v: %v\n%s", step, err, out)
+		}
+	}
+
+	out, err := run(t, "--file", path, "changes", "--as", "watcher", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res struct {
+		Events []struct {
+			Type, From, To string
+		} `json:"events"`
+	}
+	if err := json.Unmarshal([]byte(out), &res); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if len(res.Events) != 2 {
+		t.Fatalf("want two task_moved events (adds and reorders aren't reported), got %s", out)
+	}
+	for _, e := range res.Events {
+		if e.Type != "task_moved" || e.From != "Backlog" || e.To != "Todo" {
+			t.Errorf("event %+v", e)
+		}
+	}
+
+	out, err = run(t, "--file", path, "changes", "--as", "writer", "--json")
+	if err != nil || strings.Contains(out, "task_moved") {
+		t.Errorf("the writer should not see its own rename: %v %s", err, out)
+	}
+}

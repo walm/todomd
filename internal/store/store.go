@@ -263,14 +263,32 @@ func EnsureBoard(f *task.File, name string) (*task.Board, error) {
 		return nil, err
 	}
 	nb := &task.Board{Name: name}
+	insertBoard(f, defaultBoardIndex(f), nb)
+	return nb, nil
+}
+
+// defaultBoardIndex is where a new board goes when nothing else is asked
+// for: before "Done" when present, otherwise last (as todomd.online does).
+func defaultBoardIndex(f *task.File) int {
 	for i, b := range f.Boards {
-		if strings.EqualFold(b.Name, "Done") {
-			f.Boards = append(f.Boards[:i], append([]*task.Board{nb}, f.Boards[i:]...)...)
-			return nb, nil
+		if task.SameBoard(b.Name, "Done") {
+			return i
 		}
 	}
-	f.Boards = append(f.Boards, nb)
-	return nb, nil
+	return len(f.Boards)
+}
+
+func insertBoard(f *task.File, i int, b *task.Board) {
+	f.Boards = append(f.Boards[:i], append([]*task.Board{b}, f.Boards[i:]...)...)
+}
+
+func boardIndex(f *task.File, b *task.Board) int {
+	for i, x := range f.Boards {
+		if x == b {
+			return i
+		}
+	}
+	return -1
 }
 
 // BoardOf returns the board containing t, or nil.
@@ -430,19 +448,147 @@ func (e *BoardNotEmptyError) Error() string {
 func DeleteBoard(f *task.File, name string, force bool) (*task.Board, error) {
 	b := FindBoard(f, name)
 	if b == nil {
-		return nil, fmt.Errorf("no board named %q", name)
+		return nil, &BoardNotFoundError{Name: name}
 	}
 	if len(b.Tasks) > 0 && !force {
 		return nil, &BoardNotEmptyError{Name: b.Name, Tasks: len(b.Tasks)}
 	}
-	for i, x := range f.Boards {
-		if x == b {
-			f.Boards = append(f.Boards[:i], f.Boards[i+1:]...)
-			break
-		}
-	}
+	i := boardIndex(f, b)
+	f.Boards = append(f.Boards[:i], f.Boards[i+1:]...)
 	return b, nil
 }
+
+// BoardNotFoundError: no board has the given name (compared ignoring case).
+type BoardNotFoundError struct{ Name string }
+
+func (e *BoardNotFoundError) Error() string { return fmt.Sprintf("no board named %q", e.Name) }
+
+// BoardExistsError: the name is already taken by another board. Board names
+// are compared ignoring case (task.BoardKey), so "review" clashes with
+// "Review".
+type BoardExistsError struct {
+	Name     string // the name asked for
+	Existing string // the board that already has it, as spelled in the file
+}
+
+func (e *BoardExistsError) Error() string {
+	if e.Name == e.Existing {
+		return fmt.Sprintf("a board named %q already exists", e.Existing)
+	}
+	return fmt.Sprintf("board name %q is taken by %q (board names ignore case)", e.Name, e.Existing)
+}
+
+// BoardPlace says where a board goes. At most one field is set; the zero
+// value means "the default place" (see AddBoard and MoveBoard).
+type BoardPlace struct {
+	Pos    int    // 1-based position among the boards after the change; > count means last
+	After  string // directly after this board
+	Before string // directly before this board
+}
+
+func (p BoardPlace) isZero() bool { return p == BoardPlace{} }
+
+// index resolves p to an insertion index into f.Boards, which must not
+// contain the board being placed. self names that board, so placing it
+// relative to itself is refused.
+func (p BoardPlace) index(f *task.File, self string) (int, error) {
+	set := 0
+	for _, on := range []bool{p.Pos != 0, p.After != "", p.Before != ""} {
+		if on {
+			set++
+		}
+	}
+	if set > 1 {
+		return 0, errors.New("give only one of a position, after or before")
+	}
+	rel := func(name string, offset int) (int, error) {
+		if task.SameBoard(strings.TrimSpace(name), self) {
+			return 0, fmt.Errorf("can't place board %q relative to itself", self)
+		}
+		b := FindBoard(f, name)
+		if b == nil {
+			return 0, &BoardNotFoundError{Name: name}
+		}
+		return boardIndex(f, b) + offset, nil
+	}
+	switch {
+	case p.After != "":
+		return rel(p.After, 1)
+	case p.Before != "":
+		return rel(p.Before, 0)
+	case p.Pos < 0:
+		return 0, errors.New("position must be >= 1")
+	case p.Pos > 0:
+		return min(p.Pos-1, len(f.Boards)), nil
+	}
+	return defaultBoardIndex(f), nil
+}
+
+// AddBoard creates a board at the given place; the zero place means before
+// "Done" when present, otherwise last. A name that is already taken,
+// ignoring case, is a *BoardExistsError.
+func AddBoard(f *task.File, name string, at BoardPlace) (*task.Board, error) {
+	name, err := task.ValidateBoardName(name)
+	if err != nil {
+		return nil, err
+	}
+	if b := FindBoard(f, name); b != nil {
+		return nil, &BoardExistsError{Name: name, Existing: b.Name}
+	}
+	i, err := at.index(f, name)
+	if err != nil {
+		return nil, err
+	}
+	nb := &task.Board{Name: name}
+	insertBoard(f, i, nb)
+	return nb, nil
+}
+
+// RenameBoard renames a board, keeping its tasks and position, and returns
+// it with its old name. A change of case only is allowed; a name taken by
+// another board, ignoring case, is a *BoardExistsError. Renaming to the
+// exact current name is a no-op.
+func RenameBoard(f *task.File, name, newName string) (b *task.Board, oldName string, err error) {
+	b = FindBoard(f, name)
+	if b == nil {
+		return nil, "", &BoardNotFoundError{Name: name}
+	}
+	if newName, err = task.ValidateBoardName(newName); err != nil {
+		return nil, "", err
+	}
+	for _, x := range f.Boards {
+		if x != b && task.SameBoard(x.Name, newName) {
+			return nil, "", &BoardExistsError{Name: newName, Existing: x.Name}
+		}
+	}
+	oldName = b.Name
+	b.Name = newName
+	return b, oldName, nil
+}
+
+// MoveBoard moves a board, with its tasks, to another place among the
+// boards. at must name a place.
+func MoveBoard(f *task.File, name string, at BoardPlace) (*task.Board, error) {
+	b := FindBoard(f, name)
+	if b == nil {
+		return nil, &BoardNotFoundError{Name: name}
+	}
+	if at.isZero() {
+		return nil, errors.New("say where to move the board: a position, after or before")
+	}
+	from := boardIndex(f, b)
+	rest := &task.File{Boards: append(append([]*task.Board{}, f.Boards[:from]...), f.Boards[from+1:]...)}
+	i, err := at.index(rest, b.Name)
+	if err != nil {
+		return nil, err
+	}
+	insertBoard(rest, i, b)
+	f.Boards = rest.Boards
+	return b, nil
+}
+
+// BoardPosition is b's 1-based position in f, or 0 when it isn't there.
+func BoardPosition(f *task.File, b *task.Board) int { return boardIndex(f, b) + 1 }
 
 // AddComment appends a comment dated today to the task matching ref.
 func AddComment(f *task.File, ref, author, text string) (*task.Task, error) {

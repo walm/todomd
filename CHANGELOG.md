@@ -4,6 +4,24 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `todomd boards add <name>` creates an empty board — before `Done` by
+  default, as todomd.online does, or `--after`/`--before` another board.
+- `todomd boards rename <board> <new name>` renames a board, keeping its tasks
+  and position; a change of case only is fine.
+- `todomd boards move <board>` moves a board with `--to <pos>` (1-based),
+  `--after <board>` or `--before <board>`.
+- The three take `--json` (the board, its position, task count and the board
+  order after the change) and `--as`, like every other write. A name another
+  board already has, ignoring case, exits with the new code `8`.
+### Changed
+
+- An unknown board is now exit code `2` (not found), as for tasks; `boards
+  delete` used to exit `1`.
+
 ## v0.10.0 — 2026-11-06
 
 ### Added
