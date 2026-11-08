@@ -30,6 +30,10 @@ breaking changes to the file format or CLI (they will be called out).
   Agents and Other, in a working order rather than alphabetically. Headings
   and command names are coloured on a terminal only: never when piped, with
   `NO_COLOR` set, or with `TERM=dumb`.
+- `archive`'s help says what it clears: the Done board, or the one given
+  with `--board`. Without a Done board it now says so, lists the boards and
+  points at `--board`; a missing board exits with code 2 (board not found)
+  instead of 1.
 
 ### Fixed
 

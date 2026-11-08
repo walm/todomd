@@ -20,8 +20,10 @@ func newArchive() *cobra.Command {
 	var yes, force, dryRun bool
 	cmd := &cobra.Command{
 		Use:   "archive",
-		Short: "Clear finished tasks off the board",
-		Long: `Remove every task from a board (Done by default), keeping the board itself.
+		Short: "Clear the Done board (or --board): remove its tasks, keep the board",
+		Long: `Clear the Done board (or the one given with --board): remove its tasks, keep
+the board. On a file linked to todomd.online, the next sync removes them
+online too, into the project's archive there.
 
 This is bulk and destructive, so it asks before doing anything, and it checks
 whether the file is committed to git first — a committed file means everything
@@ -40,7 +42,7 @@ instead of dropping them.`,
 			}
 			b := store.FindBoard(f, board)
 			if b == nil {
-				return fmt.Errorf("no board named %q", board)
+				return archiveNoBoard(f, board, cmd.Flags().Changed("board"))
 			}
 			doomed := append([]*task.Task{}, b.Tasks...)
 			if len(doomed) == 0 {
@@ -123,6 +125,24 @@ instead of dropping them.`,
 	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
+}
+
+// archiveNoBoard explains a missing board (exit code 2), naming the boards
+// there are; without --board, that there is no Done board to clear.
+func archiveNoBoard(f *task.File, board string, given bool) error {
+	names := make([]string, len(f.Boards))
+	for i, b := range f.Boards {
+		names[i] = fmt.Sprintf("%q", b.Name)
+	}
+	there := "the file has no boards"
+	if len(names) > 0 {
+		there = "boards: " + strings.Join(names, ", ")
+	}
+	nf := &store.BoardNotFoundError{Name: board}
+	if given {
+		return fmt.Errorf("%w (%s)", nf, there)
+	}
+	return fmt.Errorf("%w, so there is nothing to clear by default; name the board with --board (%s)", nf, there)
 }
 
 type archiveResult struct {

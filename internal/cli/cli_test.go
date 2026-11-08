@@ -789,8 +789,21 @@ func TestArchiveEdgeCases(t *testing.T) {
 		t.Errorf("empty Done: %v %q", err, out)
 	}
 	// Unknown board is an error, not a silent no-op.
-	if _, err := run(t, "--file", path, "archive", "--board", "Nope", "--yes"); err == nil {
-		t.Error("unknown board should error")
+	if _, err := run(t, "--file", path, "archive", "--board", "Nope", "--yes"); classify(err) != 2 ||
+		!strings.Contains(err.Error(), `no board named "Nope" (boards: "Backlog", "In Progress", "Done")`) {
+		t.Errorf("unknown board: exit %d, %v", classify(err), err)
+	}
+	// No Done board and no --board: say so, and how to pick one.
+	if _, err := run(t, "--file", path, "boards", "rename", "Done", "Finished"); err != nil {
+		t.Fatal(err)
+	}
+	_, err = run(t, "--file", path, "archive", "--yes")
+	if classify(err) != 2 || !strings.Contains(err.Error(), `no board named "Done"`) ||
+		!strings.Contains(err.Error(), "--board") || !strings.Contains(err.Error(), `"Finished"`) {
+		t.Errorf("no Done board: exit %d, %v", classify(err), err)
+	}
+	if _, err := run(t, "--file", path, "boards", "rename", "Finished", "Done"); err != nil {
+		t.Fatal(err)
 	}
 	// Bulk deletion never proceeds unattended without --yes — even when the
 	// file is committed and everything would be recoverable.
