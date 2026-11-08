@@ -97,6 +97,9 @@ type Watcher struct {
 	Safety    time.Duration // a round even without signals (default 5m)
 	Fallback  time.Duration // pull interval while the event stream is down (default 30s)
 
+	// Primed skips the first round: the caller has just run one.
+	Primed bool
+
 	rev atomic.Int64 // the link's base revision, for the stream goroutine
 }
 
@@ -190,35 +193,27 @@ func (w *Watcher) Run(ctx context.Context) error {
 			return nil
 		}
 		s.RecordError(err)
-		var ue *cloud.UnavailableError
-		var cm *ConflictMarkersError
-		switch {
-		case errors.As(err, &ue):
+		if fatal := FatalError(err); fatal != nil {
+			return fatal
+		}
+		switch RoundState(err) {
+		case StateOffline:
 			setState(StateOffline, err.Error())
 			retry.Reset(jitter(backoff))
 			backoff = min(backoff*2, time.Minute)
-			return nil
-		case cloud.IsStatus(err, 401, ""):
-			return ErrAccessRevoked
-		case cloud.IsStatus(err, 404, ""):
-			return ErrProjectDeleted
-		case cloud.IsStatus(err, 426, ""):
-			return err
-		case errors.As(err, &cm):
+		case StatePaused:
 			setState(StatePaused, err.Error())
-			return nil
+		default:
+			w.OnRound(nil, err)
 		}
-		var pe interface{ ErrCode() string }
-		if errors.As(err, &pe) {
-			setState(StatePaused, err.Error())
-			return nil
-		}
-		w.OnRound(nil, err)
 		return nil
 	}
 
 	w.rev.Store(int64(s.Link.BaseRev))
-	if err := round(); err != nil {
+	if w.Primed {
+		last = stamp(s.Path, fileStamp{})
+		setState(StateOnline, "")
+	} else if err := round(); err != nil {
 		return err
 	}
 
@@ -279,6 +274,38 @@ func (w *Watcher) Run(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// FatalError returns the error a failed round ends syncing with, or nil
+// when syncing can go on (a later round may succeed): the token is no longer
+// valid (ErrAccessRevoked), the project is gone (ErrProjectDeleted), or this
+// todomd is too old for the service (err itself).
+func FatalError(err error) error {
+	switch {
+	case cloud.IsStatus(err, 401, ""):
+		return ErrAccessRevoked
+	case cloud.IsStatus(err, 404, ""):
+		return ErrProjectDeleted
+	case cloud.IsStatus(err, 426, ""):
+		return err
+	}
+	return nil
+}
+
+// RoundState classifies a round's non-fatal error: StateOffline when
+// todomd.online can't be reached, StatePaused when the file can't be synced
+// as it is (conflict markers, a parse error), "" for anything else.
+func RoundState(err error) string {
+	var ue *cloud.UnavailableError
+	var cm *ConflictMarkersError
+	var pe interface{ ErrCode() string }
+	switch {
+	case errors.As(err, &ue):
+		return StateOffline
+	case errors.As(err, &cm), errors.As(err, &pe):
+		return StatePaused
+	}
+	return ""
 }
 
 func jitter(d time.Duration) time.Duration {

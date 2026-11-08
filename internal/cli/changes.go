@@ -16,6 +16,7 @@ import (
 	"github.com/walm/todomd/internal/cloudsync"
 	"github.com/walm/todomd/internal/markdown"
 	"github.com/walm/todomd/internal/store"
+	"github.com/walm/todomd/internal/task"
 )
 
 type fieldJSON struct {
@@ -85,7 +86,12 @@ initializes the cursor and reports no events.
 
 --wait blocks until there is something to report (or --timeout passes), for
 an agent waiting on a human's reply. If the file is linked to todomd.online
-and no watcher is running, it syncs while it waits, so online edits count.`,
+and no watcher is running, it syncs while it waits, so online edits count;
+sync problems are printed on stderr. A wait cut short by Ctrl-C or SIGTERM
+doesn't advance the cursor.
+
+Agents: 'todomd watch' is this plus a sync before and after the wait, so
+your own writes go up and nothing online is missed.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := newStore(false)
@@ -96,32 +102,7 @@ and no watcher is running, it syncs while it waits, so online edits count.`,
 			if err != nil {
 				return err
 			}
-			// look reads the file (persisting parse-assigned IDs of
-			// hand-added tasks, so events carry IDs that exist in the file)
-			// and diffs it against snapshot.
-			look := func(snapshot []byte) (evs []changes.Event, raw []byte, err error) {
-				raw, cur, err := s.ReadPersisted()
-				if errors.Is(err, store.ErrNoFile) {
-					return nil, nil, err
-				}
-				if err != nil {
-					return nil, nil, fmt.Errorf("%s: %w", s.Path, err)
-				}
-				if snapshot == nil {
-					return nil, raw, nil
-				}
-				old, err := markdown.Parse(snapshot)
-				if err != nil {
-					return nil, nil, fmt.Errorf("cursor snapshot %s: %w", cpath, err)
-				}
-				for _, e := range changes.Diff(old, cur) {
-					if e.Type == changes.CommentAdded && authorIn(e.Comment.Author, ignoreAuthors) {
-						continue
-					}
-					evs = append(evs, e)
-				}
-				return evs, raw, nil
-			}
+			look := cursorLook(s, cpath, ignoreAuthors)
 
 			prev, ok, err := changes.LoadCursor(cpath)
 			if err != nil {
@@ -159,32 +140,12 @@ and no watcher is running, it syncs while it waits, so online edits count.`,
 			}
 
 			if flagJSON {
-				out := changesJSON{File: s.Path, Cursor: as, Initialized: !ok, Events: []eventJSON{}, TimedOut: timedOut}
-				for _, e := range evs {
-					out.Events = append(out.Events, toEventJSON(e))
-				}
-				return printJSON(out)
+				return printJSON(changesJSON{File: s.Path, Cursor: as, Initialized: !ok, Events: eventsJSON(evs), TimedOut: timedOut})
 			}
-			if len(evs) == 0 {
-				if timedOut {
-					fmt.Println("no changes (timed out)")
-				} else {
-					fmt.Println("no changes")
-				}
-				return nil
-			}
-			w := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
-			for _, e := range evs {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", e.Type, e.Task.ID, e.Task.Title, eventDetail(e))
-			}
-			return w.Flush()
+			return printEvents(evs, timedOut)
 		},
 	}
-	defaultCursor := "default"
-	if env := os.Getenv("TODOMD_CURSOR"); env != "" {
-		defaultCursor = env
-	}
-	cmd.Flags().StringVar(&as, "as", defaultCursor,
+	cmd.Flags().StringVar(&as, "as", defaultCursor(),
 		"cursor name (one per consumer, e.g. an agent name; env TODOMD_CURSOR)")
 	cmd.Flags().BoolVar(&peek, "peek", false, "report without advancing the cursor")
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
@@ -192,6 +153,39 @@ and no watcher is running, it syncs while it waits, so online edits count.`,
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "with --wait, give up after this long (reports no events, timed_out: true)")
 	jsonFlag(cmd)
 	return cmd
+}
+
+// defaultCursor is $TODOMD_CURSOR, else "default".
+func defaultCursor() string {
+	if env := os.Getenv("TODOMD_CURSOR"); env != "" {
+		return env
+	}
+	return "default"
+}
+
+func parseSnapshot(data []byte, cpath string) (*task.File, error) {
+	f, err := markdown.Parse(data)
+	if err != nil {
+		return nil, fmt.Errorf("cursor snapshot %s: %w", cpath, err)
+	}
+	return f, nil
+}
+
+// printEvents prints events one per line, for people.
+func printEvents(evs []changes.Event, timedOut bool) error {
+	if len(evs) == 0 {
+		if timedOut {
+			fmt.Println("no changes (timed out)")
+		} else {
+			fmt.Println("no changes")
+		}
+		return nil
+	}
+	w := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
+	for _, e := range evs {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", e.Type, e.Task.ID, e.Task.Title, eventDetail(e))
+	}
+	return w.Flush()
 }
 
 func authorIn(author string, list []string) bool {
@@ -227,59 +221,47 @@ func eventDetail(e changes.Event) string {
 	}
 }
 
-// waitForChanges polls the file until look reports events or timeout passes.
-// While it waits on a linked file that nobody is watching, it runs the sync
-// watcher itself, so edits made on todomd.online arrive and count.
+// waitForChanges waits until look reports events or timeout passes. While
+// it waits on a linked file that nobody else syncs, it syncs the file, so
+// edits made on todomd.online arrive and count. A signal ends the wait with
+// errInterrupted, so the caller doesn't advance the cursor past events
+// nobody read.
 func waitForChanges(s *store.Store, snapshot []byte, timeout time.Duration,
-	look func([]byte) ([]changes.Event, []byte, error)) ([]changes.Event, []byte, bool, error) {
-	ctx, cancel := cmdContext()
+	look lookFunc) ([]changes.Event, []byte, bool, error) {
+	sigCtx, ctx, cancel := waitContexts(timeout)
 	defer cancel()
-	if timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-	if syncer, _, err := openSyncer(); err == nil {
-		if lock, _, err := cloudsync.AcquireWatchLock(s.Path); err == nil && lock != nil {
-			defer lock.Release()
-			w := &cloudsync.Watcher{Syncer: syncer, OnRound: func(_ *cloudsync.Result, err error) {
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "todomd: sync: %v\n", err)
-				}
-			}}
-			done := make(chan struct{})
-			go func() {
-				defer close(done)
-				if err := w.Run(ctx); err != nil && ctx.Err() == nil {
-					fmt.Fprintf(os.Stderr, "todomd: sync stopped: %v\n", explain(err))
-				}
-			}()
-			defer func() { cancel(); <-done }()
-		}
-	}
-
-	var lastMod time.Time
-	var lastSize int64 = -1
-	tick := time.NewTicker(time.Second)
-	defer tick.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			// One last look, so a change in the final second isn't skipped.
-			evs, raw, err := look(snapshot)
-			return evs, raw, len(evs) == 0, err
-		case <-tick.C:
-		}
-		st, err := os.Stat(s.Path)
-		if err != nil || (st.ModTime().Equal(lastMod) && st.Size() == lastSize) {
-			continue
-		}
-		lastMod, lastSize = st.ModTime(), st.Size()
-		evs, raw, err := look(snapshot)
+	syncer, _, err := openSyncer()
+	switch {
+	case errors.Is(err, cloudsync.ErrNotLinked):
+	case err != nil:
+		fmt.Fprintf(os.Stderr, "todomd: not syncing while waiting: %v\n", explain(err))
+	default:
+		bs, err := openBoardSync(syncer)
 		if err != nil {
-			return nil, nil, false, err
+			fmt.Fprintf(os.Stderr, "todomd: not syncing while waiting: %v\n", err)
+			break
 		}
-		if len(evs) > 0 {
-			return evs, raw, false, nil
-		}
+		defer bs.close()
+		bs.start(ctx, false)
+		defer bs.stop()
+		evs, raw, err := pollChanges(ctx, s.Path, snapshot, look, bs.fatalCh())
+		return waitResult(sigCtx, evs, raw, err, snapshot, look)
 	}
+	evs, raw, err := pollChanges(ctx, s.Path, snapshot, look, nil)
+	return waitResult(sigCtx, evs, raw, err, snapshot, look)
+}
+
+func waitResult(sigCtx context.Context, evs []changes.Event, raw []byte, err error,
+	snapshot []byte, look lookFunc) ([]changes.Event, []byte, bool, error) {
+	switch {
+	case sigCtx.Err() != nil:
+		return nil, nil, false, errInterrupted
+	case errors.Is(err, context.DeadlineExceeded):
+		// One last look, so a change in the final moment isn't skipped.
+		evs, raw, err := look(snapshot)
+		return evs, raw, len(evs) == 0, err
+	case err != nil:
+		return nil, nil, false, err
+	}
+	return evs, raw, false, nil
 }

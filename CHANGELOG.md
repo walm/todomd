@@ -4,6 +4,44 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `todomd watch [--as name] [--ignore-author name] [--timeout 10m]
+  [--no-wait] [--json]`: the agent loop in one command. It syncs a linked
+  file (pushing the agent's own writes, pulling the board's), waits for card
+  changes while syncing live, syncs once more and prints the events like
+  `changes --wait`, one round per run. A file that isn't linked is just
+  watched; when another process (`sync --watch`, the TUI) holds the file's
+  sync lock, `watch` leaves syncing to it and waits. `--no-wait` syncs and
+  reports without waiting (for an agent's last writes). `--json` adds a
+  `sync` object (`linked`, `project`, `rev`, `watcher_pid`, `problem`).
+- `todomd skill` prints a skill (SKILL.md) teaching an agent the todomd CLI:
+  reading the board, writing as itself, the `todomd watch` loop, the default
+  board rules (which are the user's to change) and attachments. The same
+  text serves local and todomd.online boards. `todomd skill --install
+  [--dir .claude/skills/todomd] [--force]` writes it to `<dir>/SKILL.md`,
+  never overwriting one without `--force`.
+
+### Changed
+
+- `todomd --help` groups its commands under Tasks, Boards, todomd.online,
+  Agents and Other, in a working order rather than alphabetically. Headings
+  and command names are coloured on a terminal only: never when piped, with
+  `NO_COLOR` set, or with `TERM=dumb`.
+- `archive`'s help says what it clears: the Done board, or the one given
+  with `--board`. Without a Done board it now says so, lists the boards and
+  points at `--board`; a missing board exits with code 2 (board not found)
+  instead of 1.
+
+### Fixed
+
+- `changes --wait` no longer waits silently on a stale file when it can't
+  sync (not logged in, offline, a paused sync): it says why on stderr.
+- `changes --wait` cut short by Ctrl-C or SIGTERM (an agent's tool timeout)
+  no longer advances the cursor, which could consume events nobody read.
+
 ## v0.12.0 — 2026-11-07
 
 ### Added
