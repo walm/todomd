@@ -24,6 +24,13 @@ breaking changes to the file format or CLI (they will be called out).
   [--dir .claude/skills/todomd] [--force]` writes it to `<dir>/SKILL.md`,
   never overwriting one without `--force`.
 
+### Changed
+
+- `todomd --help` groups its commands under Tasks, Boards, todomd.online,
+  Agents and Other, in a working order rather than alphabetically. Headings
+  and command names are coloured on a terminal only: never when piped, with
+  `NO_COLOR` set, or with `TERM=dumb`.
+
 ### Fixed
 
 - `changes --wait` no longer waits silently on a stale file when it can't

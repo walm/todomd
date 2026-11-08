@@ -529,7 +529,7 @@ func TestUpdateNoticeOnlyInHelpAndOnStderr(t *testing.T) {
 	if strings.Contains(stdout, "v9.9.9") {
 		t.Errorf("--help stdout must stay clean for parsers:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Available Commands") {
+	if !strings.Contains(stdout, "Tasks:") {
 		t.Errorf("help text missing from stdout:\n%s", stdout)
 	}
 
