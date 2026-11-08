@@ -4,6 +4,27 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- `todomd watch [--as name] [--ignore-author name] [--timeout 10m]
+  [--no-wait] [--json]`: the agent loop in one command. It syncs a linked
+  file (pushing the agent's own writes, pulling the board's), waits for card
+  changes while syncing live, syncs once more and prints the events like
+  `changes --wait`, one round per run. A file that isn't linked is just
+  watched; when another process (`sync --watch`, the TUI) holds the file's
+  sync lock, `watch` leaves syncing to it and waits. `--no-wait` syncs and
+  reports without waiting (for an agent's last writes). `--json` adds a
+  `sync` object (`linked`, `project`, `rev`, `watcher_pid`, `problem`).
+
+### Fixed
+
+- `changes --wait` no longer waits silently on a stale file when it can't
+  sync (not logged in, offline, a paused sync): it says why on stderr.
+- `changes --wait` cut short by Ctrl-C or SIGTERM (an agent's tool timeout)
+  no longer advances the cursor, which could consume events nobody read.
+
 ## v0.12.0 — 2026-11-07
 
 ### Added

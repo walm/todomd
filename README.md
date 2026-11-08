@@ -78,6 +78,7 @@ todomd boards move QA --to 1          # or --after/--before <board>
 todomd boards delete Review           # --force if it still holds tasks
 todomd archive --dry-run              # what clearing Done would remove
 todomd changes --as claude --ignore-author claude --json
+todomd watch --as claude --json       # sync, wait for changes, print them
 ```
 
 ### 🔄 Change tracking for agents
@@ -112,12 +113,23 @@ todomd move 3f2a --to "In Progress"  # mine: won't come back as an event
 todomd comment 3f2a --author claude "done, please review"
 # …later…
 todomd changes --json                # only what others did
-todomd changes --wait --timeout 15m --json   # block until someone else acts
+todomd watch --json                  # sync, block until someone else acts
 ```
 
-`--wait` blocks until there is something to report (or the timeout passes,
-which reports no events and `"timed_out": true`) — the way to wait for a
-human's reply. On a file linked to todomd.online it syncs while it waits.
+`todomd watch` is the agent's loop in one command: run it, handle the events
+it prints, run it again. It reports what `changes` does, waiting until there
+is something (or `--timeout`, default 10m, passes: no events and
+`"timed_out": true`). On a file linked to todomd.online it also syncs — before
+the wait (your own writes go up, the board's come down), during it (online
+edits arrive live) and once more before it prints — so no separate
+`todomd sync` is needed. If another process already syncs the file
+(`sync --watch`, the TUI), that one does it and `watch` only waits.
+`--no-wait` syncs and reports what is pending without waiting; run it once
+before you stop, so your last writes go up. The first run starts the cursor
+at the synced file. A run cut short by Ctrl-C or SIGTERM (an agent's tool
+timeout) doesn't advance the cursor, and sync problems are printed on stderr
+and under `"sync"` in `--json`. `changes --wait` still works, and syncs while
+it waits, but only `watch` syncs before and after.
 
 - **File resolution**: `--file` flag > `TODOMD_FILE` env > `TODO.md` searched
   from the cwd upward (stopping at the repo root).
@@ -240,7 +252,9 @@ todomd sync --watch     # stay running: live in both directions
   todomd-web all see them. With `sync --watch` running (or the TUI open on a
   linked file — it syncs on its own, showing `⇅ rev N` in the corner), an
   edit on either side shows up on the other within a couple of seconds.
-- **Agents**: run `todomd sync --watch` in the background and keep using
+- **Agents**: loop on `todomd watch --as <name> --json` — it syncs before,
+  during and after each wait, so nothing else is needed. Or run
+  `todomd sync --watch` in the background and keep using
   `todomd changes --json`; or call `todomd sync --json` before reading and
   after writing. `sync --json` reports `pushed` and `pulled` events in the
   `changes` schema, plus `conflicts` and `renamed_ids` (a task whose id
