@@ -59,6 +59,37 @@ todomd init                 # creates TODO.md with Backlog / In Progress / Done
 todomd                      # opens the Kanban TUI
 ```
 
+## 🧠 Agents
+
+Give a coding agent (Claude Code, Codex, …) the board in two steps:
+
+```sh
+todomd skill --install      # writes .claude/skills/todomd/SKILL.md
+                            # (or: todomd skill > AGENTS-todomd.md, for other agents)
+```
+
+then tell the agent to watch the board. The skill teaches it the CLI —
+reading cards (`list`, `show`, `--json`), writing as itself
+(`comment --author agent --as agent`, `move`, `add`, `update`), attachments
+(`attach`, `download`) — and the loop:
+
+```sh
+todomd watch --as agent --no-wait --json   # once: sync, start tracking
+todomd list --json                         # read the board
+todomd watch --as agent --json             # wait; print what changed; exit
+# handle the events, run watch again
+```
+
+`watch` syncs with todomd.online itself (before, during and after each wait)
+when the file is linked, and just waits on a local one, so the same skill
+works for both. Its default board rules: a new card in Backlog gets one
+short answer and no work; "GO" (or a move to In Progress) starts the work,
+with short progress comments; when done, a comment on what changed and how
+to check it, and a move to Done; when stuck, a question on the card; cards
+are never deleted. The rules are yours: edit the installed `SKILL.md`, or
+tell the agent otherwise. `todomd skill` prints the text without installing;
+`--install --dir <dir>` puts it elsewhere and `--force` overwrites.
+
 ## 🤖 CLI (for agents and scripts)
 
 ```sh

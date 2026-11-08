@@ -17,6 +17,12 @@ breaking changes to the file format or CLI (they will be called out).
   sync lock, `watch` leaves syncing to it and waits. `--no-wait` syncs and
   reports without waiting (for an agent's last writes). `--json` adds a
   `sync` object (`linked`, `project`, `rev`, `watcher_pid`, `problem`).
+- `todomd skill` prints a skill (SKILL.md) teaching an agent the todomd CLI:
+  reading the board, writing as itself, the `todomd watch` loop, the default
+  board rules (which are the user's to change) and attachments. The same
+  text serves local and todomd.online boards. `todomd skill --install
+  [--dir .claude/skills/todomd] [--force]` writes it to `<dir>/SKILL.md`,
+  never overwriting one without `--force`.
 
 ### Fixed
 
