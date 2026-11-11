@@ -1,0 +1,68 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Metadata and links only",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "due": "2026-12-01",
+          "description": "",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "bbbb"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Links only",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "blocked by",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "Links and comments",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "related",
+              "id": "aaaa"
+            },
+            {
+              "kind": "related",
+              "id": "bbbb"
+            }
+          ],
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-11",
+              "text": "hi"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

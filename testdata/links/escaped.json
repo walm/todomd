@@ -1,0 +1,71 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Description that ends like a section",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "These lines are text, not links:\n\n#### Links\n\n- related bbbb",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Two backslashes: the text has one",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "\\#### Links\n\n- related aaaa",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "A lookalike in the text, then the real section",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related aaaa",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "bbbb"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "dddd",
+          "title": "The card's own section follows: the backslash is literal text",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "\\#### Links\n\n- related aaaa",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "bbbb"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "eeee",
+          "title": "Backslash with text after: kept as written",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "\\#### Links\n\nNot followed by items.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

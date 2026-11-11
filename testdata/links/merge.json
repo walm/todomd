@@ -1,0 +1,111 @@
+[
+  {
+    "name": "both add: theirs' order, ours' new appended",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- duplicate of o001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocked by t001\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocked by t001\n- blocks bbbb\n- related cccc\n- duplicate of o001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours removes, theirs adds",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- related t001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- related cccc\n- related t001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both add the same link once",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- split from aaaa\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- split from aaaa\n- related cccc\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- split from aaaa\n- related cccc\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "same target, another kind: both kept",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocked by bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- related bbbb\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- related cccc\n- related bbbb\n- blocked by bbbb\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both remove everything",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours keeps removed links",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- related cccc\n- related o001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- related o001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "baseless: union, theirs first",
+    "options": {
+      "baseless": true
+    },
+    "base": "# TODO\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- related o001\n- blocks bbbb\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- related o001\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "a link change keeps a card the other side deleted",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n- related aaaa\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n- related aaaa\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "delete_vs_edit",
+        "task": "cccc",
+        "kept": "ours",
+        "note": "deleted by theirs but changed by ours; kept ours"
+      }
+    ],
+    "renamed": []
+  },
+  {
+    "name": "a link to a card the other side deleted stays",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- blocked by bbbb\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- blocked by bbbb\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "id collision remaps the links ours added",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- related nnnn\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- blocks nnnn\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- related nnnn\n- split into nnnn\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n\n## Done\n\n### Ours\n<!-- id:nnnn -->\n\n#### Links\n\n- split from aaaa\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- related nnnn\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n- related nnnn\n\n## Done\n\n### Theirs\n<!-- id:nnnn -->\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related cccc\n- blocks xh74\n\n### Two\n<!-- id:bbbb -->\n\n#### Links\n\n- related nnnn\n- split into xh74\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- split from zzzz\n- related nnnn\n\n## Done\n\n### Ours\n<!-- id:xh74 -->\n\n#### Links\n\n- split from aaaa\n\n### Theirs\n<!-- id:nnnn -->\n",
+    "conflicts": [],
+    "renamed": [
+      {
+        "from": "nnnn",
+        "to": "xh74",
+        "title": "Ours"
+      }
+    ]
+  }
+]

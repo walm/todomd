@@ -1,0 +1,63 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Duplicates collapse, self-links drop",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "related",
+              "id": "bbbb"
+            },
+            {
+              "kind": "blocks",
+              "id": "cccc"
+            },
+            {
+              "kind": "blocked by",
+              "id": "cccc"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Only a self-link: the section goes away",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "Text.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "Same target, different kinds: both kept",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "aaaa"
+            },
+            {
+              "kind": "related",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

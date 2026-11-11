@@ -2,11 +2,12 @@ package task
 
 import "slices"
 
-// Clone deep-copies a task: tags, comments and the due date are never
-// shared with the original.
+// Clone deep-copies a task: tags, links, comments and the due date are
+// never shared with the original.
 func (t *Task) Clone() *Task {
 	c := *t
 	c.Tags = slices.Clone(t.Tags)
+	c.Links = slices.Clone(t.Links)
 	c.Comments = slices.Clone(t.Comments)
 	if t.Due != nil {
 		d := *t.Due

@@ -3,6 +3,7 @@ package cloudsync
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -52,7 +53,7 @@ func setup(t *testing.T, content string) *env {
 	s := &Syncer{
 		Path: path, Store: &store.Store{Path: path},
 		Client: cloud.New(srv.URL, srv.URL+"/api/v1", cloudtest.Token, "0.10.0"),
-		Link:   &Link{Host: srv.URL}, Version: "0.10.0", FormatVersion: 1,
+		Link:   &Link{Host: srv.URL}, Version: "0.10.0", FormatVersion: markdown.FormatVersion,
 	}
 	return &env{t: t, srv: srv, s: s, ctx: context.Background()}
 }
@@ -514,4 +515,49 @@ func TestNormalizeRemote(t *testing.T) {
 			t.Errorf("NormalizeRemote(%q) = %q, want %q", in, got, want)
 		}
 	}
+}
+
+func TestLinksSyncAsOps(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	e.mutate(func(f *task.File) error {
+		f.Boards[0].Tasks[0].Links = []task.Link{{Kind: task.LinkBlocks, ID: "zzzz"}}
+		return nil
+	})
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" || !strings.Contains(fmt.Sprint(last.Raw["ops"]), "links") {
+		t.Errorf("sent %s form: %v", last.Form, last.Raw["ops"])
+	}
+	e.sameAsHead()
+	if !strings.Contains(e.srv.Head(e.s.Link.ProjectID), "\n#### Links\n\n- blocks zzzz\n") {
+		t.Errorf("head:\n%s", e.srv.Head(e.s.Link.ProjectID))
+	}
+}
+
+// A server on format 1 can't read links in ops, so a change that carries
+// links goes as the whole file, which it keeps as description text.
+func TestLinksToAnOldServerSendTheWholeFile(t *testing.T) {
+	e := setup(t, startDoc)
+	e.s.FormatVersion = 1
+	e.create()
+	e.mutate(addTask("cccc", "Three"))
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no links: sent %s form, want ops", last.Form)
+	}
+	e.mutate(func(f *task.File) error {
+		f.Boards[0].Tasks[0].Links = []task.Link{{Kind: task.LinkRelated, ID: "cccc"}}
+		return nil
+	})
+	r := e.round()
+	calls = e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "content" || !r.FullFile {
+		t.Errorf("links: sent %s form, want content", last.Form)
+	}
+	if e.s.Link.FullFile != nil {
+		t.Error("the link switched to full-file mode for good")
+	}
+	e.sameAsHead()
 }

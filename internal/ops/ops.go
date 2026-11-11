@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/walm/todomd/internal/task"
@@ -67,6 +68,7 @@ type Op struct {
 
 // Fields are the task fields a task.update replaces; nil means unchanged.
 // Due needs a separate flag because "clear the due date" is a change too.
+// Links, like Tags, is the card's whole list after the change.
 type Fields struct {
 	Title       *string
 	Tags        *[]string
@@ -74,11 +76,12 @@ type Fields struct {
 	HasDue      bool
 	Due         *task.Date
 	Description *string
+	Links       *[]task.Link
 }
 
 // Empty reports whether no field is set.
 func (s Fields) Empty() bool {
-	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Description == nil
+	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Description == nil && s.Links == nil
 }
 
 // OpError names the first op that couldn't be read or applied.
@@ -143,6 +146,26 @@ func commentsJSON(cs []task.Comment) json.RawMessage {
 	return b.Bytes()
 }
 
+func linkJSON(l task.Link) json.RawMessage {
+	o := newObject()
+	o.field("kind", l.Kind)
+	o.field("id", l.ID)
+	return o.bytes()
+}
+
+func linksJSON(ls []task.Link) json.RawMessage {
+	var b bytes.Buffer
+	b.WriteByte('[')
+	for i, l := range ls {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.Write(linkJSON(l))
+	}
+	b.WriteByte(']')
+	return b.Bytes()
+}
+
 func tagsOf(tags []string) []string {
 	if tags == nil {
 		return []string{}
@@ -165,6 +188,11 @@ func taskJSON(t *task.Task) json.RawMessage {
 	o.field("priority", t.Priority.String())
 	o.field("due", dueJSON(t.Due))
 	o.field("description", t.Description)
+	// Only cards with links carry the key, so every other task.add reads
+	// the same as before links existed.
+	if len(t.Links) > 0 {
+		o.field("links", linksJSON(t.Links))
+	}
 	o.field("comments", commentsJSON(t.Comments))
 	return o.bytes()
 }
@@ -223,6 +251,9 @@ func (op Op) MarshalJSON() ([]byte, error) {
 		if op.Set.Description != nil {
 			s.field("description", *op.Set.Description)
 		}
+		if op.Set.Links != nil {
+			s.field("links", linksJSON(*op.Set.Links))
+		}
 		o.field("set", json.RawMessage(s.bytes()))
 	case CommentAdd:
 		o.field("task", op.TaskID)
@@ -255,8 +286,9 @@ var opKeys = map[string][]string{
 
 var (
 	taskKeys    = []string{"id", "title", "tags", "priority", "due", "description", "comments"}
-	fieldKeys   = []string{"title", "tags", "priority", "due", "description"}
+	fieldKeys   = []string{"title", "tags", "priority", "due", "description", "links"}
 	commentKeys = []string{"author", "date", "text"}
+	linkKeys    = []string{"kind", "id"}
 )
 
 type failure struct{ msg string }
@@ -367,6 +399,29 @@ func readComments(raw json.RawMessage, what string) []task.Comment {
 	return out
 }
 
+func readLink(raw json.RawMessage, what string) task.Link {
+	l := readObject(raw, what, linkKeys, true)
+	kind := readString(l["kind"], what+".kind")
+	if !task.ValidLinkKind(kind) {
+		fail("%s.kind must be split from, split into, blocks, blocked by, related, duplicate of or duplicated by", what)
+	}
+	return task.Link{Kind: kind, ID: readID(l["id"], what+".id")}
+}
+
+// readLinks reads a link list; an empty one is nil, as Parse returns it.
+func readLinks(raw json.RawMessage, what string) []task.Link {
+	t := bytes.TrimSpace(raw)
+	var items []json.RawMessage
+	if len(t) == 0 || t[0] != '[' || json.Unmarshal(t, &items) != nil {
+		fail("%s must be an array", what)
+	}
+	var out []task.Link
+	for i, it := range items {
+		out = append(out, readLink(it, fmt.Sprintf("%s[%d]", what, i)))
+	}
+	return out
+}
+
 func readAfter(raw json.RawMessage, id bool) *string {
 	if isNull(raw) {
 		return nil
@@ -409,7 +464,13 @@ func readOp(raw json.RawMessage) Op {
 		op.Board = readString(o["board"], "board")
 		op.Name = readString(o["name"], "name")
 	case TaskAdd:
-		t := readObject(o["task"], "task", taskKeys, true)
+		// links is optional: a task without links leaves it out.
+		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "links"), false)
+		for _, k := range taskKeys {
+			if _, ok := t[k]; !ok {
+				fail("missing key %s in task", strconv.Quote(k))
+			}
+		}
 		tk := &task.Task{
 			ID:          readID(t["id"], "task.id"),
 			Title:       readString(t["title"], "task.title"),
@@ -417,6 +478,9 @@ func readOp(raw json.RawMessage) Op {
 			Priority:    readPriority(t["priority"]),
 			Description: readString(t["description"], "task.description"),
 			Comments:    readComments(t["comments"], "task.comments"),
+		}
+		if v, ok := t["links"]; ok {
+			tk.Links = readLinks(v, "task.links")
 		}
 		if !isNull(t["due"]) {
 			d := readDate(t["due"], "task.due")
@@ -453,6 +517,10 @@ func readOp(raw json.RawMessage) Op {
 		}
 		if v, ok := s["description"]; ok {
 			op.Set.Description = strp(readString(v, "set.description"))
+		}
+		if v, ok := s["links"]; ok {
+			links := readLinks(v, "set.links")
+			op.Set.Links = &links
 		}
 		op.ID = readID(o["id"], "id")
 	case CommentAdd:

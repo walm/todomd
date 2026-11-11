@@ -1,0 +1,58 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "zm4z",
+          "title": "Replay queued writes on reconnect",
+          "tags": [
+            "sync"
+          ],
+          "priority": "high",
+          "due": null,
+          "description": "On reconnect, push the queue as one sync round; conflicts as usual.",
+          "links": [
+            {
+              "kind": "split from",
+              "id": "mpbv"
+            },
+            {
+              "kind": "related",
+              "id": "8xto"
+            }
+          ],
+          "comments": [
+            {
+              "author": "agent",
+              "date": "2026-11-11",
+              "text": "Split out of mpbv."
+            }
+          ]
+        },
+        {
+          "id": "mpbv",
+          "title": "Sync engine",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "8xto",
+          "title": "Offline indicator",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

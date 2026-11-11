@@ -62,6 +62,9 @@ func CheckTask(t *task.Task) error {
 			return invalid("comments", "invalid comment date %q", c.Date.String())
 		}
 	}
+	if err := checkLinks(t); err != nil {
+		return err
+	}
 	// Alone in a fragment an open fence reads back fine; in a file it would
 	// swallow every card after it.
 	if markdown.UnclosedFence(t.Description) {
@@ -84,6 +87,30 @@ func CheckTask(t *task.Task) error {
 		if markdown.ConflictMarkerLine(c.Text) > 0 {
 			return invalid("comments", "comment contains git conflict markers")
 		}
+	}
+	return nil
+}
+
+// checkLinks: known kinds, well-formed ids, no link to the card itself, no
+// duplicates, at most task.MaxLinks. The target needn't exist: links to
+// archived or deleted cards are kept.
+func checkLinks(t *task.Task) error {
+	if len(t.Links) > task.MaxLinks {
+		return invalid("links", "a card can have at most %d links (task %q has %d)", task.MaxLinks, t.ID, len(t.Links))
+	}
+	seen := map[task.Link]bool{}
+	for _, l := range t.Links {
+		switch {
+		case !task.ValidLinkKind(l.Kind):
+			return invalid("links", "unknown link kind %q", l.Kind)
+		case !task.ValidID(l.ID):
+			return invalid("links", "malformed task id %q in a link", l.ID)
+		case l.ID == t.ID:
+			return invalid("links", "task %q links to itself", t.ID)
+		case seen[l]:
+			return invalid("links", "task %q has the link %q twice", t.ID, l.String())
+		}
+		seen[l] = true
 	}
 	return nil
 }

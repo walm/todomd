@@ -1,0 +1,70 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Tight",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "Description.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "bbbb"
+            },
+            {
+              "kind": "blocks",
+              "id": "cccc"
+            }
+          ],
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-11",
+              "text": "tight"
+            }
+          ]
+        },
+        {
+          "id": "bbbb",
+          "title": "Loose",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "Description.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "aaaa"
+            },
+            {
+              "kind": "duplicated by",
+              "id": "cccc"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "No description, tight",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "duplicate of",
+              "id": "bbbb"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

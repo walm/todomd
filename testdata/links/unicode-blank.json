@@ -1,0 +1,30 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Whitespace-only lines count as blank",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "related",
+              "id": "bbbb"
+            },
+            {
+              "kind": "blocks",
+              "id": "cccc"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

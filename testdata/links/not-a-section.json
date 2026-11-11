@@ -1,0 +1,137 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "a001",
+          "title": "Unknown kind",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related b001\n- bogus b002",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a002",
+          "title": "Uppercase id",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related ABCD",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a003",
+          "title": "Long id",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related abcde",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a004",
+          "title": "Text after the items",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related b001\n\nSee also the design doc.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a005",
+          "title": "Other bullets",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n* related b001\n+ related b002",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a006",
+          "title": "One-word kind for a two-word one",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- duplicate b001",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a007",
+          "title": "Title after the id",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related b001 Sync engine",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a008",
+          "title": "Two hyphens",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- blocked--by b001",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a009",
+          "title": "Heading spelling",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### links\n\n- related b001",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a010",
+          "title": "Extra space after the hashes",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "####  Links\n\n- related b001",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a011",
+          "title": "Item without a space after the dash",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n-related b001",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "a012",
+          "title": "URL list under a Links heading",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "Notes.\n\n#### Links\n\n- https://example.com/spec\n- [design](https://example.com/design)",
+          "links": [],
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-11",
+              "text": "ok"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
