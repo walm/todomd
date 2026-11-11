@@ -4,11 +4,10 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
-## Unreleased
+## v0.14.0 — 2026-11-11
 
-To be released as **v0.14.0**: todomd.online accepts card links only from
-todomd 0.14.0 or newer (`MIN_CLI_VERSION`), so this release must carry
-that version.
+todomd.online syncs card links only with todomd 0.14.0 or newer, and will
+ask older versions to upgrade (`todomd upgrade`).
 
 ### Added
 
