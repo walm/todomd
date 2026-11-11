@@ -55,7 +55,7 @@ instead of dropping them.`,
 
 			state := vcs.FileState(s.Path)
 			if dryRun {
-				return reportArchive(b.Name, doomed, state, to, true)
+				return reportArchive(f, b.Name, doomed, state, to, true)
 			}
 
 			// Refuse by default when history wouldn't hold what we remove.
@@ -69,7 +69,7 @@ instead of dropping them.`,
 					return fmt.Errorf("refusing to archive %s from %s without --yes",
 						plural(len(doomed), "task"), b.Name)
 				}
-				if err := reportArchive(b.Name, doomed, state, to, false); err != nil {
+				if err := reportArchive(f, b.Name, doomed, state, to, false); err != nil {
 					return err
 				}
 				if !confirm(fmt.Sprintf("archive %s?", plural(len(doomed), "task"))) {
@@ -105,7 +105,7 @@ instead of dropping them.`,
 			if flagJSON {
 				res := archiveResult{Board: b.Name, Count: len(doomed), To: to, Tasks: []taskJSON{}}
 				for _, t := range doomed {
-					res.Tasks = append(res.Tasks, toJSON(t, b.Name))
+					res.Tasks = append(res.Tasks, toJSON(before, t, b.Name))
 				}
 				return printJSON(res)
 			}
@@ -156,14 +156,14 @@ type archiveResult struct {
 }
 
 // reportArchive lists what is about to go, and how recoverable it would be.
-func reportArchive(board string, doomed []*task.Task, state vcs.State, to string, dry bool) error {
+func reportArchive(f *task.File, board string, doomed []*task.Task, state vcs.State, to string, dry bool) error {
 	if flagJSON {
 		res := archiveResult{
 			Board: board, Count: len(doomed), To: to, DryRun: dry,
 			GitState: state.String(), Recovers: state.Recoverable(), Tasks: []taskJSON{},
 		}
 		for _, t := range doomed {
-			res.Tasks = append(res.Tasks, toJSON(t, board))
+			res.Tasks = append(res.Tasks, toJSON(f, t, board))
 		}
 		return printJSON(res)
 	}

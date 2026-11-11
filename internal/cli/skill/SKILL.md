@@ -51,6 +51,32 @@ MD
 )"
 ```
 
+## Link cards
+
+When a card is too big, split it instead of listing new card IDs in a
+comment:
+
+```sh
+todomd split 3f2a "Parse the header" "Parse the body" --as agent
+todomd comment 3f2a --author agent --as agent "Split into two: header and body differ a lot."
+```
+
+Each new card goes on 3f2a's board with its tags and is linked
+"split from 3f2a", and 3f2a lists them. `split` doesn't change 3f2a, so add
+one short comment there saying why.
+
+Link other cards the same way, not by pasting IDs in comments:
+
+```sh
+todomd links add 9e41 blocks 3f2a --as agent      # also: blocked-by, related, duplicate-of
+todomd add "Fix the flaky test" --link related:3f2a --as agent
+todomd links rm 9e41 3f2a --as agent              # removes the link wherever it's stored
+```
+
+`todomd show 3f2a --json` lists a card's `links` both ways (`kind`, `id`,
+`title`, `board`). A card that is `blocked by` an open card (one not on the
+last board): don't start it without asking.
+
 ## Wait for changes: the `todomd watch` loop
 
 ```sh

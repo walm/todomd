@@ -165,9 +165,12 @@ type model struct {
 	mode       mode
 	vp         viewport.Model
 	detailHead string // sticky header of the open task
-	form       *form
-	formFrom   mode          // view to return to when the form closes
-	confirm    *confirmation // pending y/n question, nil when none
+	// detailLinks are the open task's links as numbered in its Links
+	// section; keys 1–9 open them.
+	detailLinks []store.LinkView
+	form        *form
+	formFrom    mode          // view to return to when the form closes
+	confirm     *confirmation // pending y/n question, nil when none
 
 	status       string
 	isError      bool
@@ -623,6 +626,9 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "E":
 		return m, m.openEditor(modeDetail)
+	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		m.openLink(int(msg.String()[0] - '1'))
+		return m, nil
 	case "p":
 		m.cyclePriority()
 		m.openDetail() // re-render with the new priority

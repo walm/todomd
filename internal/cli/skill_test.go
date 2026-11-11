@@ -19,7 +19,7 @@ func TestSkillPrints(t *testing.T) {
 		"todomd list --json", "todomd show", "--author agent --as agent",
 		"todomd move", "todomd add", "todomd update", "todomd watch --as agent --json",
 		"Backlog", "GO", "Never delete cards", "todomd attach", "todomd download",
-		"the user's to change",
+		"the user's to change", "todomd split", "todomd links add", "--link related:", "blocked by",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("skill lacks %q", want)

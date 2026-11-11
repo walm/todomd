@@ -102,6 +102,11 @@ todomd move 3f2a --to "In Progress" --pos 1
 todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
 todomd delete 3f2a --yes
+todomd split 3f2a "Part one" "Part two"   # new cards linked "split from 3f2a"
+todomd links add 9e41 blocks 3f2a     # also blocked-by, related, duplicate-of, …
+todomd links 3f2a --json              # a card's links, both ways
+todomd links rm 9e41 3f2a             # wherever the link is stored
+todomd add "Follow-up" --link related:3f2a
 todomd boards --json
 todomd boards add Review              # before Done; or --after/--before <board>
 todomd boards rename Review QA        # tasks and position stay
@@ -218,7 +223,8 @@ it waits, but only `watch` syncs before and after.
 
 Inside the open task: `j`/`k` scroll, `ctrl+d`/`ctrl+u` half a page, `g`/`G`
 jump to the top and bottom, and the title, id, board, tags, priority and due
-date stay pinned above the scrolling body. `e`, `E`, `c` and `p` work there too
+date stay pinned above the scrolling body. Its links are listed under the
+description, numbered: `1`–`9` open the linked card. `e`, `E`, `c` and `p` work there too
 and return you to the task afterwards.
 
 🖱️ Mouse works alongside the keys: click a card to select it, click it again to
@@ -350,6 +356,11 @@ Free-form preamble — never touched by the tool.
 
 Description: any markdown, multiple paragraphs, code fences, lists.
 
+#### Links
+
+- split from 9c41
+- blocked by b7d0
+
 #### Comments
 
 - **ai** (2026-07-18): Considered goldmark; hand-rolled round-trips better.
@@ -370,8 +381,14 @@ Rules, briefly:
   the ID comment (formatter-inserted blank lines are fine). `**priority:**` is
   `high` or `low`; the default `normal` is left out, so ordinary tasks stay
   clean.
-- Everything up to `#### Comments` / the next heading is the description,
-  preserved verbatim.
+- Everything up to `#### Links` / `#### Comments` / the next heading is the
+  description, preserved verbatim.
+- `#### Links` lists links to other cards, one per line: `- <kind> <id>`,
+  with the kinds `split from`, `split into`, `blocks`, `blocked by`,
+  `related`, `duplicate of` and `duplicated by`. A link is stored on one
+  card only; the other card shows it from its side (`split into`, `blocks`,
+  …). If the lines under the heading aren't all such items, the heading is
+  just description text. Details: [docs/card-links-format.md](docs/card-links-format.md).
 - Comments are one list item each: `- **author** (YYYY-MM-DD): text`, with
   continuation lines indented two spaces.
 - Hand-editing is fine; the tool re-canonicalizes spacing on its next write

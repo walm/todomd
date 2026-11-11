@@ -1,6 +1,6 @@
 // Package cli wires the todomd command tree. All mutating commands support
 // --json (printing the affected task in the pinned schema); errors map to
-// exit codes: 1 general, 2 task or board not found, 3 ambiguous ID prefix,
+// exit codes: 1 general, 2 task, board or link not found, 3 ambiguous ID prefix,
 // for todomd.online 4 not logged in, 5 not linked, 6 unreachable, 7 too old,
 // and 8 board name already taken.
 package cli
@@ -36,17 +36,21 @@ type commentJSON struct {
 }
 
 type taskJSON struct {
-	ID          string        `json:"id"`
-	Board       string        `json:"board"`
-	Title       string        `json:"title"`
-	Tags        []string      `json:"tags"`
-	Priority    task.Priority `json:"priority"`
-	Due         *task.Date    `json:"due"`
-	Description string        `json:"description"`
-	Comments    []commentJSON `json:"comments"`
+	ID          string         `json:"id"`
+	Board       string         `json:"board"`
+	Title       string         `json:"title"`
+	Tags        []string       `json:"tags"`
+	Priority    task.Priority  `json:"priority"`
+	Due         *task.Date     `json:"due"`
+	Description string         `json:"description"`
+	Links       []cardLinkJSON `json:"links"`
+	Comments    []commentJSON  `json:"comments"`
 }
 
-func toJSON(t *task.Task, board string) taskJSON {
+// toJSON renders a task; f is the file it is on, for its links in both
+// directions. With a nil f only the links the card stores are listed, and
+// without titles.
+func toJSON(f *task.File, t *task.Task, board string) taskJSON {
 	out := taskJSON{
 		ID:          t.ID,
 		Board:       board,
@@ -55,6 +59,7 @@ func toJSON(t *task.Task, board string) taskJSON {
 		Priority:    t.Priority,
 		Due:         t.Due,
 		Description: t.Description,
+		Links:       linksJSON(f, t),
 		Comments:    []commentJSON{},
 	}
 	for _, c := range t.Comments {
@@ -168,12 +173,13 @@ func mutate(fn func(*task.File) (*task.Task, error), msg func(t *task.Task, boar
 	}
 	var affected *task.Task
 	var boardName string
+	var final *task.File
 	before, after, err := s.MutateTracked(func(f *task.File) error {
 		t, err := fn(f)
 		if err != nil {
 			return err
 		}
-		affected = t
+		affected, final = t, f
 		if b := store.BoardOf(f, t); b != nil {
 			boardName = b.Name
 		}
@@ -184,7 +190,7 @@ func mutate(fn func(*task.File) (*task.Task, error), msg func(t *task.Task, boar
 	}
 	skipOwnChange(s.Path, before, after)
 	if flagJSON {
-		return printJSON(toJSON(affected, boardName))
+		return printJSON(toJSON(final, affected, boardName))
 	}
 	fmt.Println(msg(affected, boardName))
 	return nil
@@ -200,21 +206,22 @@ func Execute() int {
 	return 0
 }
 
-// classify maps an error to the process exit code: 0 none, 2 task or board
-// not found, 3 ambiguous ID prefix, 4 not logged in (or the token was
+// classify maps an error to the process exit code: 0 none, 2 task, board
+// or link not found, 3 ambiguous ID prefix, 4 not logged in (or the token was
 // revoked), 5 not linked (or the project is gone), 6 todomd.online
 // unreachable, 7 this todomd is too old for the service, 8 board name
 // already taken, 1 anything else.
 func classify(err error) int {
 	var nf *store.NotFoundError
 	var bnf *store.BoardNotFoundError
+	var lnf *store.LinkNotFoundError
 	var exists *store.BoardExistsError
 	var amb *store.AmbiguousError
 	var unavailable *cloud.UnavailableError
 	switch {
 	case err == nil:
 		return 0
-	case errors.As(err, &nf), errors.As(err, &bnf):
+	case errors.As(err, &nf), errors.As(err, &bnf), errors.As(err, &lnf):
 		return 2
 	case errors.As(err, &amb):
 		return 3
@@ -364,7 +371,7 @@ func newList() *cobra.Command {
 					bj := boardJSON{Name: b.Name, Tasks: []taskJSON{}}
 					for _, t := range b.Tasks {
 						if match(b, t) {
-							bj.Tasks = append(bj.Tasks, toJSON(t, b.Name))
+							bj.Tasks = append(bj.Tasks, toJSON(f, t, b.Name))
 						}
 					}
 					out.Boards = append(out.Boards, bj)
@@ -422,7 +429,7 @@ func newShow() *cobra.Command {
 			}
 			t := b.Tasks[i]
 			if flagJSON {
-				return printJSON(toJSON(t, b.Name))
+				return printJSON(toJSON(f, t, b.Name))
 			}
 			fmt.Printf("id:     %s\nboard:  %s\ntitle:  %s\n", t.ID, b.Name, t.Title)
 			if len(t.Tags) > 0 {
@@ -433,6 +440,9 @@ func newShow() *cobra.Command {
 			}
 			if t.Due != nil {
 				fmt.Printf("due:    %s\n", t.Due)
+			}
+			if views := store.LinksOf(f, t); len(views) > 0 {
+				writeLinkRows(os.Stdout, views, "links:  ", "        ")
 			}
 			if t.Description != "" {
 				fmt.Printf("\n%s\n", t.Description)
@@ -453,7 +463,7 @@ func newShow() *cobra.Command {
 
 func newAdd() *cobra.Command {
 	var board, desc, due, priority string
-	var tags []string
+	var tags, links []string
 	cmd := &cobra.Command{
 		Use:   "add <title>",
 		Short: "Add a task",
@@ -475,6 +485,9 @@ func newAdd() *cobra.Command {
 				t.Due = &d
 			}
 			return mutate(func(f *task.File) (*task.Task, error) {
+				if err := addLinks(f, t, links); err != nil {
+					return nil, err
+				}
 				return store.Add(f, board, t)
 			}, func(t *task.Task, b string) string {
 				return fmt.Sprintf("added %s to %s: %s", t.ID, b, t.Title)
@@ -486,6 +499,7 @@ func newAdd() *cobra.Command {
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "tag (repeatable)")
 	cmd.Flags().StringVar(&due, "due", "", "due date YYYY-MM-DD")
 	cmd.Flags().StringVar(&priority, "priority", "", "priority: high, normal (default) or low")
+	cmd.Flags().StringArrayVar(&links, "link", nil, "link to a card on the board, kind:id (repeatable; e.g. split-from:3f2a, blocks:9e41)")
 	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
@@ -637,7 +651,7 @@ func newDelete() *cobra.Command {
 			}
 			skipOwnChange(s.Path, before, after)
 			if flagJSON {
-				return printJSON(toJSON(deleted, board))
+				return printJSON(toJSON(before, deleted, board))
 			}
 			fmt.Printf("deleted %s: %s\n", deleted.ID, deleted.Title)
 			return nil
@@ -685,7 +699,7 @@ tasks needs --force, because its tasks are deleted with it.`,
 				return printJSON(struct {
 					Board string     `json:"board"`
 					Tasks []taskJSON `json:"tasks"`
-				}{gone.Name, boardTasksJSON(gone)})
+				}{gone.Name, boardTasksJSON(before, gone)})
 			}
 			if len(gone.Tasks) == 0 {
 				fmt.Printf("deleted empty board %s\n", gone.Name)
@@ -701,10 +715,10 @@ tasks needs --force, because its tasks are deleted with it.`,
 	return cmd
 }
 
-func boardTasksJSON(b *task.Board) []taskJSON {
+func boardTasksJSON(f *task.File, b *task.Board) []taskJSON {
 	out := []taskJSON{}
 	for _, t := range b.Tasks {
-		out = append(out, toJSON(t, b.Name))
+		out = append(out, toJSON(f, t, b.Name))
 	}
 	return out
 }
