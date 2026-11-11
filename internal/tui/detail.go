@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -9,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
 )
 
@@ -99,8 +101,15 @@ func (m *model) openDetail() {
 	if t.Description != "" {
 		fmt.Fprintf(&md, "%s\n", t.Description)
 	}
+	m.detailLinks = store.LinksOf(m.file, t)
+	if len(m.detailLinks) > 0 {
+		if md.Len() > 0 {
+			md.WriteString("\n")
+		}
+		md.WriteString(linksMarkdown(m.detailLinks, m.lastBoardName()))
+	}
 	if len(t.Comments) > 0 {
-		if t.Description != "" {
+		if md.Len() > 0 {
 			md.WriteString("\n---\n")
 		}
 		fmt.Fprintf(&md, "\n## Comments (%d)\n\n", len(t.Comments))
@@ -155,6 +164,64 @@ func (m *model) openDetail() {
 	h := min(lipgloss.Height(content), bodyH)
 	m.vp = viewport.New(w, max(1, h))
 	m.vp.SetContent(content)
+}
+
+func (m *model) lastBoardName() string {
+	if n := len(m.file.Boards); n > 0 {
+		return m.file.Boards[n-1].Name
+	}
+	return ""
+}
+
+// linksMarkdown lists links as the card view shows them: numbered (keys 1–9
+// open the first nine), cards on the last board struck through, and cards
+// no longer on the board marked so.
+func linksMarkdown(views []store.LinkView, lastBoard string) string {
+	var md strings.Builder
+	hint := ""
+	if slices.ContainsFunc(views, func(v store.LinkView) bool { return !v.Missing }) {
+		hint = " · *1–9 open*"
+	}
+	fmt.Fprintf(&md, "## Links (%d)%s\n\n", len(views), hint)
+	for i, v := range views {
+		n := "-"
+		if i < 9 {
+			n = fmt.Sprintf("%d.", i+1)
+		}
+		switch {
+		case v.Missing:
+			fmt.Fprintf(&md, "%s **%s** `%s` *(not on the board)*\n", n, v.Kind, v.ID)
+		case v.Board == lastBoard:
+			fmt.Fprintf(&md, "%s **%s** `%s` ~~%s~~ · *%s*\n", n, v.Kind, v.ID, v.Title, v.Board)
+		default:
+			fmt.Fprintf(&md, "%s **%s** `%s` %s · *%s*\n", n, v.Kind, v.ID, v.Title, v.Board)
+		}
+	}
+	return md.String()
+}
+
+// openLink opens the open task's i-th link (0-based), if that card is on
+// the board and not hidden by the filter.
+func (m *model) openLink(i int) {
+	if i < 0 || i >= len(m.detailLinks) {
+		return
+	}
+	v := m.detailLinks[i]
+	if v.Missing {
+		m.setStatus(v.ID+" is not on the board", true)
+		return
+	}
+	from := m.selectedTask()
+	m.selectByID(v.ID)
+	if t := m.selectedTask(); t == nil || t.ID != v.ID {
+		if from != nil {
+			m.selectByID(from.ID) // stay on the open card
+		}
+		m.setStatus(v.ID+" is hidden by the filter", true)
+		return
+	}
+	m.setStatus("", false)
+	m.openDetail()
 }
 
 // detailHint renders the footer actions, highlighting the hovered one, and

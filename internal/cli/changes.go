@@ -63,7 +63,7 @@ func toEventJSON(e changes.Event) eventJSON {
 		}
 	}
 	if e.Type == changes.TaskAdded {
-		d := toJSON(e.Task, e.Board)
+		d := toJSON(nil, e.Task, e.Board) // the card's own links; no file at hand
 		out.Detail = &d
 	}
 	return out

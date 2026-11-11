@@ -1415,3 +1415,33 @@ func TestSyncStatusInFooterCorner(t *testing.T) {
 		t.Errorf("corner without a version = %q", ansi.Strip(line))
 	}
 }
+
+func TestDetailLinksJump(t *testing.T) {
+	m := newTestModel(t, 2, 2)
+	a, b := m.file.Boards[0].Tasks[0], m.file.Boards[1].Tasks[1]
+	a.Links = []task.Link{{Kind: "blocks", ID: b.ID}, {Kind: "related", ID: "k2pq"}}
+	b.Title = "Target card"
+	m.updateBoard(keyMsg("enter"))
+	body := ansi.Strip(m.vp.View())
+	for _, want := range []string{"Links (2)", "blocks", b.ID, "Target card", "k2pq", "not on the board"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("detail lacks %q:\n%s", want, body)
+		}
+	}
+	m.updateDetail(keyMsg("2")) // not on the board: stays
+	if m.selectedTask() != a || m.mode != modeDetail {
+		t.Fatal("jumped to a missing card")
+	}
+	m.updateDetail(keyMsg("1"))
+	if m.selectedTask() != b || m.mode != modeDetail {
+		t.Fatalf("selected %v", m.selectedTask())
+	}
+	// From b's side the link reads "blocked by" a.
+	if body := ansi.Strip(m.vp.View()); !strings.Contains(body, "blocked by") || !strings.Contains(body, a.ID) {
+		t.Errorf("b's detail:\n%s", body)
+	}
+	m.updateDetail(keyMsg("9")) // no ninth link: nothing happens
+	if m.selectedTask() != b {
+		t.Error("9 moved the selection")
+	}
+}

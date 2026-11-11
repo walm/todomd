@@ -4,6 +4,55 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+To be released as **v0.14.0**: todomd.online accepts card links only from
+todomd 0.14.0 or newer (`MIN_CLI_VERSION`), so this release must carry
+that version.
+
+### Added
+
+- **Card links.** A card can link to other cards: `split from`/`split into`,
+  `blocks`/`blocked by`, `related`, `duplicate of`/`duplicated by`. Links
+  live in TODO.md as a `#### Links` section between the description and
+  `#### Comments`, one per line (`- split from 3f2a`). A link is stored on
+  the card where it was added; the other card shows it from its side.
+  Links to cards that are no longer on the board (archived, deleted) stay
+  and show as "not on the board".
+- `todomd split <id> "Title"… [--board B]`: creates one card per title on
+  the original's board (or `--board`), with its tags, each linked
+  "split from <id>". The original card isn't changed. `--json` prints the
+  new cards.
+- `todomd links <id>` lists a card's links in both directions;
+  `todomd links add <id> <kind> <id>` adds one (the other card must be on
+  the board; a link the board already has, from either end, is left as is);
+  `todomd links rm <id> <id> [--kind K]` removes the links between two cards
+  wherever they are stored (exit 2 if there are none).
+- `todomd add --link kind:id` (repeatable), e.g. `--link split-from:3f2a`.
+- `show` lists links after the metadata; `show --json`, `list --json` and
+  the other commands' task JSON have `links: [{kind, id, title, board,
+  stored_on}]`, both directions computed (`title` and `board` are `null`
+  for a card not on the board).
+- The TUI's open card lists its links under the description, numbered;
+  `1`–`9` open the linked card.
+- `todomd changes`/`watch` report link changes as `fields.links {old, new}`
+  in `task_updated`.
+- `todomd skill` tells agents to split cards with `todomd split` and link
+  cards with `todomd links add` instead of pasting ids in comments, and not
+  to start a card that is blocked by an open one without asking.
+
+### Changed
+
+- TODO.md format version 2 (the `#### Links` section). Files without links
+  are unchanged, and a `#### Links` heading that isn't followed only by
+  link items stays description text, so existing files read and write back
+  byte for byte. Older todomd versions read a links section as description
+  text and keep it; on a card with links, replacing its description with an
+  older version (`update --desc`) drops them.
+- Sync sends `links` in its change list. Against a todomd.online server on
+  format version 1, a round whose changes include links sends the whole
+  file instead.
+
 ## v0.13.0 — 2026-11-08
 
 ### Added
