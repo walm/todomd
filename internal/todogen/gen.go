@@ -49,6 +49,8 @@ var lines = []string{
 	"`#tag`", "`#tag` **due:** 2026-01-01", "**priority:** high", "**due:** 2026-02-30", "- **x** (2026-01-01): y",
 	"- item", "    indented", "\t tab", "\u00a0", " ", "ünïcödé 🙂", "\ufeffbom", "x\u0085y", "\u2028", "line\u2029",
 	"<<<<<<< HEAD", "=======", ">>>>>>> branch", "trailing   ", "İ ı K", "> quote", "#### heading 4", "##no space",
+	"#### Links", "#### Links", "\\#### Links", "\\\\#### Links", "#### Links \t", "####  Links", "- related abcd",
+	"- blocks zz01", "- Blocked-By zz02", "- split  from 0000", "- duplicate of ABCD", "- bogus abcd", "- related abcd x",
 }
 
 var preambleLines = []string{
@@ -68,6 +70,35 @@ var (
 )
 
 const idChars = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+// linkTargets are ids links point at half the time: the IDPool ids merge
+// tests draw new cards from (to provoke the rename remap) and a few others.
+var linkTargets = []string{"zz01", "zz02", "zz03", "abcd", "0000"}
+
+func linkTo(r *Rng, self string) task.Link {
+	for {
+		id := pick(r, linkTargets)
+		if r.Chance(0.5) {
+			b := make([]byte, 4)
+			for i := range b {
+				b[i] = idChars[r.Int(36)]
+			}
+			id = string(b)
+		}
+		if id != self {
+			return task.Link{Kind: pick(r, task.LinkKinds), ID: id}
+		}
+	}
+}
+
+// addLink inserts a new link at a random place, unless the card already
+// has it.
+func addLink(r *Rng, t *task.Task) {
+	l := linkTo(r, t.ID)
+	if !slices.Contains(t.Links, l) {
+		t.Links = slices.Insert(t.Links, r.Int(len(t.Links)+1), l)
+	}
+}
 
 func date(s string) task.Date {
 	d, err := task.ParseDate(s)
@@ -186,6 +217,11 @@ func newTask(r *Rng, taken map[string]bool, idPool []string) *task.Task {
 	}
 	if r.Chance(0.6) {
 		t.Description = description(r)
+	}
+	if r.Chance(0.3) {
+		for k := 1 + r.Int(3); k > 0; k-- {
+			addLink(r, t)
+		}
 	}
 	n := 0
 	if r.Chance(0.5) {
@@ -363,7 +399,7 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 	}
 
 	for s := 0; s < steps; s++ {
-		switch r.Int(17) {
+		switch r.Int(18) {
 		case 0:
 			if len(f.Boards) == 0 {
 				break
@@ -472,6 +508,21 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 			if !r.Chance(0.2) {
 				f.Title = title(r)
 			}
+		case 17:
+			editTask(func(t *task.Task) {
+				switch {
+				case len(t.Links) == 0 || r.Chance(0.4):
+					addLink(r, t)
+				case r.Chance(0.5):
+					k := r.Int(len(t.Links))
+					t.Links = slices.Delete(t.Links, k, k+1)
+				default:
+					// Same target, another kind (may equal a link it has:
+					// then CheckTask rejects the edit).
+					k := r.Int(len(t.Links))
+					t.Links[k].Kind = pick(r, task.LinkKinds)
+				}
+			})
 		}
 	}
 	return normalize(f)

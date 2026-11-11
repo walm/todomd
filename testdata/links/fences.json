@@ -1,0 +1,46 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Section inside a fence",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "```markdown\n#### Links\n\n- related bbbb\n```",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Fence after the heading",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n```\n- related aaaa\n```",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "Fenced text, then a real section",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "~~~\n#### Links\n- related aaaa\n~~~",
+          "links": [
+            {
+              "kind": "related",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

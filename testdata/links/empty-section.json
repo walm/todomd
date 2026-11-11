@@ -1,0 +1,47 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Heading at the end of the description",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "Some text.\n\n#### Links",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Heading alone",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "Heading then blank lines, then comments",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links",
+          "links": [],
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-11",
+              "text": "x"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

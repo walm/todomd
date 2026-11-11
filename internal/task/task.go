@@ -143,6 +143,7 @@ type Task struct {
 	Priority    Priority
 	Due         *Date
 	Description string // verbatim markdown
+	Links       []Link // stored on this card, in file order
 	Comments    []Comment
 }
 

@@ -77,6 +77,10 @@ func changedFields(a, b *task.Task) Fields {
 	if a.Description != b.Description {
 		s.Description = strp(b.Description)
 	}
+	if !slices.Equal(a.Links, b.Links) {
+		links := slices.Clone(b.Links)
+		s.Links = &links
+	}
 	return s
 }
 
@@ -442,6 +446,12 @@ func applyOne(f *task.File, home map[string]*task.Board, op Op) string {
 		}
 		if s.Description != nil {
 			t.Description = *s.Description
+		}
+		if s.Links != nil {
+			t.Links = nil
+			if len(*s.Links) > 0 {
+				t.Links = slices.Clone(*s.Links)
+			}
 		}
 	case CommentAdd:
 		b := home[op.TaskID]

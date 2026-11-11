@@ -1,0 +1,140 @@
+[
+  {
+    "name": "link added",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n#### Links\n\n- split from aaaa\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "links": [
+            {
+              "kind": "split from",
+              "id": "aaaa"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "links cleared",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "links": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "links reordered",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- related zzzz\n- blocks bbbb\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "links": [
+            {
+              "kind": "related",
+              "id": "zzzz"
+            },
+            {
+              "kind": "blocks",
+              "id": "bbbb"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "links next to other fields",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two!\n<!-- id:bbbb -->\n\nNew.\n\n#### Links\n\n- duplicate of aaaa\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "title": "Two!",
+          "description": "New.",
+          "links": [
+            {
+              "kind": "duplicate of",
+              "id": "aaaa"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added with links",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n\n#### Links\n\n- blocked by aaaa\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "blocked by",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added without links has no links key",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "moved task keeps its links",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### One\n<!-- id:aaaa -->\n\n#### Links\n\n- blocks bbbb\n- related zzzz\n",
+    "ops": [
+      {
+        "op": "task.move",
+        "id": "aaaa",
+        "board": "Done",
+        "after": null
+      }
+    ]
+  }
+]

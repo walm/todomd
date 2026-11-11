@@ -64,6 +64,20 @@ func dueValue(d *task.Date) any {
 	return d.String()
 }
 
+// LinkValue is how a link appears in an event's fields.
+type LinkValue struct {
+	Kind string `json:"kind"`
+	ID   string `json:"id"`
+}
+
+func linkValues(ls []task.Link) []LinkValue {
+	out := make([]LinkValue, len(ls))
+	for i, l := range ls {
+		out[i] = LinkValue{Kind: l.Kind, ID: l.ID}
+	}
+	return out
+}
+
 func commentsEqualPrefix(old, cur []task.Comment) bool {
 	if len(old) > len(cur) {
 		return false
@@ -102,6 +116,9 @@ func Diff(old, cur *task.File) []Event {
 			}
 			if dueValue(o.t.Due) != dueValue(t.Due) {
 				fields["due"] = FieldChange{dueValue(o.t.Due), dueValue(t.Due)}
+			}
+			if !slices.Equal(o.t.Links, t.Links) {
+				fields["links"] = FieldChange{linkValues(o.t.Links), linkValues(t.Links)}
 			}
 			if commentsEqualPrefix(o.t.Comments, t.Comments) {
 				for i := len(o.t.Comments); i < len(t.Comments); i++ {
@@ -167,6 +184,7 @@ func SaveCursor(path string, data []byte) error {
 func cloneTask(t *task.Task) *task.Task {
 	c := *t
 	c.Tags = slices.Clone(t.Tags)
+	c.Links = slices.Clone(t.Links)
 	c.Comments = slices.Clone(t.Comments)
 	if t.Due != nil {
 		d := *t.Due
@@ -248,6 +266,8 @@ func Apply(f *task.File, events []Event) {
 					t.Description = e.Task.Description
 				case "tags":
 					t.Tags = slices.Clone(e.Task.Tags)
+				case "links":
+					t.Links = slices.Clone(e.Task.Links)
 				case "priority":
 					t.Priority = e.Task.Priority
 				case "due":

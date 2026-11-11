@@ -1,0 +1,36 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Mid-description heading",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related bbbb\n\nMore text after the list, so this is description.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Earlier lookalike, real section last",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "#### Links\n\n- related aaaa",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

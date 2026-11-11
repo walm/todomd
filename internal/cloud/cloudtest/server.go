@@ -50,6 +50,7 @@ type Server struct {
 	Requests  []SyncCall
 	Handle    string
 	MinCLI    string
+	Format    int                      // format_version in discovery
 	Down      bool                     // answer 503 to everything
 	Forget    map[int]bool             // revisions treated as pruned (410 base_gone)
 	BadSHA    bool                     // send a wrong content_sha256 once
@@ -81,7 +82,7 @@ type SyncCall struct {
 // New starts a fake server.
 func New() *Server {
 	s := &Server{projects: map[string]*Project{}, replies: map[string][]byte{}, subs: map[string][]chan int{}, images: map[string]map[string]image{},
-		Date: task.Date{Year: 2026, Month: 11, Day: 6}, Handle: "walm", MinCLI: "0.0.1", Forget: map[int]bool{}}
+		Date: task.Date{Year: 2026, Month: 11, Day: 6}, Handle: "walm", MinCLI: "0.0.1", Format: markdown.FormatVersion, Forget: map[int]bool{}}
 	s.Server = httptest.NewServer(http.HandlerFunc(s.serve))
 	return s
 }
@@ -217,7 +218,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if path == "/.well-known/todomd" {
-		writeJSON(w, 200, map[string]any{"api": s.URL + "/api/v1", "min_cli_version": s.MinCLI, "name": "fake", "format_version": 1})
+		writeJSON(w, 200, map[string]any{"api": s.URL + "/api/v1", "min_cli_version": s.MinCLI, "name": "fake", "format_version": s.Format})
 		return
 	}
 	if !strings.HasPrefix(path, "/api/v1/") {

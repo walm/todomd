@@ -245,3 +245,26 @@ func TestDiffAndApplyPriority(t *testing.T) {
 		t.Errorf("own priority change still pending: %+v", rest)
 	}
 }
+
+func TestDiffAndApplyLinks(t *testing.T) {
+	old := file(board("B", &task.Task{ID: "aaaa", Title: "x", Links: []task.Link{{Kind: "blocks", ID: "bbbb"}}}, &task.Task{ID: "bbbb", Title: "y"}))
+	cur := old.Clone()
+	cur.Boards[0].Tasks[0].Links = nil
+	cur.Boards[0].Tasks[1].Links = []task.Link{{Kind: "split from", ID: "aaaa"}}
+	evs := Diff(old, cur)
+	if len(evs) != 2 {
+		t.Fatalf("events = %+v", evs)
+	}
+	a, b := evs[0].Fields["links"], evs[1].Fields["links"]
+	if got := a.Old.([]LinkValue); len(got) != 1 || got[0] != (LinkValue{"blocks", "bbbb"}) || len(a.New.([]LinkValue)) != 0 {
+		t.Errorf("aaaa: %+v", a)
+	}
+	if got := b.New.([]LinkValue); len(got) != 1 || got[0] != (LinkValue{"split from", "aaaa"}) {
+		t.Errorf("bbbb: %+v", b)
+	}
+	snap := old.Clone()
+	Apply(snap, evs)
+	if len(Diff(snap, cur)) != 0 {
+		t.Error("Apply didn't fold the link changes")
+	}
+}

@@ -1,0 +1,42 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Order is kept as written",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "related",
+              "id": "zz03"
+            },
+            {
+              "kind": "blocks",
+              "id": "zz01"
+            },
+            {
+              "kind": "split from",
+              "id": "zz02"
+            },
+            {
+              "kind": "related",
+              "id": "zz01"
+            },
+            {
+              "kind": "blocked by",
+              "id": "zz00"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

@@ -14,7 +14,10 @@
 //     identical copy theirs already holds (an earlier rename) is reused.
 //   - A conflict comment isn't added twice.
 //   - The file title and preamble keep ours' value in the Conflict's note.
-//   - NoDeletesFromOurs also covers tags and comments.
+//   - NoDeletesFromOurs also covers tags, links and comments.
+//   - Links merge as a set, like tags. When ours' card is renamed after an
+//     id collision, the links ours added that point at its old id are
+//     remapped to the new one.
 package merge
 
 import (
@@ -118,6 +121,7 @@ func sameContent(a, b *task.Task) bool {
 		task.SameDue(a.Due, b.Due) &&
 		a.Description == b.Description &&
 		slices.Equal(a.Tags, b.Tags) &&
+		slices.Equal(a.Links, b.Links) &&
 		sameComments(a.Comments, b.Comments)
 }
 
@@ -261,9 +265,9 @@ func eqString(a, b string) bool { return a == b }
 
 func eqPriority(a, b task.Priority) bool { return a == b }
 
-func dedupe(xs []string) []string {
-	seen := map[string]bool{}
-	var out []string
+func dedupe[T comparable](xs []T) []T {
+	seen := map[T]bool{}
+	var out []T
 	for _, x := range xs {
 		if !seen[x] {
 			seen[x] = true
@@ -273,21 +277,22 @@ func dedupe(xs []string) []string {
 	return out
 }
 
-func set(xs []string) map[string]bool {
-	m := map[string]bool{}
+func set[T comparable](xs []T) map[T]bool {
+	m := map[T]bool{}
 	for _, x := range xs {
 		m[x] = true
 	}
 	return m
 }
 
-func mergeTags(hasBase bool, b, o, t []string, noDeletes bool) []string {
+// mergeSet merges a per-card set, tags or links: it is never a conflict.
+func mergeSet[T comparable](hasBase bool, b, o, t []T, noDeletes bool) []T {
 	if slices.Equal(o, t) {
 		return o
 	}
 	inT := set(t)
 	if !hasBase {
-		var extra []string
+		var extra []T
 		for _, x := range o {
 			if !inT[x] {
 				extra = append(extra, x)
@@ -302,9 +307,9 @@ func mergeTags(hasBase bool, b, o, t []string, noDeletes bool) []string {
 		return o
 	}
 	// (base ∪ addedOurs ∪ addedTheirs) − removedOurs − removedTheirs, in
-	// theirs' order with ours' new tags appended.
+	// theirs' order with ours' new items appended.
 	inB, inO := set(b), set(o)
-	var keep []string
+	var keep []T
 	for _, x := range t {
 		if noDeletes || !inB[x] || inO[x] {
 			keep = append(keep, x)
@@ -434,6 +439,33 @@ func mergeOrder(base, ours, theirs []string, members []string) []string {
 	return out
 }
 
+// remapLinks points the links ours added to t (those not on the base card
+// with t's id) at the new id of a card ours renamed after an id collision,
+// keeping the order and dropping a link the remap made a duplicate. It
+// returns nil when nothing changes.
+func remapLinks(t *task.Task, bIdx *ordered[*loc], moved map[string]string) []task.Link {
+	if len(moved) == 0 || len(t.Links) == 0 {
+		return nil
+	}
+	var inBase map[task.Link]bool
+	if b, ok := bIdx.get(t.ID); ok {
+		inBase = set(b.task.Links)
+	}
+	changed := false
+	out := make([]task.Link, len(t.Links))
+	for i, l := range t.Links {
+		if to, ok := moved[l.ID]; ok && !inBase[l] {
+			l.ID = to
+			changed = true
+		}
+		out[i] = l
+	}
+	if !changed {
+		return nil
+	}
+	return dedupe(out)
+}
+
 // --- merge ----------------------------------------------------------------------
 
 type merger struct {
@@ -510,13 +542,23 @@ func Merge(base, ours, theirs *task.File, opts Options) (Result, error) {
 		oursID[id] = nid
 		renamed = append(renamed, Rename{From: id, To: nid, Title: o.task.Title})
 	}
+	moved := map[string]string{}
+	for _, id := range oRaw.keys {
+		if oursID[id] != id {
+			moved[id] = oursID[id]
+		}
+	}
 	oIdx := newOrdered[*loc]()
 	for _, id := range oRaw.keys {
 		o := oRaw.m[id]
 		nid := oursID[id]
-		if nid != id {
+		links := remapLinks(o.task, bIdx, moved)
+		if nid != id || links != nil {
 			c := *o.task
 			c.ID = nid
+			if links != nil {
+				c.Links = links
+			}
 			o = &loc{task: &c, key: o.key, name: o.name}
 		}
 		oIdx.set(nid, o)
@@ -740,7 +782,8 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 	out := &task.Task{
 		ID:          id,
 		Title:       title,
-		Tags:        mergeTags(hasB, bt.Tags, ot.Tags, tt.Tags, mg.noDeletes),
+		Tags:        mergeSet(hasB, bt.Tags, ot.Tags, tt.Tags, mg.noDeletes),
+		Links:       mergeSet(hasB, bt.Links, ot.Links, tt.Links, mg.noDeletes),
 		Priority:    prio,
 		Due:         dueCopy,
 		Description: description,

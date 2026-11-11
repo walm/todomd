@@ -1,0 +1,44 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Links to cards not on the board are kept",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [
+            {
+              "kind": "split from",
+              "id": "zzzz"
+            },
+            {
+              "kind": "blocked by",
+              "id": "0000"
+            },
+            {
+              "kind": "related",
+              "id": "bbbb"
+            }
+          ],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Present",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

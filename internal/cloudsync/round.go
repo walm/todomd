@@ -304,6 +304,12 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 	}
 
 	push := changed
+	if push && !full && s.FormatVersion > 0 && s.FormatVersion < markdown.LinksFormatVersion && carriesLinks(ops.Delta(base, local)) {
+		// The server predates links: its ops reader would reject the links
+		// field, but it keeps a links section in a whole file as
+		// description text, byte for byte.
+		full = true
+	}
 	req, sent := build(full, push)
 	res.FullFile = full
 	resp, err := s.Client.Sync(ctx, l.ProjectID, req)
@@ -333,6 +339,16 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		return nil, nil, err
 	}
 	return resp, sent, nil
+}
+
+// carriesLinks reports whether a change list sets or adds any card links.
+func carriesLinks(list []ops.Op) bool {
+	for _, op := range list {
+		if op.Set.Links != nil || (op.Op == ops.TaskAdd && op.Task != nil && len(op.Task.Links) > 0) {
+			return true
+		}
+	}
+	return false
 }
 
 // result turns a response into the merged model, verifying its checksum.

@@ -88,3 +88,27 @@ func TestPriority(t *testing.T) {
 		}
 	}
 }
+
+func TestParseLinkKind(t *testing.T) {
+	for in, want := range map[string]string{
+		"blocks": "blocks", "Blocked-By": "blocked by", "SPLIT FROM": "split from", "split\tinto": "split into",
+		" duplicate-of ": "duplicate of", "duplicated  by": "duplicated by", "related": "related",
+	} {
+		if got, err := ParseLinkKind(in); err != nil || got != want {
+			t.Errorf("%q: %q %v", in, got, err)
+		}
+	}
+	for _, in := range []string{"", "bogus", "blocked--by", "blocked - by", "blocked_by", "duplicate", "split", "bloc\u212as", "related x", "-blocks"} {
+		if got, err := ParseLinkKind(in); err == nil {
+			t.Errorf("%q accepted as %q", in, got)
+		}
+	}
+	for _, k := range LinkKinds {
+		if !ValidLinkKind(k) || InverseLinkKind(InverseLinkKind(k)) != k {
+			t.Errorf("%q", k)
+		}
+	}
+	if len(LinkKinds) != 7 || InverseLinkKind("blocks") != "blocked by" || InverseLinkKind("related") != "related" || InverseLinkKind("x") != "" {
+		t.Error("inverse")
+	}
+}

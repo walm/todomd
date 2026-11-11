@@ -3,7 +3,8 @@
 // The format is line-based: `#` file title, `##` boards, `###` tasks, an
 // `<!-- id:xxxx -->` comment per task, an optional metadata line (inline-code
 // tags, an optional priority, and a due date) immediately after the ID comment, a verbatim
-// description, and an optional `#### Comments` list. Code fences at column 0
+// description, an optional `#### Links` list (see links.go) and an optional
+// `#### Comments` list. Code fences at column 0
 // shield their contents from structural interpretation. Lines in descriptions
 // that would otherwise read as structure are backslash-escaped on write and
 // unescaped on parse, so any text round-trips exactly.
@@ -17,6 +18,18 @@ import (
 
 	"github.com/walm/todomd/internal/task"
 )
+
+// FormatVersion is the TODO.md format this package reads and writes. It
+// matches todomd.online's FORMAT_VERSION (packages/todofile), which its
+// discovery document reports as format_version.
+//
+//	1  boards, cards, metadata line, description, comments
+//	2  adds the `#### Links` section (card links)
+const FormatVersion = 2
+
+// LinksFormatVersion is the first format version with card links. A server
+// on an older one can't take links in sync ops.
+const LinksFormatVersion = 2
 
 // ParseError is a structural error at a specific line of the file.
 type ParseError struct {
@@ -298,15 +311,26 @@ func parse(data []byte, strict bool) (*task.File, error) {
 				}
 			}
 
-			// Description.
+			// Description, and the links section at its end.
 			descStart := i
 			for i < len(lines) && !isTerminator(i) {
 				i++
 			}
-			desc, off := trimBlankEdges(lines[descStart:i])
+			descEnd, escaped := i, -1
+			if h, links := linksSection(lines, structural, descStart, i); h >= 0 {
+				if lines[h][0] == '#' {
+					t.Links, descEnd = links, h
+				} else {
+					escaped = h
+				}
+			}
+			desc, off := trimBlankEdges(lines[descStart:descEnd])
 			out := make([]string, len(desc))
 			for j, l := range desc {
-				if structural[descStart+off+j] {
+				switch k := descStart + off + j; {
+				case k == escaped:
+					l = l[1:]
+				case structural[k]:
 					l = unescapeLine(l)
 				}
 				out[j] = l
@@ -341,6 +365,8 @@ func parse(data []byte, strict bool) (*task.File, error) {
 						pendingBlanks++
 					case structural[i] && commentsHdr.MatchString(l):
 						return nil, &ParseError{Line: i + 1, Msg: "duplicate '#### Comments' section"}
+					case structural[i] && linksHdrRe.MatchString(l) && l[0] == '#':
+						return nil, &ParseError{Line: i + 1, Msg: "'#### Links' must come before '#### Comments'"}
 					case strings.HasPrefix(l, "- "):
 						m := commentRe.FindStringSubmatch(l)
 						if m == nil {
@@ -368,6 +394,13 @@ func parse(data []byte, strict bool) (*task.File, error) {
 		}
 	}
 
+	if !strict {
+		f.AssignIDs()
+	}
+	for _, t := range f.AllTasks() {
+		t.Links = dropSelfLinks(t.ID, t.Links)
+	}
+
 	if strict {
 		seen := map[string]bool{}
 		for _, t := range f.AllTasks() {
@@ -385,8 +418,6 @@ func parse(data []byte, strict bool) (*task.File, error) {
 			}
 			seen[t.ID] = true
 		}
-	} else {
-		f.AssignIDs()
 	}
 	return f, nil
 }
@@ -430,14 +461,29 @@ func writeTask(b *strings.Builder, t *task.Task) {
 		b.WriteString("\n")
 		lines := strings.Split(t.Description, "\n")
 		mask := fenceMask(lines)
+		escape := -1
+		if len(t.Links) == 0 {
+			// Followed by nothing that could end a links section, the
+			// description's own last one would be read as the card's.
+			escape, _ = linksSection(lines, mask, 0, len(lines))
+		}
 		for j, l := range lines {
 			if mask[j] {
 				l = escapeLine(l)
 				if j == 0 {
 					l = escapeMetaLine(l)
 				}
+				if j == escape {
+					l = `\` + l
+				}
 			}
 			b.WriteString(l + "\n")
+		}
+	}
+	if len(t.Links) > 0 {
+		b.WriteString("\n#### Links\n\n")
+		for _, l := range t.Links {
+			b.WriteString("- " + l.Kind + " " + l.ID + "\n")
 		}
 	}
 	if len(t.Comments) > 0 {
