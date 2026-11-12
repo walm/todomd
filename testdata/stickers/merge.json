@@ -1,0 +1,114 @@
+[
+  {
+    "name": "ours sets, theirs unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: star -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: star -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "theirs sets, ours unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: zap -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: zap -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours removes, theirs unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both change: theirs wins, no conflict",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: star -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: blue -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: blue -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours changes, theirs removes: theirs wins",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: green -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours removes, theirs changes: theirs wins",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: amber -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: amber -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both set the same",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: bug -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: bug -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: bug -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "different cards",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: ship -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: violet -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: ship -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: violet -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours: theirs' removal still wins",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "baseless: theirs wins",
+    "options": {
+      "baseless": true
+    },
+    "base": "# TODO\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: idea -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: eyes -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "a sticker change keeps a card the other side deleted",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: question -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- sticker: fire -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: question -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: red -->\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "delete_vs_edit",
+        "task": "bbbb",
+        "kept": "ours",
+        "note": "deleted by theirs but changed by ours; kept ours"
+      }
+    ],
+    "renamed": []
+  }
+]

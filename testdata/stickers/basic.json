@@ -1,0 +1,105 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Doing",
+      "tasks": [
+        {
+          "id": "r209",
+          "title": "Migrate attachments to R2 lifecycle rules",
+          "tags": [
+            "infra"
+          ],
+          "priority": "high",
+          "due": "2026-11-14",
+          "sticker": "fire",
+          "description": "Move the attachment bucket to lifecycle rules.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "r210",
+          "title": "Ribbon, no metadata",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "violet",
+          "description": "Only a ribbon.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "r211",
+          "title": "Sticker, nothing else",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "eyes",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "r212",
+          "title": "Sticker with links and comments",
+          "tags": [
+            "sync"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": "wip",
+          "description": "Replay queued writes.",
+          "links": [
+            {
+              "kind": "split from",
+              "id": "r209"
+            }
+          ],
+          "comments": [
+            {
+              "author": "agent",
+              "date": "2026-11-11",
+              "text": "started"
+            }
+          ]
+        },
+        {
+          "id": "r213",
+          "title": "No sticker",
+          "tags": [
+            "docs"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "Plain card.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    },
+    {
+      "name": "Done",
+      "tasks": [
+        {
+          "id": "r214",
+          "title": "Sticker and comments, no description",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "check",
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-12",
+              "text": "shipped"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

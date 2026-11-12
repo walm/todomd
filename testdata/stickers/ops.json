@@ -1,0 +1,143 @@
+[
+  {
+    "name": "sticker set",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\n<!-- sticker: star -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "sticker": "star"
+        }
+      }
+    ]
+  },
+  {
+    "name": "sticker changed to a ribbon",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: red -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "sticker": "red"
+        }
+      }
+    ]
+  },
+  {
+    "name": "sticker removed",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "sticker": null
+        }
+      }
+    ]
+  },
+  {
+    "name": "sticker next to other fields",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two!\n<!-- id:bbbb -->\n**priority:** low\n\n<!-- sticker: bug -->\n\nNew.\n\n#### Links\n\n- related aaaa\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "title": "Two!",
+          "priority": "low",
+          "sticker": "bug",
+          "description": "New.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "aaaa"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "description changed under a sticker",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nOther.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "description": "Other."
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added with a sticker",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: heart -->\n\n#### Links\n\n- blocks aaaa\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "heart",
+          "description": "",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added without a sticker has no sticker key",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "moved task keeps its sticker",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n",
+    "ops": [
+      {
+        "op": "task.move",
+        "id": "aaaa",
+        "board": "Done",
+        "after": null
+      }
+    ]
+  }
+]

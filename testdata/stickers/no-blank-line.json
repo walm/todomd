@@ -1,0 +1,59 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Right after the metadata line",
+          "tags": [
+            "infra"
+          ],
+          "priority": "high",
+          "due": "2026-11-14",
+          "sticker": "fire",
+          "description": "Description.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Right after the id",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "star",
+          "description": "Description right after.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cccc",
+          "title": "Blank lines around",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": "bug",
+          "description": "Text after two blank lines.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dddd",
+          "title": "Sticker before the metadata line",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "zap",
+          "description": "`#x` **priority:** low",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

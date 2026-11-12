@@ -561,3 +561,60 @@ func TestLinksToAnOldServerSendTheWholeFile(t *testing.T) {
 	}
 	e.sameAsHead()
 }
+
+func TestStickersSyncAsOps(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	e.mutate(func(f *task.File) error {
+		f.Boards[0].Tasks[0].Sticker = "fire"
+		return nil
+	})
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" || !strings.Contains(fmt.Sprint(last.Raw["ops"]), "sticker") {
+		t.Errorf("sent %s form: %v", last.Form, last.Raw["ops"])
+	}
+	e.sameAsHead()
+	if !strings.Contains(e.srv.Head(e.s.Link.ProjectID), "\n\n<!-- sticker: fire -->\n") {
+		t.Errorf("head:\n%s", e.srv.Head(e.s.Link.ProjectID))
+	}
+}
+
+// A server on format 2 can't read stickers in ops, and holds a sticker line
+// as description text, which a description op would overwrite. While the
+// file has stickers, every change goes as the whole file.
+func TestStickersToAnOldServerSendTheWholeFile(t *testing.T) {
+	e := setup(t, startDoc)
+	e.s.FormatVersion = 2
+	e.create()
+	e.mutate(addTask("cccc", "Three"))
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no stickers: sent %s form, want ops", last.Form)
+	}
+	steps := []func(f *task.File){
+		func(f *task.File) { f.Boards[0].Tasks[0].Sticker = "star" },         // sets one
+		func(f *task.File) { f.Boards[0].Tasks[0].Description = "Changed." }, // edits a stickered card
+		func(f *task.File) { f.Boards[0].Tasks[1].Title = "Other card" },     // edits another card
+		func(f *task.File) { f.Boards[0].Tasks[0].Sticker = "" },             // removes the last one
+	}
+	for i, step := range steps {
+		e.mutate(func(f *task.File) error { step(f); return nil })
+		r := e.round()
+		calls = e.srv.Calls()
+		if last := calls[len(calls)-1]; last.Form != "content" || !r.FullFile {
+			t.Errorf("step %d: sent %s form, want content", i, last.Form)
+		}
+		e.sameAsHead()
+	}
+	if e.s.Link.FullFile != nil {
+		t.Error("the link switched to full-file mode for good")
+	}
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[1].Title = "Again"; return nil })
+	e.round()
+	calls = e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no stickers left: sent %s form, want ops", last.Form)
+	}
+}

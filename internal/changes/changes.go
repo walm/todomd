@@ -57,6 +57,14 @@ func index(f *task.File) map[string]loc {
 	return m
 }
 
+// stickerValue is a sticker name, or nil (JSON null) for none.
+func stickerValue(name string) any {
+	if name == "" {
+		return nil
+	}
+	return name
+}
+
 func dueValue(d *task.Date) any {
 	if d == nil {
 		return nil
@@ -116,6 +124,9 @@ func Diff(old, cur *task.File) []Event {
 			}
 			if dueValue(o.t.Due) != dueValue(t.Due) {
 				fields["due"] = FieldChange{dueValue(o.t.Due), dueValue(t.Due)}
+			}
+			if o.t.Sticker != t.Sticker {
+				fields["sticker"] = FieldChange{stickerValue(o.t.Sticker), stickerValue(t.Sticker)}
 			}
 			if !slices.Equal(o.t.Links, t.Links) {
 				fields["links"] = FieldChange{linkValues(o.t.Links), linkValues(t.Links)}
@@ -270,6 +281,8 @@ func Apply(f *task.File, events []Event) {
 					t.Links = slices.Clone(e.Task.Links)
 				case "priority":
 					t.Priority = e.Task.Priority
+				case "sticker":
+					t.Sticker = e.Task.Sticker
 				case "due":
 					t.Due = nil
 					if e.Task.Due != nil {

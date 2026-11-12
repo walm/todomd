@@ -13,9 +13,9 @@ import (
 	"github.com/walm/todomd/internal/task"
 )
 
-// The golden files under testdata/links are shared with todomd.online's
-// TypeScript implementation (packages/todofile), which must read and write
-// them the same way. For each NAME.md:
+// The golden files under testdata/links and testdata/stickers are shared
+// with todomd.online's TypeScript implementation (packages/todofile), which
+// must read and write them the same way. For each NAME.md:
 //
 //	NAME.out.md  Write(Parse(NAME.md)), byte for byte
 //	NAME.json    the parsed model
@@ -25,7 +25,10 @@ import (
 // review the diff.
 var update = flag.Bool("update", false, "rewrite the golden files")
 
-const goldenDir = "../../testdata/links"
+const (
+	linksDir    = "../../testdata/links"
+	stickersDir = "../../testdata/stickers"
+)
 
 type goldenLink struct {
 	Kind string `json:"kind"`
@@ -44,6 +47,7 @@ type goldenTask struct {
 	Tags        []string        `json:"tags"`
 	Priority    string          `json:"priority"`
 	Due         *string         `json:"due"`
+	Sticker     json.RawMessage `json:"sticker,omitempty"` // stickers only: a name or null
 	Description string          `json:"description"`
 	Links       []goldenLink    `json:"links"`
 	Comments    []goldenComment `json:"comments"`
@@ -60,7 +64,10 @@ type goldenFile struct {
 	Boards   []goldenBoard `json:"boards"`
 }
 
-func goldenModel(f *task.File) []byte {
+// goldenModel is the parsed model as JSON. withSticker adds each card's
+// sticker (a name or null); the links files predate stickers and leave it
+// out.
+func goldenModel(f *task.File, withSticker bool) []byte {
 	g := goldenFile{Title: f.Title, Preamble: f.Preamble, Boards: []goldenBoard{}}
 	for _, b := range f.Boards {
 		gb := goldenBoard{Name: b.Name, Tasks: []goldenTask{}}
@@ -71,6 +78,12 @@ func goldenModel(f *task.File) []byte {
 			if t.Due != nil {
 				d := t.Due.String()
 				gt.Due = &d
+			}
+			if withSticker {
+				gt.Sticker = json.RawMessage("null")
+				if t.Sticker != "" {
+					gt.Sticker, _ = json.Marshal(t.Sticker)
+				}
 			}
 			for _, l := range t.Links {
 				gt.Links = append(gt.Links, goldenLink{l.Kind, l.ID})
@@ -109,7 +122,10 @@ func checkGolden(t *testing.T, path string, got []byte) {
 	}
 }
 
-func TestGoldenLinks(t *testing.T) {
+func TestGoldenLinks(t *testing.T)    { runGolden(t, linksDir, false) }
+func TestGoldenStickers(t *testing.T) { runGolden(t, stickersDir, true) }
+
+func runGolden(t *testing.T, goldenDir string, withSticker bool) {
 	inputs, err := filepath.Glob(filepath.Join(goldenDir, "*.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -143,7 +159,7 @@ func TestGoldenLinks(t *testing.T) {
 			}
 			out := Write(f)
 			checkGolden(t, name+".out.md", out)
-			checkGolden(t, name+".json", goldenModel(f))
+			checkGolden(t, name+".json", goldenModel(f, withSticker))
 			// Write is a fixed point, and the model survives it.
 			back, err := ParseStrict(out)
 			if err != nil {
@@ -152,7 +168,7 @@ func TestGoldenLinks(t *testing.T) {
 			if again := Write(back); !bytes.Equal(again, out) {
 				t.Errorf("not a fixed point:\n%s\n---\n%s", out, again)
 			}
-			if !bytes.Equal(goldenModel(back), goldenModel(f)) {
+			if !bytes.Equal(goldenModel(back, withSticker), goldenModel(f, withSticker)) {
 				t.Error("model changed on reparse")
 			}
 		})

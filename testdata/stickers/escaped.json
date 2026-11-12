@@ -1,0 +1,90 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "e001",
+          "title": "Escaped, no sticker",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "<!-- sticker: fire -->\n\nThe description starts with a sticker line.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "e002",
+          "title": "Double escape",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "\\<!-- sticker: red -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "e003",
+          "title": "A sticker, then a sticker line as text",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "fire",
+          "description": "<!-- sticker: star -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "e004",
+          "title": "A sticker, then an escaped line kept as it is",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "fire",
+          "description": "\\<!-- sticker: star -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "e005",
+          "title": "Escaped after blank lines",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "<!-- sticker: idea -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "e006",
+          "title": "Sticker, no metadata, then a metadata lookalike",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "target",
+          "description": "`#tag` **priority:** high",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "e007",
+          "title": "Escaped unknown name is plain text",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "\\<!-- sticker: banana -->",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

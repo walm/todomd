@@ -310,6 +310,13 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		// description text, byte for byte.
 		full = true
 	}
+	if push && !full && s.FormatVersion > 0 && s.FormatVersion < markdown.StickersFormatVersion && (hasStickers(base) || hasStickers(local)) {
+		// The server predates stickers: its ops reader would reject the
+		// sticker field, and it holds a sticker line as the first line of
+		// the card's description, which a description change in an op would
+		// overwrite. It keeps the line in a whole file byte for byte.
+		full = true
+	}
 	req, sent := build(full, push)
 	res.FullFile = full
 	resp, err := s.Client.Sync(ctx, l.ProjectID, req)
@@ -339,6 +346,16 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		return nil, nil, err
 	}
 	return resp, sent, nil
+}
+
+// hasStickers reports whether any card in f has a sticker.
+func hasStickers(f *task.File) bool {
+	for _, t := range f.AllTasks() {
+		if t.Sticker != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // carriesLinks reports whether a change list sets or adds any card links.

@@ -15,6 +15,8 @@
 //   - A conflict comment isn't added twice.
 //   - The file title and preamble keep ours' value in the Conflict's note.
 //   - NoDeletesFromOurs also covers tags, links and comments.
+//   - The sticker is a scalar with no conflict: one side's change wins,
+//     and when both changed it, theirs (the later write) wins silently.
 //   - Links merge as a set, like tags. When ours' card is renamed after an
 //     id collision, the links ours added that point at its old id are
 //     remapped to the new one.
@@ -119,6 +121,7 @@ func sameContent(a, b *task.Task) bool {
 	return a.Title == b.Title &&
 		a.Priority == b.Priority &&
 		task.SameDue(a.Due, b.Due) &&
+		a.Sticker == b.Sticker &&
 		a.Description == b.Description &&
 		slices.Equal(a.Tags, b.Tags) &&
 		slices.Equal(a.Links, b.Links) &&
@@ -734,6 +737,8 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 	if c {
 		field("priority", "field", was("priority")+": "+ot.Priority.String())
 	}
+	// Last writer wins: a sticker is decoration, not worth a conflict note.
+	sticker, _ := pick(hasB, bt.Sticker, ot.Sticker, tt.Sticker, eqString)
 	due, c := pick(hasB, bt.Due, ot.Due, tt.Due, task.SameDue)
 	if c {
 		v := "none"
@@ -786,6 +791,7 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 		Links:       mergeSet(hasB, bt.Links, ot.Links, tt.Links, mg.noDeletes),
 		Priority:    prio,
 		Due:         dueCopy,
+		Sticker:     sticker,
 		Description: description,
 		Comments:    slices.Clone(cm.list),
 	}
