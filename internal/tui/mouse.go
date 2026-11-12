@@ -28,7 +28,7 @@ func keyRunes(s string) tea.KeyMsg {
 // by replaying the corresponding key through the normal handler.
 var hintActions = []struct{ label, key string }{
 	{"e edit", "e"}, {"E editor", "E"}, {"c comment", "c"}, {"p priority", "p"},
-	{"q/esc back", "q"},
+	{"s sticker", "s"}, {"q/esc back", "q"},
 }
 
 // labelCol returns the display column of label within plain, or -1. Byte

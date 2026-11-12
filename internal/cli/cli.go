@@ -42,6 +42,7 @@ type taskJSON struct {
 	Tags        []string       `json:"tags"`
 	Priority    task.Priority  `json:"priority"`
 	Due         *task.Date     `json:"due"`
+	Sticker     *string        `json:"sticker"` // a name, or null
 	Description string         `json:"description"`
 	Links       []cardLinkJSON `json:"links"`
 	Comments    []commentJSON  `json:"comments"`
@@ -58,6 +59,7 @@ func toJSON(f *task.File, t *task.Task, board string) taskJSON {
 		Tags:        append([]string{}, t.Tags...),
 		Priority:    t.Priority,
 		Due:         t.Due,
+		Sticker:     stickerJSON(t.Sticker),
 		Description: t.Description,
 		Links:       linksJSON(f, t),
 		Comments:    []commentJSON{},
@@ -315,7 +317,7 @@ func newInit() *cobra.Command {
 }
 
 func newList() *cobra.Command {
-	var board, tag, priority string
+	var board, tag, priority, sticker string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List tasks",
@@ -337,7 +339,14 @@ func newList() *cobra.Command {
 				}
 				wantPriority = &p
 			}
+			matchSticker, err := stickerFilter(sticker)
+			if err != nil {
+				return err
+			}
 			match := func(b *task.Board, t *task.Task) bool {
+				if !matchSticker(t) {
+					return false
+				}
 				if board != "" && !strings.EqualFold(b.Name, board) {
 					return false
 				}
@@ -378,6 +387,14 @@ func newList() *cobra.Command {
 				}
 				return printJSON(out)
 			}
+			// The sticker column only when a listed card has one, so other
+			// lists read exactly as before.
+			stickers := false
+			for _, b := range f.Boards {
+				for _, t := range b.Tasks {
+					stickers = stickers || (t.Sticker != "" && match(b, t))
+				}
+			}
 			w := tabwriter.NewWriter(os.Stdout, 2, 4, 2, ' ', 0)
 			for _, b := range f.Boards {
 				for _, t := range b.Tasks {
@@ -396,7 +413,11 @@ func newList() *cobra.Command {
 					if t.Priority != task.PriorityNormal {
 						prio = "!" + t.Priority.String()
 					}
-					fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, b.Name, t.Title, prio, tags, due)
+					if stickers {
+						fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, b.Name, t.Title, prio, tags, due, stickerMark(t.Sticker))
+					} else {
+						fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, b.Name, t.Title, prio, tags, due)
+					}
 				}
 			}
 			return w.Flush()
@@ -405,6 +426,7 @@ func newList() *cobra.Command {
 	cmd.Flags().StringVar(&board, "board", "", "only this board")
 	cmd.Flags().StringVar(&tag, "tag", "", "only tasks with this tag")
 	cmd.Flags().StringVar(&priority, "priority", "", "only tasks with this priority (high, normal, low)")
+	cmd.Flags().StringVar(&sticker, "sticker", "", "only tasks with this sticker (a name or emoji), any sticker (any), or none (none)")
 	jsonFlag(cmd)
 	return cmd
 }
@@ -441,6 +463,9 @@ func newShow() *cobra.Command {
 			if t.Due != nil {
 				fmt.Printf("due:    %s\n", t.Due)
 			}
+			if t.Sticker != "" {
+				fmt.Printf("sticker: %s\n", task.StickerLabel(t.Sticker))
+			}
 			if views := store.LinksOf(f, t); len(views) > 0 {
 				writeLinkRows(os.Stdout, views, "links:  ", "        ")
 			}
@@ -462,7 +487,7 @@ func newShow() *cobra.Command {
 }
 
 func newAdd() *cobra.Command {
-	var board, desc, due, priority string
+	var board, desc, due, priority, sticker string
 	var tags, links []string
 	cmd := &cobra.Command{
 		Use:   "add <title>",
@@ -484,6 +509,13 @@ func newAdd() *cobra.Command {
 				}
 				t.Due = &d
 			}
+			if sticker != "" {
+				name, err := task.ParseSticker(sticker)
+				if err != nil {
+					return err
+				}
+				t.Sticker = name
+			}
 			return mutate(func(f *task.File) (*task.Task, error) {
 				if err := addLinks(f, t, links); err != nil {
 					return nil, err
@@ -500,6 +532,7 @@ func newAdd() *cobra.Command {
 	cmd.Flags().StringVar(&due, "due", "", "due date YYYY-MM-DD")
 	cmd.Flags().StringVar(&priority, "priority", "", "priority: high, normal (default) or low")
 	cmd.Flags().StringArrayVar(&links, "link", nil, "link to a card on the board, kind:id (repeatable; e.g. split-from:3f2a, blocks:9e41)")
+	cmd.Flags().StringVar(&sticker, "sticker", "", "sticker: an emoji name or emoji (fire, 🔥, …) or a ribbon colour (red, …); see 'todomd sticker --help'")
 	asFlag(cmd)
 	jsonFlag(cmd)
 	return cmd
@@ -507,7 +540,7 @@ func newAdd() *cobra.Command {
 
 func newUpdate() *cobra.Command {
 	var opts store.UpdateOpts
-	var title, desc, due, priority string
+	var title, desc, due, priority, sticker string
 	var tags []string
 	cmd := &cobra.Command{
 		Use:   "update <id>",
@@ -537,6 +570,13 @@ func newUpdate() *cobra.Command {
 				}
 				opts.Due = &d
 			}
+			if cmd.Flags().Changed("sticker") {
+				name, err := task.ParseSticker(sticker)
+				if err != nil {
+					return err
+				}
+				opts.Sticker = &name
+			}
 			if opts == (store.UpdateOpts{}) {
 				return errors.New("nothing to update: pass at least one flag")
 			}
@@ -552,6 +592,7 @@ func newUpdate() *cobra.Command {
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "replacement tag set (repeatable)")
 	cmd.Flags().StringVar(&due, "due", "", "new due date YYYY-MM-DD")
 	cmd.Flags().StringVar(&priority, "priority", "", "new priority: high, normal or low")
+	cmd.Flags().StringVar(&sticker, "sticker", "", "new sticker (a name, an emoji, a ribbon colour, or none)")
 	cmd.Flags().BoolVar(&opts.ClearDue, "clear-due", false, "remove the due date")
 	cmd.Flags().BoolVar(&opts.ClearTags, "clear-tags", false, "remove all tags")
 	asFlag(cmd)

@@ -29,15 +29,21 @@ func (f filter) describe() string {
 
 // matches reports whether a card survives the filter. The query is matched
 // case-insensitively against everything a person might remember about a task:
-// its id, title, tags, description and the text of its comments.
+// its id, title, tags, description and the text of its comments. The terms
+// has:sticker, sticker:any, sticker:none and sticker:NAME (or an emoji) test
+// the card's sticker instead.
 func (f filter) matches(t *task.Task, mark markKind) bool {
 	if f.unreadOnly && mark == markNone {
 		return false
 	}
-	if f.query == "" {
+	query, sticker := stickerQuery(f.query)
+	if sticker != nil && !sticker(t) {
+		return false
+	}
+	if query == "" {
 		return true
 	}
-	q := strings.ToLower(f.query)
+	q := strings.ToLower(query)
 	if strings.Contains(strings.ToLower(t.Title), q) ||
 		strings.Contains(strings.ToLower(t.Description), q) ||
 		strings.Contains(t.ID, q) {

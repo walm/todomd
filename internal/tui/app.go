@@ -87,6 +87,7 @@ const (
 	modeForm
 	modeConfirm
 	modeSearch
+	modeSticker
 )
 
 type keyMap struct {
@@ -96,7 +97,7 @@ type keyMap struct {
 	MoveDown, MoveUp         key.Binding
 	Open, Add, Edit, Comment key.Binding
 	Editor                   key.Binding
-	Priority                 key.Binding
+	Priority, Sticker        key.Binding
 	Delete, Done, Reload     key.Binding
 	MarkAllRead              key.Binding
 	Unread, Search, Clear    key.Binding
@@ -121,6 +122,7 @@ func newKeyMap() keyMap {
 		Edit:      key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 		Editor:    key.NewBinding(key.WithKeys("E"), key.WithHelp("E", "$EDITOR")),
 		Priority:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "priority")),
+		Sticker:   key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "sticker")),
 		Comment:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "comment")),
 		Delete:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		Done:      key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "done")),
@@ -145,7 +147,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.Left, k.Up, k.First, k.Open},
 		{k.MoveLeft, k.MoveDown, k.Done, k.Delete},
 		{k.Add, k.Edit, k.Editor, k.Comment},
-		{k.Priority, k.Delete, k.Done, k.Reload},
+		{k.Priority, k.Sticker, k.Delete, k.Done, k.Reload},
 		{k.MarkAllRead, k.Unread, k.Search, k.Clear},
 		{k.DeleteBoard},
 		{k.Help, k.Quit},
@@ -171,6 +173,7 @@ type model struct {
 	form        *form
 	formFrom    mode          // view to return to when the form closes
 	confirm     *confirmation // pending y/n question, nil when none
+	picker      *picker       // the open sticker picker, nil when none
 
 	status       string
 	isError      bool
@@ -228,7 +231,7 @@ func newModel(s *store.Store, f *task.File) *model {
 	m := &model{store: s, file: f, help: help.New(), keys: newKeyMap(), hintHover: -1, footHover: -1}
 	m.search = textinput.New()
 	m.search.Prompt = "/"
-	m.search.Placeholder = "search titles, tags, descriptions, comments"
+	m.search.Placeholder = "search titles, tags, descriptions, comments; sticker:fire, has:sticker"
 	m.unread = loadUnread(s.Path, f)
 	m.recordStat()
 	if n := len(m.unread.marks); n > 0 {
@@ -351,6 +354,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateConfirm(msg)
 		case modeSearch:
 			return m.updateSearch(msg)
+		case modeSticker:
+			return m.updateSticker(msg)
 		}
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
@@ -434,6 +439,8 @@ func (m *model) updateBoard(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case key.Matches(msg, k.Priority):
 		m.cyclePriority()
+	case key.Matches(msg, k.Sticker):
+		m.openStickerPicker(modeBoard)
 	case key.Matches(msg, k.Editor):
 		return m, m.openEditor(modeBoard)
 	case key.Matches(msg, k.Comment):
@@ -633,6 +640,9 @@ func (m *model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.cyclePriority()
 		m.openDetail() // re-render with the new priority
 		return m, nil
+	case "s":
+		m.openStickerPicker(modeDetail)
+		return m, nil
 	case "g", "home":
 		m.vp.GotoTop()
 		return m, nil
@@ -780,6 +790,8 @@ func (m *model) View() string {
 		return m.viewDetail()
 	case modeForm:
 		return m.viewForm()
+	case modeSticker:
+		return m.viewSticker()
 	default:
 		return m.viewBoard()
 	}

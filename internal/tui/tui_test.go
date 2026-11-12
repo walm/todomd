@@ -1445,3 +1445,88 @@ func TestDetailLinksJump(t *testing.T) {
 		t.Error("9 moved the selection")
 	}
 }
+
+func TestStickerCorner(t *testing.T) {
+	for _, name := range []string{"fire", "heart", "check", "red", "violet"} {
+		x := &task.Task{ID: "aaaa", Title: "A card with a sticker", Sticker: name}
+		plainCard := renderCard(&task.Task{ID: "aaaa", Title: x.Title}, 24, false, markNone)
+		got := renderCard(x, 24, false, markNone)
+		if lipgloss.Width(got) != lipgloss.Width(plainCard) || lipgloss.Height(got) != lipgloss.Height(plainCard) {
+			t.Errorf("%s: size changed:\n%s\n%s", name, plainCard, got)
+		}
+		top := ansi.Strip(strings.SplitN(got, "\n", 2)[0])
+		want := task.StickerEmoji(name) + "─╮"
+		if task.IsRibbon(name) {
+			want = "━━◥"
+		}
+		if !strings.HasPrefix(top, "╭") || !strings.HasSuffix(top, want) {
+			t.Errorf("%s: top border %q", name, top)
+		}
+	}
+}
+
+func TestStickerPicker(t *testing.T) {
+	m := newTestModel(t, 1, 2)
+	id := m.selectedTask().ID
+	press := func(keys ...string) {
+		for _, k := range keys {
+			m.Update(keyMsg(k))
+		}
+	}
+	press("s")
+	if m.mode != modeSticker || !strings.Contains(ansi.Strip(m.View()), "Sticker for") {
+		t.Fatalf("picker not open: mode %v", m.mode)
+	}
+	press("right", "enter") // fire → star
+	if m.mode != modeBoard || m.selectedTask().ID != id || m.selectedTask().Sticker != "star" {
+		t.Fatalf("mode %v, sticker %q", m.mode, m.selectedTask().Sticker)
+	}
+	if f, _ := m.store.Load(); f.Boards[0].Tasks[0].Sticker != "star" {
+		t.Error("not saved")
+	}
+	if !strings.Contains(ansi.Strip(m.View()), "⭐") {
+		t.Error("board doesn't show the sticker")
+	}
+	press("enter", "s", "9") // from the open card, 9 = bug
+	if m.mode != modeDetail || m.selectedTask().Sticker != "bug" || !strings.Contains(ansi.Strip(m.detailHead), "🐛 bug") {
+		t.Fatalf("mode %v, sticker %q, head %q", m.mode, m.selectedTask().Sticker, ansi.Strip(m.detailHead))
+	}
+	press("s", "esc")
+	if m.mode != modeDetail || m.selectedTask().Sticker != "bug" {
+		t.Fatal("esc changed something")
+	}
+	press("s", "0")
+	if m.selectedTask().Sticker != "" {
+		t.Errorf("0 left %q", m.selectedTask().Sticker)
+	}
+}
+
+func TestStickerSearch(t *testing.T) {
+	cards := []*task.Task{
+		{Title: "fire card", Sticker: "fire"}, {Title: "red card", Sticker: "red"}, {Title: "plain card"},
+	}
+	for _, c := range []struct {
+		q    string
+		want string
+	}{
+		{"has:sticker", "fire card,red card"},
+		{"sticker:any", "fire card,red card"},
+		{"sticker:none", "plain card"},
+		{"sticker:fire", "fire card"},
+		{"sticker:🔥", "fire card"},
+		{"Sticker:RED card", "red card"},
+		{"has:sticker plain", ""},
+		{"sticker:banana", ""},
+		{"card", "fire card,red card,plain card"},
+	} {
+		var got []string
+		for _, x := range cards {
+			if (filter{query: c.q}).matches(x, markNone) {
+				got = append(got, x.Title)
+			}
+		}
+		if strings.Join(got, ",") != c.want {
+			t.Errorf("%q: %v", c.q, got)
+		}
+	}
+}
