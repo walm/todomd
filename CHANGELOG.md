@@ -4,11 +4,11 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
-## Unreleased
+## v0.15.0 — 2026-11-12
 
-To ship as **v0.15.0**, together with todomd.online's sticker support.
-todomd.online keeps syncing with older todomd versions: while a project has
-stickers, they sync whole files (no `todomd upgrade` needed).
+Card stickers, together with todomd.online's sticker support. todomd.online
+keeps syncing with older todomd versions: while a project has stickers, they
+sync whole files (no `todomd upgrade` needed).
 
 ### Added
 
