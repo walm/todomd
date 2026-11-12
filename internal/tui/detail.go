@@ -66,6 +66,9 @@ func (m *model) detailHeader(t *task.Task, board string, w int) string {
 		}
 		meta = append(meta, style.Render("due "+t.Due.String()))
 	}
+	if t.Sticker != "" {
+		meta = append(meta, stickerLabel(t.Sticker))
+	}
 	line := ansi.Truncate(strings.Join(meta, hintStyle.Render(" · ")), w, "…")
 	return title + "\n" + line
 }
@@ -82,6 +85,9 @@ func (m *model) headerWidth(t *task.Task, board string) int {
 	}
 	if t.Due != nil {
 		meta += " · due " + t.Due.String()
+	}
+	if t.Sticker != "" {
+		meta += " · " + ansi.Strip(stickerLabel(t.Sticker))
 	}
 	return max(lipgloss.Width(t.Title), lipgloss.Width(meta))
 }

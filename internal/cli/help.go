@@ -21,7 +21,7 @@ func addCommandGroups(root *cobra.Command) {
 	cobra.EnableCommandSorting = false
 	groups := []commandGroup{
 		{"tasks", "Tasks:", []*cobra.Command{newList(), newShow(), newAdd(), newUpdate(), newMove(), newDone(),
-			newComment(), newDelete(), newLinks(), newSplit()}},
+			newComment(), newSticker(), newDelete(), newLinks(), newSplit()}},
 		{"boards", "Boards:", []*cobra.Command{newBoards(), newArchive()}},
 		{"online", "todomd.online:", []*cobra.Command{newLogin(), newLogout(), newWhoami(), newLink(), newUnlink(),
 			newSync(), newOpen(), newAttach(), newDownload()}},

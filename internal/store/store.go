@@ -352,6 +352,7 @@ type UpdateOpts struct {
 	Tags        *[]string // replaces the whole set
 	Priority    *task.Priority
 	Due         *task.Date
+	Sticker     *string // a canonical name, "" removes it
 	ClearDue    bool
 	ClearTags   bool
 }
@@ -387,6 +388,12 @@ func Update(f *task.File, ref string, opts UpdateOpts) (*task.Task, error) {
 	}
 	if opts.Priority != nil {
 		t.Priority = *opts.Priority
+	}
+	if opts.Sticker != nil {
+		if *opts.Sticker != "" && !task.ValidSticker(*opts.Sticker) {
+			return nil, fmt.Errorf("unknown sticker %q", *opts.Sticker)
+		}
+		t.Sticker = *opts.Sticker
 	}
 	if opts.ClearDue {
 		t.Due = nil

@@ -257,7 +257,7 @@ func renderCard(t *task.Task, w int, selected bool, mark markKind) string {
 	case mark == markUpdated:
 		style = cardUpdated
 	}
-	return style.Width(w - 2).Render(strings.Join(parts, "\n"))
+	return withStickerCorner(style.Width(w-2).Render(strings.Join(parts, "\n")), t.Sticker, style.GetBorderTopForeground())
 }
 
 // footerActions is the board's short help line; entries with a key are

@@ -4,6 +4,51 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+To ship as **v0.15.0**, together with todomd.online's sticker support.
+todomd.online keeps syncing with older todomd versions: while a project has
+stickers, they sync whole files (no `todomd upgrade` needed).
+
+### Added
+
+- **Card stickers.** A card can carry one sticker so it stands out on the
+  board: an emoji from a fixed set (fire 🔥, star ⭐, eyes 👀, wip 🚧,
+  check ✅, target 🎯, zap ⚡, idea 💡, bug 🐛, ship 🚀, question ❓,
+  heart ❤️) or a ribbon colour (red, amber, green, blue, violet). TODO.md
+  stores it as a hidden line after the metadata line,
+  `<!-- sticker: fire -->`.
+- `todomd sticker <id> <name|emoji|none>` sets or removes it; `todomd
+  sticker <id>` prints it and `todomd sticker` lists the set. Names are
+  case-insensitive and the emoji work with or without a variation selector
+  (❤ or ❤️).
+- `add --sticker`, `update --sticker` and `list --sticker <sticker|any|none>`.
+- `show` prints the sticker; task JSON (`show`, `list`, mutations) has
+  `"sticker": "fire"` or `null`. The text `list` shows it in a last column
+  when a listed card has one.
+- TUI: the sticker sits in the top-right corner of the card (an emoji on the
+  border, or a coloured corner for a ribbon) and next to the metadata in the
+  open card. `s` opens a picker on the board and in the open card (arrows
+  and `enter`, `1`–`9` for the first nine emoji, `0` for none). Search takes
+  `sticker:fire`, `sticker:🔥`, `has:sticker` (or `sticker:any`) and
+  `sticker:none`.
+- `todomd changes`/`watch` report sticker changes as
+  `fields.sticker {old, new}` in `task_updated`.
+- `todomd skill` tells agents to set stickers only when the user asks.
+
+### Changed
+
+- TODO.md format version 3 (the sticker line). Files without stickers are
+  unchanged, and a line that isn't exactly a sticker line with a known name,
+  in that one position, stays description text. Older todomd versions read
+  the sticker line as the first description line and write it back byte for
+  byte; on a card with a sticker, replacing its description with an older
+  version (`update --desc`) drops it.
+- Sync sends `sticker` in its change list; when both sides change a card's
+  sticker, the later write wins without a conflict note. Against a
+  todomd.online server on format version 2 or older, a round sends the whole
+  file while the file has stickers.
+
 ## v0.14.0 — 2026-11-11
 
 todomd.online syncs card links only with todomd 0.14.0 or newer, and will

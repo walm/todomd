@@ -77,6 +77,20 @@ todomd links rm 9e41 3f2a --as agent              # removes the link wherever it
 `title`, `board`). A card that is `blocked by` an open card (one not on the
 last board): don't start it without asking.
 
+## Stickers
+
+A card can carry one sticker (`"sticker"` in JSON: `fire`, `wip`, `red`, …,
+or `null`). Stickers belong to the user: set, change or remove one **only
+when the user asks you to**, never on your own (not even 🚧 while you work
+on a card). When asked:
+
+```sh
+todomd sticker 3f2a fire --as agent      # or the emoji 🔥, a ribbon colour (red, amber, green, blue, violet), or none
+```
+
+`todomd sticker` lists the choices; `todomd list --sticker fire --json`
+finds cards by sticker.
+
 ## Wait for changes: the `todomd watch` loop
 
 ```sh

@@ -107,6 +107,8 @@ todomd links add 9e41 blocks 3f2a     # also blocked-by, related, duplicate-of, 
 todomd links 3f2a --json              # a card's links, both ways
 todomd links rm 9e41 3f2a             # wherever the link is stored
 todomd add "Follow-up" --link related:3f2a
+todomd sticker 3f2a fire              # or 🔥, a ribbon colour (red, …), or none
+todomd list --sticker any --json      # cards with a sticker (or --sticker fire, none)
 todomd boards --json
 todomd boards add Review              # before Done; or --after/--before <board>
 todomd boards rename Review QA        # tasks and position stay
@@ -177,6 +179,13 @@ it waits, but only `watch` syncs before and after.
   is to work High first, then Normal, then Low — todomd records it and leaves
   the ordering to you. `"priority"` is always present in JSON, so an agent
   never has to infer the default.
+- **Stickers** make a card stand out on the board: one per card, an emoji
+  from a fixed set (fire 🔥, star ⭐, eyes 👀, wip 🚧, check ✅, target 🎯,
+  zap ⚡, idea 💡, bug 🐛, ship 🚀, question ❓, heart ❤️) or a ribbon colour
+  (red, amber, green, blue, violet). Set one with `todomd sticker <id>
+  <name|emoji|none>`, `add --sticker` or `update --sticker`; `todomd sticker`
+  lists them. JSON has `"sticker": "fire"` or `null`. A sticker isn't a tag:
+  filter on tags for meaning, use a sticker to stand out.
 - **Exit codes**: `0` ok · `1` general error · `2` task or board not found ·
   `3` ambiguous ID prefix · `8` board name already taken · and for
   todomd.online sync (below): `4` not logged in · `5` not linked ·
@@ -211,11 +220,12 @@ it waits, but only `watch` syncs before and after.
 | `E` | Edit the task as markdown in `$VISUAL`/`$EDITOR` (title, tags, due, description, comments) |
 | `p` | Cycle priority (normal → high → low) |
 | | (in the add/edit form, priority is a `←`/`→` select) |
+| `s` | Sticker picker (arrows and `enter`, `1`–`9` for the first nine emoji, `0` none) |
 | `c` | Comment on task |
 | `d` / `D` | Delete task (confirm) / move to Done |
 | `X` | Delete the current board (asks first if it holds tasks) |
 | `A` | Mark every card as read (clear all badges) |
-| `/` | Search: filters as you type (`enter` keeps it, `esc` cancels) |
+| `/` | Search: filters as you type (`enter` keeps it, `esc` cancels); `sticker:fire`, `has:sticker` and `sticker:none` filter on stickers |
 | `u` | Show only changed/unread cards |
 | `esc` | Clear the active filter |
 | `r` | Reload from disk |
@@ -224,7 +234,7 @@ it waits, but only `watch` syncs before and after.
 Inside the open task: `j`/`k` scroll, `ctrl+d`/`ctrl+u` half a page, `g`/`G`
 jump to the top and bottom, and the title, id, board, tags, priority and due
 date stay pinned above the scrolling body. Its links are listed under the
-description, numbered: `1`–`9` open the linked card. `e`, `E`, `c` and `p` work there too
+description, numbered: `1`–`9` open the linked card. `e`, `E`, `c`, `p` and `s` work there too
 and return you to the task afterwards.
 
 🖱️ Mouse works alongside the keys: click a card to select it, click it again to
@@ -354,6 +364,8 @@ Free-form preamble — never touched by the tool.
 <!-- id:3f2a -->
 `#parser` `#core` **priority:** high **due:** 2026-08-01
 
+<!-- sticker: fire -->
+
 Description: any markdown, multiple paragraphs, code fences, lists.
 
 #### Links
@@ -381,6 +393,10 @@ Rules, briefly:
   the ID comment (formatter-inserted blank lines are fine). `**priority:**` is
   `high` or `low`; the default `normal` is left out, so ordinary tasks stay
   clean.
+- A sticker is a hidden `<!-- sticker: NAME -->` line right after the
+  metadata line (`fire`, `star`, …, `red`, …; ASCII names, not the emoji).
+  Only that position and only a known name count; anything else is
+  description text. Details: [docs/card-stickers-format.md](docs/card-stickers-format.md).
 - Everything up to `#### Links` / `#### Comments` / the next heading is the
   description, preserved verbatim.
 - `#### Links` lists links to other cards, one per line: `- <kind> <id>`,
