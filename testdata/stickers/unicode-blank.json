@@ -1,0 +1,35 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "NBSP line before",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "heart",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bbbb",
+          "title": "Line separator before",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": "ship",
+          "description": "Text.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Stickers",
+      "tasks": [
+        {
+          "id": "s000",
+          "title": "fire",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "fire",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s001",
+          "title": "star",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "star",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s002",
+          "title": "eyes",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "eyes",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s003",
+          "title": "wip",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "wip",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s004",
+          "title": "check",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "check",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s005",
+          "title": "target",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "target",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s006",
+          "title": "zap",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "zap",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s007",
+          "title": "idea",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "idea",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s008",
+          "title": "bug",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "bug",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s009",
+          "title": "ship",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "ship",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s010",
+          "title": "question",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "question",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s011",
+          "title": "heart",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "heart",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s012",
+          "title": "red",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "red",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s013",
+          "title": "amber",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "amber",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s014",
+          "title": "green",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "green",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s015",
+          "title": "blue",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "blue",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "s016",
+          "title": "violet",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "violet",
+          "description": "",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

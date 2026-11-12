@@ -1,0 +1,46 @@
+{
+  "title": "TODO",
+  "preamble": "Preamble text.",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Format 2 card",
+          "tags": [
+            "a"
+          ],
+          "priority": "low",
+          "due": null,
+          "sticker": null,
+          "description": "`#tag`\n\n<!-- not a sticker -->",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "bbbb"
+            }
+          ],
+          "comments": [
+            {
+              "author": "x",
+              "date": "2026-01-01",
+              "text": "y"
+            }
+          ]
+        },
+        {
+          "id": "bbbb",
+          "title": "Another",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "Text.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

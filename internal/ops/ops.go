@@ -68,20 +68,22 @@ type Op struct {
 
 // Fields are the task fields a task.update replaces; nil means unchanged.
 // Due needs a separate flag because "clear the due date" is a change too.
-// Links, like Tags, is the card's whole list after the change.
+// Links, like Tags, is the card's whole list after the change. Sticker is
+// the new sticker's name, "" to remove it.
 type Fields struct {
 	Title       *string
 	Tags        *[]string
 	Priority    *task.Priority
 	HasDue      bool
 	Due         *task.Date
+	Sticker     *string
 	Description *string
 	Links       *[]task.Link
 }
 
 // Empty reports whether no field is set.
 func (s Fields) Empty() bool {
-	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Description == nil && s.Links == nil
+	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Sticker == nil && s.Description == nil && s.Links == nil
 }
 
 // OpError names the first op that couldn't be read or applied.
@@ -166,6 +168,14 @@ func linksJSON(ls []task.Link) json.RawMessage {
 	return b.Bytes()
 }
 
+// stickerJSON is a sticker name, or null for none.
+func stickerJSON(name string) any {
+	if name == "" {
+		return nil
+	}
+	return name
+}
+
 func tagsOf(tags []string) []string {
 	if tags == nil {
 		return []string{}
@@ -187,9 +197,12 @@ func taskJSON(t *task.Task) json.RawMessage {
 	o.field("tags", tagsOf(t.Tags))
 	o.field("priority", t.Priority.String())
 	o.field("due", dueJSON(t.Due))
+	// Only cards with a sticker carry the key (and only with links the
+	// links key), so every other task.add reads as it did before.
+	if t.Sticker != "" {
+		o.field("sticker", t.Sticker)
+	}
 	o.field("description", t.Description)
-	// Only cards with links carry the key, so every other task.add reads
-	// the same as before links existed.
 	if len(t.Links) > 0 {
 		o.field("links", linksJSON(t.Links))
 	}
@@ -248,6 +261,9 @@ func (op Op) MarshalJSON() ([]byte, error) {
 		if op.Set.HasDue {
 			s.field("due", dueJSON(op.Set.Due))
 		}
+		if op.Set.Sticker != nil {
+			s.field("sticker", stickerJSON(*op.Set.Sticker))
+		}
 		if op.Set.Description != nil {
 			s.field("description", *op.Set.Description)
 		}
@@ -286,7 +302,7 @@ var opKeys = map[string][]string{
 
 var (
 	taskKeys    = []string{"id", "title", "tags", "priority", "due", "description", "comments"}
-	fieldKeys   = []string{"title", "tags", "priority", "due", "description", "links"}
+	fieldKeys   = []string{"title", "tags", "priority", "due", "sticker", "description", "links"}
 	commentKeys = []string{"author", "date", "text"}
 	linkKeys    = []string{"kind", "id"}
 )
@@ -422,6 +438,18 @@ func readLinks(raw json.RawMessage, what string) []task.Link {
 	return out
 }
 
+// readSticker reads a sticker name, or null for none ("").
+func readSticker(raw json.RawMessage, what string) string {
+	if isNull(raw) {
+		return ""
+	}
+	name := readString(raw, what)
+	if !task.ValidSticker(name) {
+		fail("%s must be a sticker name (fire, star, …, red, amber, green, blue, violet) or null", what)
+	}
+	return name
+}
+
 func readAfter(raw json.RawMessage, id bool) *string {
 	if isNull(raw) {
 		return nil
@@ -464,8 +492,9 @@ func readOp(raw json.RawMessage) Op {
 		op.Board = readString(o["board"], "board")
 		op.Name = readString(o["name"], "name")
 	case TaskAdd:
-		// links is optional: a task without links leaves it out.
-		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "links"), false)
+		// sticker and links are optional: a task without them leaves them
+		// out.
+		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "sticker", "links"), false)
 		for _, k := range taskKeys {
 			if _, ok := t[k]; !ok {
 				fail("missing key %s in task", strconv.Quote(k))
@@ -478,6 +507,9 @@ func readOp(raw json.RawMessage) Op {
 			Priority:    readPriority(t["priority"]),
 			Description: readString(t["description"], "task.description"),
 			Comments:    readComments(t["comments"], "task.comments"),
+		}
+		if v, ok := t["sticker"]; ok {
+			tk.Sticker = readSticker(v, "task.sticker")
 		}
 		if v, ok := t["links"]; ok {
 			tk.Links = readLinks(v, "task.links")
@@ -514,6 +546,9 @@ func readOp(raw json.RawMessage) Op {
 				d := readDate(v, "set.due")
 				op.Set.Due = &d
 			}
+		}
+		if v, ok := s["sticker"]; ok {
+			op.Set.Sticker = strp(readSticker(v, "set.sticker"))
 		}
 		if v, ok := s["description"]; ok {
 			op.Set.Description = strp(readString(v, "set.description"))

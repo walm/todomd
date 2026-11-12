@@ -1,0 +1,22 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aaaa",
+          "title": "Two sticker lines",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "fire",
+          "description": "<!-- sticker: star -->",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

@@ -268,3 +268,23 @@ func TestDiffAndApplyLinks(t *testing.T) {
 		t.Error("Apply didn't fold the link changes")
 	}
 }
+
+func TestDiffAndApplySticker(t *testing.T) {
+	old := file(board("B", &task.Task{ID: "aaaa", Title: "x", Sticker: "fire"}, &task.Task{ID: "bbbb", Title: "y"}))
+	cur := old.Clone()
+	cur.Boards[0].Tasks[0].Sticker = ""
+	cur.Boards[0].Tasks[1].Sticker = "red"
+	evs := Diff(old, cur)
+	if len(evs) != 2 {
+		t.Fatalf("events = %+v", evs)
+	}
+	a, b := evs[0].Fields["sticker"], evs[1].Fields["sticker"]
+	if a.Old != "fire" || a.New != nil || b.Old != nil || b.New != "red" {
+		t.Errorf("fields: %+v %+v", a, b)
+	}
+	snap := old.Clone()
+	Apply(snap, evs)
+	if len(Diff(snap, cur)) != 0 {
+		t.Error("Apply didn't fold the sticker changes")
+	}
+}

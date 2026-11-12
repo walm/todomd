@@ -51,6 +51,8 @@ var lines = []string{
 	"<<<<<<< HEAD", "=======", ">>>>>>> branch", "trailing   ", "İ ı K", "> quote", "#### heading 4", "##no space",
 	"#### Links", "#### Links", "\\#### Links", "\\\\#### Links", "#### Links \t", "####  Links", "- related abcd",
 	"- blocks zz01", "- Blocked-By zz02", "- split  from 0000", "- duplicate of ABCD", "- bogus abcd", "- related abcd x",
+	"<!-- sticker: fire -->", "<!-- sticker: red -->", "\\<!-- sticker: star -->", "\\\\<!-- sticker: bug -->",
+	"<!-- sticker: banana -->", "<!-- sticker: Fire -->", "<!--sticker: fire-->", "<!-- sticker: fire --> ", "<!-- sticker: 🔥 -->",
 }
 
 var preambleLines = []string{
@@ -222,6 +224,9 @@ func newTask(r *Rng, taken map[string]bool, idPool []string) *task.Task {
 		for k := 1 + r.Int(3); k > 0; k-- {
 			addLink(r, t)
 		}
+	}
+	if r.Chance(0.25) {
+		t.Sticker = pick(r, task.Stickers).Name
 	}
 	n := 0
 	if r.Chance(0.5) {
@@ -399,7 +404,7 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 	}
 
 	for s := 0; s < steps; s++ {
-		switch r.Int(18) {
+		switch r.Int(19) {
 		case 0:
 			if len(f.Boards) == 0 {
 				break
@@ -521,6 +526,14 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 					// then CheckTask rejects the edit).
 					k := r.Int(len(t.Links))
 					t.Links[k].Kind = pick(r, task.LinkKinds)
+				}
+			})
+		case 18:
+			editTask(func(t *task.Task) {
+				if t.Sticker != "" && r.Chance(0.4) {
+					t.Sticker = ""
+				} else {
+					t.Sticker = pick(r, task.Stickers).Name
 				}
 			})
 		}

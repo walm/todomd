@@ -62,6 +62,9 @@ func CheckTask(t *task.Task) error {
 			return invalid("comments", "invalid comment date %q", c.Date.String())
 		}
 	}
+	if t.Sticker != "" && !task.ValidSticker(t.Sticker) {
+		return invalid("sticker", "unknown sticker %q", t.Sticker)
+	}
 	if err := checkLinks(t); err != nil {
 		return err
 	}

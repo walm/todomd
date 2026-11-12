@@ -144,6 +144,7 @@ type Task struct {
 	Due         *Date
 	Description string // verbatim markdown
 	Links       []Link // stored on this card, in file order
+	Sticker     string // a name from Stickers, or "" for none
 	Comments    []Comment
 }
 
