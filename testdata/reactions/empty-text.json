@@ -1,0 +1,42 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "e001",
+          "title": "Empty comment text",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "anna"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "anna",
+              "date": "2026-11-13",
+              "text": "after",
+              "reactions": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

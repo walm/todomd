@@ -1,0 +1,178 @@
+[
+  {
+    "name": "reaction added to a comment",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 👀 walm -->\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "ops": [
+      {
+        "op": "comment.set",
+        "task": "aaaa",
+        "comments": [
+          {
+            "author": "anna",
+            "date": "2026-11-12",
+            "text": "Can you look?",
+            "reactions": [
+              {
+                "emoji": "👍",
+                "by": [
+                  "walm"
+                ]
+              }
+            ]
+          },
+          {
+            "author": "agent",
+            "date": "2026-11-12",
+            "text": "On it.",
+            "reactions": [
+              {
+                "emoji": "👀",
+                "by": [
+                  "walm"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "second name on an emoji",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "ops": [
+      {
+        "op": "comment.set",
+        "task": "aaaa",
+        "comments": [
+          {
+            "author": "anna",
+            "date": "2026-11-12",
+            "text": "Can you look?",
+            "reactions": [
+              {
+                "emoji": "👍",
+                "by": [
+                  "walm",
+                  "anna"
+                ]
+              }
+            ]
+          },
+          {
+            "author": "agent",
+            "date": "2026-11-12",
+            "text": "On it."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "last reaction removed",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "ops": [
+      {
+        "op": "comment.set",
+        "task": "aaaa",
+        "comments": [
+          {
+            "author": "anna",
+            "date": "2026-11-12",
+            "text": "Can you look?"
+          },
+          {
+            "author": "agent",
+            "date": "2026-11-12",
+            "text": "On it."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "comment added with reactions",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **ai** (2026-11-13): Done.\n  <!-- reactions: ✅ walm; ❤️ anna,bob -->\n\n## Done\n",
+    "ops": [
+      {
+        "op": "comment.add",
+        "task": "bbbb",
+        "comment": {
+          "author": "ai",
+          "date": "2026-11-13",
+          "text": "Done.",
+          "reactions": [
+            {
+              "emoji": "✅",
+              "by": [
+                "walm"
+              ]
+            },
+            {
+              "emoji": "❤️",
+              "by": [
+                "anna",
+                "bob"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added with a reacted comment",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n\n### Three\n<!-- id:cccc -->\n\n#### Comments\n\n- **ai** (2026-11-13): x\n  <!-- reactions: 🎉 walm -->\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-13",
+              "text": "x",
+              "reactions": [
+                {
+                  "emoji": "🎉",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "plain comment added keeps the format-3 shape",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n- **walm** (2026-11-13): Thanks.\n\n### Two\n<!-- id:bbbb -->\n\n## Done\n",
+    "ops": [
+      {
+        "op": "comment.add",
+        "task": "aaaa",
+        "comment": {
+          "author": "walm",
+          "date": "2026-11-13",
+          "text": "Thanks."
+        }
+      }
+    ]
+  }
+]

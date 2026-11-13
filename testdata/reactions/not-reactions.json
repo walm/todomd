@@ -1,0 +1,95 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "n001",
+          "title": "Lines that are not reactions",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "<!-- reactions: 👍 walm -->",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "uppercase name\n<!-- reactions: 👍 Walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "two spaces\n<!-- reactions: 👍  walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "not an emoji\n<!-- reactions: ok walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "nobody\n<!-- reactions: 👍 -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "empty name\n<!-- reactions: 👍 walm, -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "comma and space\n<!-- reactions: 👍 walm, anna -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "semicolon without space\n<!-- reactions: 👍 walm;👀 anna -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "no spaces\n<!--reactions: 👍 walm-->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "three-space indent\n <!-- reactions: 👍 walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "name with a space\n<!-- reactions: 👍 bob smith -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "an emoji with ASCII\n<!-- reactions: 👍a walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "empty\n<!-- reactions:  -->",
+              "reactions": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -150,9 +150,10 @@ type Task struct {
 
 // Comment is a dated note on a task, by a human or an AI.
 type Comment struct {
-	Author string
-	Date   Date
-	Text   string
+	Author    string
+	Date      Date
+	Text      string
+	Reactions []Reaction // see reaction.go; nil for none
 }
 
 // AllTasks returns every task in board order.

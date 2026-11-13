@@ -1,0 +1,226 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "r001",
+          "title": "Export the board as CSV",
+          "tags": [
+            "cli"
+          ],
+          "priority": "high",
+          "due": null,
+          "sticker": "eyes",
+          "description": "Write the exporter.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "r002"
+            }
+          ],
+          "comments": [
+            {
+              "author": "anna",
+              "date": "2026-11-12",
+              "text": "Can you look at the export?",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "walm",
+                    "anna"
+                  ]
+                },
+                {
+                  "emoji": "👀",
+                  "by": [
+                    "agent"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "agent",
+              "date": "2026-11-12",
+              "text": "On it. Plan:\n\n1. read the board\n2. write CSV",
+              "reactions": [
+                {
+                  "emoji": "✅",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "No reactions here.",
+              "reactions": []
+            }
+          ]
+        },
+        {
+          "id": "r002",
+          "title": "Every kind of emoji",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "Quick set",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "walm"
+                  ]
+                },
+                {
+                  "emoji": "❤️",
+                  "by": [
+                    "anna"
+                  ]
+                },
+                {
+                  "emoji": "🎉",
+                  "by": [
+                    "bob.smith"
+                  ]
+                },
+                {
+                  "emoji": "👀",
+                  "by": [
+                    "agent"
+                  ]
+                },
+                {
+                  "emoji": "✅",
+                  "by": [
+                    "claude"
+                  ]
+                },
+                {
+                  "emoji": "🙏",
+                  "by": [
+                    "x_y"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "Skin tones are their own reactions",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "a"
+                  ]
+                },
+                {
+                  "emoji": "👍🏽",
+                  "by": [
+                    "b"
+                  ]
+                },
+                {
+                  "emoji": "👍🏿",
+                  "by": [
+                    "c"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "Keycaps, flags, ZWJ sequences, text-default symbols",
+              "reactions": [
+                {
+                  "emoji": "1️⃣",
+                  "by": [
+                    "a"
+                  ]
+                },
+                {
+                  "emoji": "#️⃣",
+                  "by": [
+                    "b"
+                  ]
+                },
+                {
+                  "emoji": "🇸🇪",
+                  "by": [
+                    "walm"
+                  ]
+                },
+                {
+                  "emoji": "👨‍👩‍👧",
+                  "by": [
+                    "anna"
+                  ]
+                },
+                {
+                  "emoji": "☀",
+                  "by": [
+                    "c"
+                  ]
+                },
+                {
+                  "emoji": "⭐",
+                  "by": [
+                    "d"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Done",
+      "tasks": [
+        {
+          "id": "r003",
+          "title": "Shipped",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "Done.",
+          "links": [],
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-01",
+              "text": "Released.",
+              "reactions": [
+                {
+                  "emoji": "🎉",
+                  "by": [
+                    "walm",
+                    "anna",
+                    "bob",
+                    "a-1",
+                    "0"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

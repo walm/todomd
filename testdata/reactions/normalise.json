@@ -1,0 +1,122 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "m001",
+          "title": "Hand-written reactions are normalised",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "a name twice",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "a",
+                    "b"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "one emoji twice, with and without U+FE0F",
+              "reactions": [
+                {
+                  "emoji": "❤️",
+                  "by": [
+                    "a",
+                    "b"
+                  ]
+                },
+                {
+                  "emoji": "👀",
+                  "by": [
+                    "c"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "a blank line before it",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "one-space indent",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "two lines, the last counts\n<!-- reactions: 👍 a -->",
+              "reactions": [
+                {
+                  "emoji": "👀",
+                  "by": [
+                    "b"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "trailing spaces before it are trimmed",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "a trailing space after it (comments drop trailing spaces)",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

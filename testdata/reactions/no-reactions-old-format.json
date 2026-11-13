@@ -1,0 +1,41 @@
+{
+  "title": "TODO",
+  "preamble": "Notes.",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "o001",
+          "title": "A format-3 card",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "due": "2026-12-01",
+          "sticker": "fire",
+          "description": "Text.",
+          "links": [],
+          "comments": [
+            {
+              "author": "ai",
+              "date": "2026-11-01",
+              "text": "one",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-02",
+              "text": "two\nlines",
+              "reactions": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Done",
+      "tasks": []
+    }
+  ]
+}

@@ -317,6 +317,13 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		// overwrite. It keeps the line in a whole file byte for byte.
 		full = true
 	}
+	if push && !full && s.FormatVersion > 0 && s.FormatVersion < markdown.ReactionsFormatVersion && (hasReactions(base) || hasReactions(local)) {
+		// The server predates reactions: its ops reader would reject the
+		// reactions field, and it holds a reactions line as the last line of
+		// the comment's text, which a comment.set would rewrite escaped. It
+		// keeps the line in a whole file byte for byte.
+		full = true
+	}
 	req, sent := build(full, push)
 	res.FullFile = full
 	resp, err := s.Client.Sync(ctx, l.ProjectID, req)
@@ -353,6 +360,18 @@ func hasStickers(f *task.File) bool {
 	for _, t := range f.AllTasks() {
 		if t.Sticker != "" {
 			return true
+		}
+	}
+	return false
+}
+
+// hasReactions reports whether any comment in f has reactions.
+func hasReactions(f *task.File) bool {
+	for _, t := range f.AllTasks() {
+		for _, c := range t.Comments {
+			if len(c.Reactions) > 0 {
+				return true
+			}
 		}
 	}
 	return false

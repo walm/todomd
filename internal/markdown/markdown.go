@@ -5,7 +5,8 @@
 // tags, an optional priority, and a due date) immediately after the ID
 // comment, an optional sticker line (see stickers.go), a verbatim
 // description, an optional `#### Links` list (see links.go) and an optional
-// `#### Comments` list. Code fences at column 0 shield their contents from
+// `#### Comments` list, each comment's reactions on its last line (see
+// reactions.go). Code fences at column 0 shield their contents from
 // structural interpretation. Lines in descriptions that would otherwise read
 // as structure are backslash-escaped on write and unescaped on parse, so any
 // text round-trips exactly.
@@ -27,7 +28,8 @@ import (
 //	1  boards, cards, metadata line, description, comments
 //	2  adds the `#### Links` section (card links)
 //	3  adds the `<!-- sticker: NAME -->` line (card stickers)
-const FormatVersion = 3
+//	4  adds the `<!-- reactions: … -->` line (comment reactions)
+const FormatVersion = 4
 
 // LinksFormatVersion is the first format version with card links. A server
 // on an older one can't take links in sync ops.
@@ -36,6 +38,10 @@ const LinksFormatVersion = 2
 // StickersFormatVersion is the first format version with card stickers. A
 // server on an older one can't take stickers in sync ops.
 const StickersFormatVersion = 3
+
+// ReactionsFormatVersion is the first format version with comment
+// reactions. A server on an older one can't take them in sync ops.
+const ReactionsFormatVersion = 4
 
 // ParseError is a structural error at a specific line of the file.
 type ParseError struct {
@@ -372,6 +378,7 @@ func parse(data []byte, strict bool) (*task.File, error) {
 				flush := func() {
 					if cur != nil {
 						cur.Text = strings.TrimRight(cur.Text, "\n ")
+						splitReactions(cur)
 						t.Comments = append(t.Comments, *cur)
 						cur = nil
 					}
@@ -521,7 +528,7 @@ func writeTask(b *strings.Builder, t *task.Task) {
 	if len(t.Comments) > 0 {
 		b.WriteString("\n#### Comments\n\n")
 		for _, c := range t.Comments {
-			lines := strings.Split(c.Text, "\n")
+			lines := commentLines(c)
 			fmt.Fprintf(b, "- **%s** (%s): %s\n", c.Author, c.Date, lines[0])
 			for _, l := range lines[1:] {
 				if isBlank(l) {

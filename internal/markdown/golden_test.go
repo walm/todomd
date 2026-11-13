@@ -13,7 +13,8 @@ import (
 	"github.com/walm/todomd/internal/task"
 )
 
-// The golden files under testdata/links and testdata/stickers are shared
+// The golden files under testdata/links, testdata/stickers and
+// testdata/reactions are shared
 // with todomd.online's TypeScript implementation (packages/todofile), which
 // must read and write them the same way. For each NAME.md:
 //
@@ -26,19 +27,32 @@ import (
 var update = flag.Bool("update", false, "rewrite the golden files")
 
 const (
-	linksDir    = "../../testdata/links"
-	stickersDir = "../../testdata/stickers"
+	linksDir     = "../../testdata/links"
+	stickersDir  = "../../testdata/stickers"
+	reactionsDir = "../../testdata/reactions"
 )
+
+// goldenMode is what a golden directory's JSON shows beyond format 2.
+type goldenMode struct {
+	sticker   bool // each card's sticker, a name or null
+	reactions bool // each comment's reactions, an array
+}
 
 type goldenLink struct {
 	Kind string `json:"kind"`
 	ID   string `json:"id"`
 }
 
+type goldenReaction struct {
+	Emoji string   `json:"emoji"`
+	By    []string `json:"by"`
+}
+
 type goldenComment struct {
-	Author string `json:"author"`
-	Date   string `json:"date"`
-	Text   string `json:"text"`
+	Author    string            `json:"author"`
+	Date      string            `json:"date"`
+	Text      string            `json:"text"`
+	Reactions *[]goldenReaction `json:"reactions,omitempty"` // reactions only: always an array there
 }
 
 type goldenTask struct {
@@ -64,10 +78,10 @@ type goldenFile struct {
 	Boards   []goldenBoard `json:"boards"`
 }
 
-// goldenModel is the parsed model as JSON. withSticker adds each card's
-// sticker (a name or null); the links files predate stickers and leave it
-// out.
-func goldenModel(f *task.File, withSticker bool) []byte {
+// goldenModel is the parsed model as JSON. mode adds each card's sticker (a
+// name or null) and each comment's reactions (an array); the files of older
+// features predate them and leave them out.
+func goldenModel(f *task.File, mode goldenMode) []byte {
 	g := goldenFile{Title: f.Title, Preamble: f.Preamble, Boards: []goldenBoard{}}
 	for _, b := range f.Boards {
 		gb := goldenBoard{Name: b.Name, Tasks: []goldenTask{}}
@@ -79,7 +93,7 @@ func goldenModel(f *task.File, withSticker bool) []byte {
 				d := t.Due.String()
 				gt.Due = &d
 			}
-			if withSticker {
+			if mode.sticker {
 				gt.Sticker = json.RawMessage("null")
 				if t.Sticker != "" {
 					gt.Sticker, _ = json.Marshal(t.Sticker)
@@ -89,7 +103,15 @@ func goldenModel(f *task.File, withSticker bool) []byte {
 				gt.Links = append(gt.Links, goldenLink{l.Kind, l.ID})
 			}
 			for _, c := range t.Comments {
-				gt.Comments = append(gt.Comments, goldenComment{c.Author, c.Date.String(), c.Text})
+				gc := goldenComment{Author: c.Author, Date: c.Date.String(), Text: c.Text}
+				if mode.reactions {
+					rs := []goldenReaction{}
+					for _, r := range c.Reactions {
+						rs = append(rs, goldenReaction{r.Emoji, append([]string{}, r.By...)})
+					}
+					gc.Reactions = &rs
+				}
+				gt.Comments = append(gt.Comments, gc)
 			}
 			gb.Tasks = append(gb.Tasks, gt)
 		}
@@ -122,10 +144,13 @@ func checkGolden(t *testing.T, path string, got []byte) {
 	}
 }
 
-func TestGoldenLinks(t *testing.T)    { runGolden(t, linksDir, false) }
-func TestGoldenStickers(t *testing.T) { runGolden(t, stickersDir, true) }
+func TestGoldenLinks(t *testing.T)    { runGolden(t, linksDir, goldenMode{}, 10) }
+func TestGoldenStickers(t *testing.T) { runGolden(t, stickersDir, goldenMode{sticker: true}, 10) }
+func TestGoldenReactions(t *testing.T) {
+	runGolden(t, reactionsDir, goldenMode{sticker: true, reactions: true}, 8)
+}
 
-func runGolden(t *testing.T, goldenDir string, withSticker bool) {
+func runGolden(t *testing.T, goldenDir string, mode goldenMode, min int) {
 	inputs, err := filepath.Glob(filepath.Join(goldenDir, "*.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +184,7 @@ func runGolden(t *testing.T, goldenDir string, withSticker bool) {
 			}
 			out := Write(f)
 			checkGolden(t, name+".out.md", out)
-			checkGolden(t, name+".json", goldenModel(f, withSticker))
+			checkGolden(t, name+".json", goldenModel(f, mode))
 			// Write is a fixed point, and the model survives it.
 			back, err := ParseStrict(out)
 			if err != nil {
@@ -168,12 +193,12 @@ func runGolden(t *testing.T, goldenDir string, withSticker bool) {
 			if again := Write(back); !bytes.Equal(again, out) {
 				t.Errorf("not a fixed point:\n%s\n---\n%s", out, again)
 			}
-			if !bytes.Equal(goldenModel(back, withSticker), goldenModel(f, withSticker)) {
+			if !bytes.Equal(goldenModel(back, mode), goldenModel(f, mode)) {
 				t.Error("model changed on reparse")
 			}
 		})
 	}
-	if n < 10 {
+	if n < min {
 		t.Fatalf("only %d golden inputs found in %s", n, goldenDir)
 	}
 }
