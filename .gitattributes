@@ -1,2 +1,3 @@
 testdata/links/** -text
 testdata/stickers/** -text
+testdata/reactions/** -text

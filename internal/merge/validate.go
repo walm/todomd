@@ -61,6 +61,9 @@ func CheckTask(t *task.Task) error {
 		if !validDate(c.Date) {
 			return invalid("comments", "invalid comment date %q", c.Date.String())
 		}
+		if err := checkReactions(c.Reactions); err != nil {
+			return err
+		}
 	}
 	if t.Sticker != "" && !task.ValidSticker(t.Sticker) {
 		return invalid("sticker", "unknown sticker %q", t.Sticker)
@@ -89,6 +92,35 @@ func CheckTask(t *task.Task) error {
 	for _, c := range t.Comments {
 		if markdown.ConflictMarkerLine(c.Text) > 0 {
 			return invalid("comments", "comment contains git conflict markers")
+		}
+	}
+	return nil
+}
+
+// checkReactions: valid emoji, each once (variation selectors aside), each
+// with a non-empty list of distinct valid names. There is no upper bound
+// here: task.MaxReactions only stops writers adding more, so a merge of two
+// sides at the limit still reads.
+func checkReactions(rs []task.Reaction) error {
+	seen := map[string]bool{}
+	for _, r := range rs {
+		k := task.EmojiKey(r.Emoji)
+		switch {
+		case !task.ValidEmoji(r.Emoji):
+			return invalid("reactions", "%q is not a valid reaction emoji", r.Emoji)
+		case seen[k]:
+			return invalid("reactions", "a comment has the reaction %s twice", r.Emoji)
+		case len(r.By) == 0:
+			return invalid("reactions", "the reaction %s has nobody on it", r.Emoji)
+		}
+		seen[k] = true
+		for j, n := range r.By {
+			if !task.ValidReactor(n) {
+				return invalid("reactions", "invalid name %q on the reaction %s", n, r.Emoji)
+			}
+			if slices.Index(r.By, n) < j {
+				return invalid("reactions", "%q is on the reaction %s twice", n, r.Emoji)
+			}
 		}
 	}
 	return nil

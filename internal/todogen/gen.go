@@ -53,6 +53,9 @@ var lines = []string{
 	"- blocks zz01", "- Blocked-By zz02", "- split  from 0000", "- duplicate of ABCD", "- bogus abcd", "- related abcd x",
 	"<!-- sticker: fire -->", "<!-- sticker: red -->", "\\<!-- sticker: star -->", "\\\\<!-- sticker: bug -->",
 	"<!-- sticker: banana -->", "<!-- sticker: Fire -->", "<!--sticker: fire-->", "<!-- sticker: fire --> ", "<!-- sticker: 🔥 -->",
+	"<!-- reactions: 👍 walm -->", "<!-- reactions: 👍 walm,anna; 👀 agent -->", "\\<!-- reactions: ✅ ai -->",
+	"\\\\<!-- reactions: 🎉 x -->", "<!-- reactions: ❤ a; ❤️ b -->", "<!-- reactions: 👍 a,a -->", "<!-- reactions: 👍 Walm -->",
+	"<!-- reactions: 👍  walm -->", "<!-- reactions: 👍 walm --> ", "<!-- reactions: ok walm -->", "<!-- reactions: 👍 -->",
 }
 
 var preambleLines = []string{
@@ -67,6 +70,8 @@ var boards = []string{
 
 var (
 	authors = []string{"ai", "andreas", "Bob Smith", "todomd-sync", "ünï", "x*y", "a (b)"}
+	emoji   = []string{"👍", "❤️", "❤", "🎉", "👀", "✅", "🙏", "👍🏽", "1️⃣", "🇸🇪", "👨‍👩‍👧", "⭐"}
+	names   = []string{"walm", "anna", "agent", "claude", "bob.smith", "x_y", "a-1", "0"}
 	dates   = []string{"2026-11-05", "2026-01-01", "0000-01-01", "2024-02-29", "9999-12-31", "2026-07-18"}
 	tags    = []string{"cli", "sync", "a-b", "x_y", "1", "core", "ui", "z"}
 )
@@ -199,7 +204,23 @@ func commentText(r *Rng) string {
 }
 
 func comment(r *Rng) task.Comment {
-	return task.Comment{Author: pick(r, authors), Date: date(pick(r, dates)), Text: commentText(r)}
+	c := task.Comment{Author: pick(r, authors), Date: date(pick(r, dates)), Text: commentText(r)}
+	if r.Chance(0.3) {
+		for k := 1 + r.Int(4); k > 0; k-- {
+			react(r, &c)
+		}
+	}
+	return c
+}
+
+// react adds a random reaction to c, or takes one away.
+func react(r *Rng, c *task.Comment) {
+	if len(c.Reactions) > 0 && r.Chance(0.3) {
+		x := pick(r, c.Reactions)
+		_, _ = c.React(x.Emoji, pick(r, x.By), true)
+		return
+	}
+	_, _ = c.React(pick(r, emoji), pick(r, names), false)
 }
 
 func newTask(r *Rng, taken map[string]bool, idPool []string) *task.Task {
@@ -404,7 +425,7 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 	}
 
 	for s := 0; s < steps; s++ {
-		switch r.Int(19) {
+		switch r.Int(20) {
 		case 0:
 			if len(f.Boards) == 0 {
 				break
@@ -534,6 +555,12 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 					t.Sticker = ""
 				} else {
 					t.Sticker = pick(r, task.Stickers).Name
+				}
+			})
+		case 19:
+			editTask(func(t *task.Task) {
+				if len(t.Comments) > 0 {
+					react(r, &t.Comments[r.Int(len(t.Comments))])
 				}
 			})
 		}

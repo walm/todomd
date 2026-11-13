@@ -1,0 +1,73 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "x001",
+          "title": "Comment text that looks like reactions",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "The last line is text, escaped:\n<!-- reactions: 👍 walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "Two backslashes in the file, one in the text:\n\\<!-- reactions: 👀 agent -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "With reactions of its own, the text's last line needs no escape:\n<!-- reactions: 🎉 x -->",
+              "reactions": [
+                {
+                  "emoji": "✅",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "With reactions, an escaped-looking text line stays as it is:\n\\<!-- reactions: 🎉 x -->",
+              "reactions": [
+                {
+                  "emoji": "✅",
+                  "by": [
+                    "walm"
+                  ]
+                }
+              ]
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "<!-- reactions: 👍 walm -->",
+              "reactions": []
+            },
+            {
+              "author": "walm",
+              "date": "2026-11-13",
+              "text": "Mid-comment lookalikes are text:\n<!-- reactions: 👍 walm -->\nand the comment goes on.",
+              "reactions": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

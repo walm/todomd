@@ -618,3 +618,72 @@ func TestStickersToAnOldServerSendTheWholeFile(t *testing.T) {
 		t.Errorf("no stickers left: sent %s form, want ops", last.Form)
 	}
 }
+
+func TestReactionsSyncAsOps(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	e.mutate(func(f *task.File) error {
+		x := f.Boards[0].Tasks[0]
+		x.Comments = append(x.Comments, task.Comment{Author: "anna", Date: task.Today(), Text: "Look?"})
+		_, err := x.Comments[len(x.Comments)-1].React("👍", "walm", false)
+		return err
+	})
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" || !strings.Contains(fmt.Sprint(last.Raw["ops"]), "reactions") {
+		t.Errorf("sent %s form: %v", last.Form, last.Raw["ops"])
+	}
+	e.sameAsHead()
+	if !strings.Contains(e.srv.Head(e.s.Link.ProjectID), "Look?\n  <!-- reactions: 👍 walm -->\n") {
+		t.Errorf("head:\n%s", e.srv.Head(e.s.Link.ProjectID))
+	}
+}
+
+// A server on format 3 can't read reactions in ops, and holds a reactions
+// line as the comment's last text line. While the file has reactions, every
+// change goes as the whole file.
+func TestReactionsToAnOldServerSendTheWholeFile(t *testing.T) {
+	e := setup(t, startDoc)
+	e.s.FormatVersion = 3
+	e.create()
+	e.mutate(func(f *task.File) error {
+		x := f.Boards[0].Tasks[0]
+		x.Comments = append(x.Comments, task.Comment{Author: "anna", Date: task.Today(), Text: "Look?"})
+		return nil
+	})
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no reactions: sent %s form, want ops", last.Form)
+	}
+	react := func(remove bool) func(f *task.File) {
+		return func(f *task.File) {
+			if _, err := f.Boards[0].Tasks[0].Comments[0].React("👀", "agent", remove); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	steps := []func(f *task.File){
+		react(false), // adds one
+		func(f *task.File) { f.Boards[0].Tasks[1].Title = "Other card" }, // edits another card
+		react(true), // removes the last one
+	}
+	for i, step := range steps {
+		e.mutate(func(f *task.File) error { step(f); return nil })
+		r := e.round()
+		calls = e.srv.Calls()
+		if last := calls[len(calls)-1]; last.Form != "content" || !r.FullFile {
+			t.Errorf("step %d: sent %s form, want content", i, last.Form)
+		}
+		e.sameAsHead()
+	}
+	if e.s.Link.FullFile != nil {
+		t.Error("the link switched to full-file mode for good")
+	}
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[1].Title = "Again"; return nil })
+	e.round()
+	calls = e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no reactions left: sent %s form, want ops", last.Form)
+	}
+}

@@ -17,6 +17,9 @@
 //   - NoDeletesFromOurs also covers tags, links and comments.
 //   - The sticker is a scalar with no conflict: one side's change wins,
 //     and when both changed it, theirs (the later write) wins silently.
+//   - Reactions merge per comment as a set of (emoji, name) pairs, like
+//     tags, apart from the comment list: a reaction is never a comment edit
+//     and never a conflict. See mergeReactions.
 //   - Links merge as a set, like tags. When ours' card is renamed after an
 //     id collision, the links ours added that point at its old id are
 //     remapped to the new one.
@@ -108,10 +111,14 @@ func index(f *task.File) *ordered[*loc] {
 	return m
 }
 
+// commentKey identifies a comment for the comment-list merge. Reactions
+// aren't part of it: they merge separately (mergeReactions), so reacting
+// never counts as editing the comment.
 func commentKey(c task.Comment) string {
 	return c.Author + "\x00" + c.Date.String() + "\x00" + c.Text
 }
 
+// sameComments compares comment lists by commentKey, reactions aside.
 func sameComments(a, b []task.Comment) bool {
 	return slices.EqualFunc(a, b, func(x, y task.Comment) bool { return commentKey(x) == commentKey(y) })
 }
@@ -125,7 +132,7 @@ func sameContent(a, b *task.Task) bool {
 		a.Description == b.Description &&
 		slices.Equal(a.Tags, b.Tags) &&
 		slices.Equal(a.Links, b.Links) &&
-		sameComments(a.Comments, b.Comments)
+		task.SameComments(a.Comments, b.Comments)
 }
 
 // minus is xs minus ys, as multisets, keeping xs' order.
@@ -793,7 +800,7 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 		Due:         dueCopy,
 		Sticker:     sticker,
 		Description: description,
-		Comments:    slices.Clone(cm.list),
+		Comments:    mergeReactions(hasB, bt.Comments, ot.Comments, tt.Comments, cm.list, mg.noDeletes),
 	}
 	// A clean line merge can still produce text that doesn't read back (two
 	// fences that pair up differently, say): fall back to theirs.

@@ -86,11 +86,51 @@ func linkValues(ls []task.Link) []LinkValue {
 	return out
 }
 
+// ReactionValue is one emoji on one comment in an event's fields.reactions.
+// Comment is the comment's 1-based number on the card.
+type ReactionValue struct {
+	Comment int      `json:"comment"`
+	Emoji   string   `json:"emoji"`
+	By      []string `json:"by"`
+}
+
+// sameText compares two comments without their reactions.
+func sameText(a, b task.Comment) bool {
+	return a.Author == b.Author && a.Date == b.Date && a.Text == b.Text
+}
+
 func commentsEqualPrefix(old, cur []task.Comment) bool {
 	if len(old) > len(cur) {
 		return false
 	}
-	return slices.Equal(old, cur[:len(old)])
+	return slices.EqualFunc(old, cur[:len(old)], sameText)
+}
+
+// reactionChanges lists the reactions, before and after, of each of old's
+// comments whose reactions differ in cur. old must be a prefix of cur
+// (commentsEqualPrefix); comments cur adds come with their comment_added
+// events.
+func reactionChanges(old, cur []task.Comment) (before, after []ReactionValue) {
+	before, after = []ReactionValue{}, []ReactionValue{}
+	for i := range old {
+		if task.SameReactions(old[i].Reactions, cur[i].Reactions) {
+			continue
+		}
+		for _, r := range old[i].Reactions {
+			before = append(before, ReactionValue{i + 1, r.Emoji, slices.Clone(r.By)})
+		}
+		for _, r := range cur[i].Reactions {
+			after = append(after, ReactionValue{i + 1, r.Emoji, slices.Clone(r.By)})
+		}
+	}
+	return before, after
+}
+
+// OnlyReactions reports whether e is a task_updated that changes nothing but
+// reactions. People don't count those as unread.
+func OnlyReactions(e Event) bool {
+	_, ok := e.Fields["reactions"]
+	return e.Type == TaskUpdated && ok && len(e.Fields) == 1
 }
 
 // Diff returns the semantic events that take old to cur. Reorders within a
@@ -132,11 +172,14 @@ func Diff(old, cur *task.File) []Event {
 				fields["links"] = FieldChange{linkValues(o.t.Links), linkValues(t.Links)}
 			}
 			if commentsEqualPrefix(o.t.Comments, t.Comments) {
+				if before, after := reactionChanges(o.t.Comments, t.Comments); len(before)+len(after) > 0 {
+					fields["reactions"] = FieldChange{before, after}
+				}
 				for i := len(o.t.Comments); i < len(t.Comments); i++ {
 					c := t.Comments[i]
 					events = append(events, Event{Type: CommentAdded, Task: t, Board: b.Name, Comment: &c})
 				}
-			} else if !slices.Equal(o.t.Comments, t.Comments) {
+			} else if !task.SameComments(o.t.Comments, t.Comments) {
 				// Comments were edited or removed mid-list; report counts and
 				// let the consumer `show` the task for detail.
 				fields["comments"] = FieldChange{len(o.t.Comments), len(t.Comments)}
@@ -196,7 +239,7 @@ func cloneTask(t *task.Task) *task.Task {
 	c := *t
 	c.Tags = slices.Clone(t.Tags)
 	c.Links = slices.Clone(t.Links)
-	c.Comments = slices.Clone(t.Comments)
+	c.Comments = task.CloneComments(t.Comments)
 	if t.Due != nil {
 		d := *t.Due
 		c.Due = &d
@@ -290,13 +333,21 @@ func Apply(f *task.File, events []Event) {
 						t.Due = &d
 					}
 				case "comments":
-					t.Comments = slices.Clone(e.Task.Comments)
+					t.Comments = task.CloneComments(e.Task.Comments)
+				case "reactions":
+					for i := range t.Comments {
+						if i < len(e.Task.Comments) && sameText(t.Comments[i], e.Task.Comments[i]) {
+							t.Comments[i].Reactions = task.CloneReactions(e.Task.Comments[i].Reactions)
+						}
+					}
 				}
 			}
 		case CommentAdded:
 			t, _ := findTask(f, e.Task.ID)
 			if t != nil && e.Comment != nil {
-				t.Comments = append(t.Comments, *e.Comment)
+				c := *e.Comment
+				c.Reactions = task.CloneReactions(c.Reactions)
+				t.Comments = append(t.Comments, c)
 			}
 		}
 	}

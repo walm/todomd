@@ -1,0 +1,180 @@
+[
+  {
+    "name": "ours reacts, theirs unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 👀 walm -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 👀 walm -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both react at once on one comment: both kept",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 👀 walm -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 👍 anna -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 👍 anna; 👀 walm -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both add a name to one emoji: theirs' order, then ours'",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,bob -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,bob,anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both add the same reaction: once",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours removes, theirs adds another",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "theirs removes, ours adds to the same emoji",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "reactions on different cards",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; ✅ agent -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna; 🙏 walm -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; ✅ agent -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna; 🙏 walm -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "a reaction and a new comment",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 👀 agent -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n- **walm** (2026-11-13): Thanks.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 👀 agent -->\n- **agent** (2026-11-12): On it.\n- **walm** (2026-11-13): Thanks.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both add comments, one with a reaction",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n- **ai** (2026-11-13): Done.\n  <!-- reactions: ✅ ai -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n- **walm** (2026-11-13): Thanks.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n- **walm** (2026-11-13): Thanks.\n- **ai** (2026-11-13): Done.\n  <!-- reactions: ✅ ai -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "the fuller spelling wins: ❤️ over ❤",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤️ anna,walm -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤️ anna,walm -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "two spellings of one emoji are one reaction",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤️ anna,walm -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna,bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤️ anna,bob,walm -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "skin tones are different reactions",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 👍🏽 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,bob -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm,bob; 👍🏽 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "theirs edits the comment ours reacted to: theirs' comment, its reactions",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n  <!-- reactions: 🎉 walm -->\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it, ETA Friday.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it, ETA Friday.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours edits the comment and theirs reacts to it: ours' text, theirs' reactions lost",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look? (urgent)\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 👀 agent -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look? (urgent)\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours: ours' removal is undone",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours: theirs' removal still wins",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "baseless: union",
+    "options": {
+      "baseless": true
+    },
+    "base": "# TODO\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 👀 agent -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm; 🎉 anna; 👀 agent -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "a reaction keeps a card the other side deleted",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna; 👍 walm -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n#### Comments\n\n- **anna** (2026-11-12): Can you look?\n  <!-- reactions: 👍 walm -->\n- **agent** (2026-11-12): On it.\n\n### Two\n<!-- id:bbbb -->\n\n#### Comments\n\n- **walm** (2026-11-13): Hearts\n  <!-- reactions: ❤ anna; 👍 walm -->\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "delete_vs_edit",
+        "task": "bbbb",
+        "kept": "ours",
+        "note": "deleted by theirs but changed by ours; kept ours"
+      }
+    ],
+    "renamed": []
+  }
+]

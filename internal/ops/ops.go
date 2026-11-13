@@ -132,7 +132,28 @@ func commentJSON(c task.Comment) json.RawMessage {
 	o.field("author", c.Author)
 	o.field("date", c.Date.String())
 	o.field("text", c.Text)
+	// Only comments with reactions carry the key, so every other comment
+	// reads as it did before reactions existed.
+	if len(c.Reactions) > 0 {
+		o.field("reactions", reactionsJSON(c.Reactions))
+	}
 	return o.bytes()
+}
+
+func reactionsJSON(rs []task.Reaction) json.RawMessage {
+	var b bytes.Buffer
+	b.WriteByte('[')
+	for i, r := range rs {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		o := newObject()
+		o.field("emoji", r.Emoji)
+		o.field("by", r.By)
+		b.Write(o.bytes())
+	}
+	b.WriteByte(']')
+	return b.Bytes()
 }
 
 func commentsJSON(cs []task.Comment) json.RawMessage {
@@ -304,7 +325,9 @@ var (
 	taskKeys    = []string{"id", "title", "tags", "priority", "due", "description", "comments"}
 	fieldKeys   = []string{"title", "tags", "priority", "due", "sticker", "description", "links"}
 	commentKeys = []string{"author", "date", "text"}
-	linkKeys    = []string{"kind", "id"}
+	// reactions is optional in a comment: one without them leaves it out.
+	reactionKeys = []string{"emoji", "by"}
+	linkKeys     = []string{"kind", "id"}
 )
 
 type failure struct{ msg string }
@@ -394,12 +417,59 @@ func readPriority(raw json.RawMessage) task.Priority {
 }
 
 func readComment(raw json.RawMessage, what string) task.Comment {
-	c := readObject(raw, what, commentKeys, true)
-	return task.Comment{
+	c := readObject(raw, what, append(slices.Clone(commentKeys), "reactions"), false)
+	for _, k := range commentKeys {
+		if _, ok := c[k]; !ok {
+			fail("missing key %s in %s", strconv.Quote(k), what)
+		}
+	}
+	out := task.Comment{
 		Author: readString(c["author"], what+".author"),
 		Date:   readDate(c["date"], what+".date"),
 		Text:   readString(c["text"], what+".text"),
 	}
+	if v, ok := c["reactions"]; ok {
+		out.Reactions = readReactions(v, what+".reactions")
+	}
+	return out
+}
+
+// readReactions reads a comment's reactions: an array of {emoji, by}, each
+// emoji once (variation selectors aside) with a non-empty list of distinct
+// names. [] is no reactions.
+func readReactions(raw json.RawMessage, what string) []task.Reaction {
+	t := bytes.TrimSpace(raw)
+	var items []json.RawMessage
+	if len(t) == 0 || t[0] != '[' || json.Unmarshal(t, &items) != nil {
+		fail("%s must be an array", what)
+	}
+	var out []task.Reaction
+	seen := map[string]bool{}
+	for i, it := range items {
+		w := fmt.Sprintf("%s[%d]", what, i)
+		o := readObject(it, w, reactionKeys, true)
+		r := task.Reaction{Emoji: readString(o["emoji"], w+".emoji"), By: readStrings(o["by"], w+".by")}
+		if !task.ValidEmoji(r.Emoji) {
+			fail("%s.emoji is not an emoji", w)
+		}
+		if seen[task.EmojiKey(r.Emoji)] {
+			fail("%s.emoji repeats an emoji", w)
+		}
+		seen[task.EmojiKey(r.Emoji)] = true
+		if len(r.By) == 0 {
+			fail("%s.by must not be empty", w)
+		}
+		for j, n := range r.By {
+			if !task.ValidReactor(n) {
+				fail("%s.by[%d] is not a valid name (lowercase letters, digits, '.', '_', '-')", w, j)
+			}
+			if slices.Index(r.By, n) < j {
+				fail("%s.by[%d] repeats a name", w, j)
+			}
+		}
+		out = append(out, r)
+	}
+	return out
 }
 
 func readComments(raw json.RawMessage, what string) []task.Comment {

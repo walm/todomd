@@ -7,13 +7,9 @@ import (
 	"github.com/walm/todomd/internal/task"
 )
 
-func sameComment(a, b task.Comment) bool {
-	return a.Author == b.Author && a.Date == b.Date && a.Text == b.Text
-}
-
-func sameComments(a, b []task.Comment) bool {
-	return slices.EqualFunc(a, b, sameComment)
-}
+// sameComments compares reactions too: a reaction changes the comment, and
+// travels as a comment.set.
+func sameComments(a, b []task.Comment) bool { return task.SameComments(a, b) }
 
 // longestIncreasing returns the indexes (into xs) of one longest strictly
 // increasing subsequence of xs, by patience sorting.
@@ -249,7 +245,7 @@ func Delta(a, b *task.File) []Op {
 					out = append(out, Op{Op: CommentAdd, TaskID: t.ID, Comment: c})
 				}
 			} else {
-				out = append(out, Op{Op: CommentSet, TaskID: t.ID, Comments: slices.Clone(t.Comments)})
+				out = append(out, Op{Op: CommentSet, TaskID: t.ID, Comments: task.CloneComments(t.Comments)})
 			}
 		}
 	}
@@ -465,13 +461,15 @@ func applyOne(f *task.File, home map[string]*task.Board, op Op) string {
 			return "unknown task " + q(op.TaskID)
 		}
 		t := b.Tasks[taskIndex(b, op.TaskID)]
-		t.Comments = append(t.Comments, op.Comment)
+		c := op.Comment
+		c.Reactions = task.CloneReactions(c.Reactions)
+		t.Comments = append(t.Comments, c)
 	case CommentSet:
 		b := home[op.TaskID]
 		if b == nil {
 			return "unknown task " + q(op.TaskID)
 		}
-		b.Tasks[taskIndex(b, op.TaskID)].Comments = slices.Clone(op.Comments)
+		b.Tasks[taskIndex(b, op.TaskID)].Comments = task.CloneComments(op.Comments)
 	default:
 		return "unknown op " + q(op.Op)
 	}

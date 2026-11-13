@@ -1,6 +1,7 @@
 package changes
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/walm/todomd/internal/task"
@@ -286,5 +287,46 @@ func TestDiffAndApplySticker(t *testing.T) {
 	Apply(snap, evs)
 	if len(Diff(snap, cur)) != 0 {
 		t.Error("Apply didn't fold the sticker changes")
+	}
+}
+
+func TestDiffAndApplyReactions(t *testing.T) {
+	c := func(text string, rs ...task.Reaction) task.Comment {
+		return task.Comment{Author: "a", Date: task.Date{Year: 2026, Month: 11, Day: 13}, Text: text, Reactions: rs}
+	}
+	old := file(board("B", &task.Task{ID: "aaaa", Title: "x", Comments: []task.Comment{
+		c("one", task.Reaction{Emoji: "👍", By: []string{"walm"}}), c("two"),
+	}}))
+	cur := old.Clone()
+	x := cur.Boards[0].Tasks[0]
+	x.Comments[1].React("👀", "agent", false)
+	x.Comments = append(x.Comments, c("three", task.Reaction{Emoji: "✅", By: []string{"ai"}}))
+	evs := Diff(old, cur)
+	if len(evs) != 2 || evs[0].Type != CommentAdded || evs[1].Type != TaskUpdated {
+		t.Fatalf("events = %+v", evs)
+	}
+	f := evs[1].Fields["reactions"]
+	want := FieldChange{[]ReactionValue{}, []ReactionValue{{Comment: 2, Emoji: "👀", By: []string{"agent"}}}}
+	if !reflect.DeepEqual(f, want) || len(evs[1].Fields) != 1 || !OnlyReactions(evs[1]) {
+		t.Errorf("fields: %+v", evs[1].Fields)
+	}
+	if OnlyReactions(evs[0]) {
+		t.Error("a comment_added counts as reactions only")
+	}
+	snap := old.Clone()
+	Apply(snap, evs)
+	if len(Diff(snap, cur)) != 0 {
+		t.Errorf("Apply didn't fold the reaction changes: %+v", Diff(snap, cur))
+	}
+	// An edit mid-list reports comments, which carries the reactions too.
+	cur2 := old.Clone()
+	cur2.Boards[0].Tasks[0].Comments = cur2.Boards[0].Tasks[0].Comments[1:]
+	cur2.Boards[0].Tasks[0].Comments[0].React("🎉", "walm", false)
+	evs = Diff(old, cur2)
+	if len(evs) != 1 || evs[0].Fields["comments"] == (FieldChange{}) || OnlyReactions(evs[0]) {
+		t.Fatalf("events = %+v", evs)
+	}
+	if _, ok := evs[0].Fields["reactions"]; ok {
+		t.Error("reported reactions next to a comment-list edit")
 	}
 }

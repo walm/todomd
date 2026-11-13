@@ -78,6 +78,9 @@ func (u *unread) recompute(cur *task.File) {
 		case changes.TaskAdded:
 			u.marks[e.Task.ID] = markNew
 		case changes.TaskMoved, changes.TaskUpdated, changes.CommentAdded:
+			if changes.OnlyReactions(e) {
+				continue // a reaction isn't news worth a badge
+			}
 			if u.marks[e.Task.ID] != markNew {
 				u.marks[e.Task.ID] = markUpdated
 			}
