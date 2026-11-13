@@ -4,6 +4,50 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+Comment reactions, together with todomd.online's reaction support.
+todomd.online keeps syncing with older todomd versions: while a project has
+reactions, they sync whole files (no `todomd upgrade` needed).
+
+### Added
+
+- **Comment reactions.** Any emoji on any comment, by any number of people
+  (todomd.online's quick set: 👍 ❤️ 🎉 👀 ✅ 🙏). TODO.md stores them as a
+  hidden last line of the comment,
+  `<!-- reactions: 👍 walm,anna; 👀 agent -->`.
+- `todomd react <id> <comment> <emoji> --author <name>` adds a reaction,
+  `--remove` takes it back, and without an emoji it prints the comment's
+  reactions. The comment is its number as `show` prints it, or `last`;
+  `--match <text>` refuses to react unless the comment's text contains that
+  text, in case the list changed since you looked. ❤ and ❤️ are the same
+  reaction; skin tones are separate ones. Names are lowercased.
+- `show` numbers the comments and prints reactions under each one; task
+  JSON (`show`, `list`, mutations) and `comment_added` events have
+  `"reactions": [{"emoji", "by"}]` on every comment (`[]` for none).
+- TUI: reactions under each comment in the open card. A reaction alone
+  doesn't mark a card unread.
+- `todomd changes`/`watch` report reaction changes as
+  `fields.reactions {old, new}` in `task_updated` (`{comment, emoji, by}`
+  for the comments that changed). A change to reactions alone is reported
+  only when it is on a comment the watcher wrote: by its `--as` name, or
+  the new `--author <name>` (repeatable), so an agent wakes when you ✅ its
+  plan, not for every reaction on the board.
+- `todomd skill` suggests agents react 👀 when they pick up a comment and ✅
+  when it's done, instead of "on it" comments, where the user's rules allow.
+
+### Changed
+
+- TODO.md format version 4 (the reactions line). Files without reactions are
+  unchanged, and a line that isn't exactly a reactions line, as the
+  comment's last line, stays comment text. Older todomd versions read the
+  line as the comment's last text line and write it back byte for byte.
+- Sync sends `reactions` on comments in its change list. Reactions merge as
+  a set: when two people react at once, both count, and a reaction is never
+  a conflict. Against a todomd.online server on format version 3 or older, a
+  round sends the whole file while the file has reactions.
+- `show` prints comments numbered (`1. anna (2026-11-12): …`).
+
 ## v0.15.0 — 2026-11-12
 
 Card stickers, together with todomd.online's sticker support. todomd.online

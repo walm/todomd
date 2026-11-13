@@ -109,6 +109,7 @@ todomd links rm 9e41 3f2a             # wherever the link is stored
 todomd add "Follow-up" --link related:3f2a
 todomd sticker 3f2a fire              # or 🔥, a ribbon colour (red, …), or none
 todomd list --sticker any --json      # cards with a sticker (or --sticker fire, none)
+todomd react 3f2a 2 👍 --author walm  # react to comment 2 (as `show` numbers them); --remove takes it back
 todomd boards --json
 todomd boards add Review              # before Done; or --after/--before <board>
 todomd boards rename Review QA        # tasks and position stay
@@ -186,6 +187,15 @@ it waits, but only `watch` syncs before and after.
   <name|emoji|none>`, `add --sticker` or `update --sticker`; `todomd sticker`
   lists them. JSON has `"sticker": "fire"` or `null`. A sticker isn't a tag:
   filter on tags for meaning, use a sticker to stand out.
+- **Reactions** on comments: any emoji, by any number of people. `todomd
+  react <id> <comment> <emoji> --author <name>` adds yours (`--remove`
+  takes it back); name the comment by its number in `show`, or `last`, and
+  add `--match <text>` to make sure it's the one you mean. `show` prints
+  them under each comment, the TUI too, and JSON has `"reactions":
+  [{"emoji": "👍", "by": ["walm"]}]` on every comment. Names are lowercase
+  (`walm`, `agent`). A reaction alone doesn't make a card unread, and
+  `watch`/`changes` report it only when it is on a comment the watcher
+  wrote (by its `--as` name, or `--author <name>`).
 - **Exit codes**: `0` ok · `1` general error · `2` task or board not found ·
   `3` ambiguous ID prefix · `8` board name already taken · and for
   todomd.online sync (below): `4` not logged in · `5` not linked ·
@@ -376,6 +386,7 @@ Description: any markdown, multiple paragraphs, code fences, lists.
 #### Comments
 
 - **ai** (2026-07-18): Considered goldmark; hand-rolled round-trips better.
+  <!-- reactions: 👍 user -->
 - **user** (2026-07-18): Agreed.
 
 ## In Progress
@@ -407,6 +418,10 @@ Rules, briefly:
   just description text. Details: [docs/card-links-format.md](docs/card-links-format.md).
 - Comments are one list item each: `- **author** (YYYY-MM-DD): text`, with
   continuation lines indented two spaces.
+- A comment's reactions are its hidden last line,
+  `<!-- reactions: 👍 walm,anna; 👀 agent -->`, indented like the rest of
+  the comment. Only that position and only an exact match count; anything
+  else is comment text. Details: [docs/comment-reactions-format.md](docs/comment-reactions-format.md).
 - Hand-editing is fine; the tool re-canonicalizes spacing on its next write
   and reports malformed content with line numbers.
 

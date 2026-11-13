@@ -241,8 +241,12 @@ mid-list, `fields.comments` (the counts) is reported instead, as before. A
 `comment_added` event's comment carries its reactions.
 
 **Unread:** a `task_updated` with nothing but `reactions` doesn't mark the
-card unread (TUI). `changes`/`watch` still report it, so an agent can see
-that someone reacted ✅ to its plan.
+card unread (TUI). `changes`/`watch` report it only when one of the reacted
+comments (`comment` numbers in old or new) was written by the watcher: an
+author equal, case aside, to one of `--author` (repeatable) or, without it,
+the `--as` cursor name. So an agent wakes when someone ✅s its plan, not for
+every reaction. An event that changes other fields too is always reported,
+reactions included. (A todomd.online feed should apply the same rule.)
 
 ## Decisions
 

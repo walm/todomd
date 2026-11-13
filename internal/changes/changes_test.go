@@ -330,3 +330,16 @@ func TestDiffAndApplyReactions(t *testing.T) {
 		t.Error("reported reactions next to a comment-list edit")
 	}
 }
+
+func TestReactedComments(t *testing.T) {
+	e := Event{Type: TaskUpdated, Fields: map[string]FieldChange{"reactions": {
+		[]ReactionValue{{Comment: 3, Emoji: "👍", By: []string{"a"}}},
+		[]ReactionValue{{Comment: 1, Emoji: "👀", By: []string{"b"}}, {Comment: 3, Emoji: "👍", By: []string{"a", "c"}}},
+	}}}
+	if got := ReactedComments(e); !reflect.DeepEqual(got, []int{1, 3}) {
+		t.Errorf("got %v", got)
+	}
+	if ReactedComments(Event{Type: TaskUpdated, Fields: map[string]FieldChange{"title": {"a", "b"}}}) != nil {
+		t.Error("reacted comments without reactions")
+	}
+}

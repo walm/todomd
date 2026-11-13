@@ -20,8 +20,9 @@ type watchOut struct {
 	Initialized bool `json:"initialized"`
 	TimedOut    bool `json:"timed_out"`
 	Events      []struct {
-		Type    string `json:"type"`
-		Task    string `json:"task"`
+		Type    string         `json:"type"`
+		Task    string         `json:"task"`
+		Fields  map[string]any `json:"fields"`
 		Comment *struct {
 			Author string `json:"author"`
 			Text   string `json:"text"`

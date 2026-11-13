@@ -186,7 +186,11 @@ type lookFunc func(snapshot []byte) (evs []changes.Event, raw []byte, err error)
 // parse-assigned IDs of hand-added tasks, so events carry IDs that exist in
 // the file) and diffs it against a cursor snapshot. A nil snapshot reads
 // without diffing.
-func cursorLook(s *store.Store, cpath string, ignoreAuthors []string) lookFunc {
+//
+// A task_updated that only changes reactions is dropped unless one of the
+// reacted comments was written by one of mine (the watcher's own names, see
+// myNames): a reaction to someone else's comment isn't worth waking for.
+func cursorLook(s *store.Store, cpath string, ignoreAuthors, mine []string) lookFunc {
 	return func(snapshot []byte) ([]changes.Event, []byte, error) {
 		raw, cur, err := s.ReadPersisted()
 		if errors.Is(err, store.ErrNoFile) {
@@ -205,6 +209,9 @@ func cursorLook(s *store.Store, cpath string, ignoreAuthors []string) lookFunc {
 		var evs []changes.Event
 		for _, e := range changes.Diff(old, cur) {
 			if e.Type == changes.CommentAdded && authorIn(e.Comment.Author, ignoreAuthors) {
+				continue
+			}
+			if changes.OnlyReactions(e) && !reactsToMine(e, mine) {
 				continue
 			}
 			evs = append(evs, e)
@@ -256,7 +263,7 @@ func waitContexts(timeout time.Duration) (sig, wait context.Context, cancel func
 
 func newWatch() *cobra.Command {
 	var as string
-	var ignoreAuthors []string
+	var ignoreAuthors, authors []string
 	var timeout time.Duration
 	var noWait bool
 	cmd := &cobra.Command{
@@ -273,8 +280,10 @@ TUI), that process does the syncing and watch only waits.
 Events are those of 'todomd changes' (task_added, task_deleted, task_moved,
 task_updated, comment_added), read with a cursor (--as). Writes made with
 the same --as (for example 'todomd comment <id> --author agent --as agent')
-are not reported back. The first run starts the cursor at the synced file
-and then waits for what changes next; read the board with 'todomd list'.
+are not reported back. A change to reactions alone wakes it only when it is
+on a comment of yours: written by --author, or by the --as name. The first
+run starts the cursor at the synced file and then waits for what changes
+next; read the board with 'todomd list'.
 
 --no-wait syncs and reports what is pending without waiting: run it once
 before you stop, so your last writes reach todomd.online.
@@ -312,7 +321,7 @@ too old.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors)
+			look := cursorLook(s, cpath, ignoreAuthors, myNames(as, authors))
 
 			primed, err := bs.round(ctx)
 			if err != nil {
@@ -385,8 +394,36 @@ too old.`,
 	cmd.Flags().StringVar(&as, "as", defaultCursor(),
 		"cursor name, and the --as of your own writes (e.g. agent; env TODOMD_CURSOR)")
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
+	authorFlag(cmd, &authors)
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "give up waiting after this long (reports no events, timed_out: true)")
 	cmd.Flags().BoolVar(&noWait, "no-wait", false, "sync and report what is pending without waiting")
 	jsonFlag(cmd)
 	return cmd
+}
+
+// authorFlag adds --author to watch and changes: whose comments are the
+// watcher's own, for reactions.
+func authorFlag(cmd *cobra.Command, authors *[]string) {
+	cmd.Flags().StringArrayVar(authors, "author", nil,
+		"your comment author name, so reactions to your comments are reported (repeatable; default: the --as name)")
+}
+
+// myNames is who the watcher writes comments as: --author, else the cursor
+// name (an agent runs 'comment --author agent --as agent').
+func myNames(as string, authors []string) []string {
+	if len(authors) > 0 {
+		return authors
+	}
+	return []string{as}
+}
+
+// reactsToMine reports whether a reaction change in e is on a comment
+// written by one of names (case aside).
+func reactsToMine(e changes.Event, names []string) bool {
+	for _, n := range changes.ReactedComments(e) {
+		if n >= 1 && n <= len(e.Task.Comments) && authorIn(e.Task.Comments[n-1].Author, names) {
+			return true
+		}
+	}
+	return false
 }
