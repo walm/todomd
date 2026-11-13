@@ -54,7 +54,8 @@ func toEventJSON(e changes.Event) eventJSON {
 		To:     e.To,
 	}
 	if e.Comment != nil {
-		out.Comment = &commentJSON{Author: e.Comment.Author, Date: e.Comment.Date, Text: e.Comment.Text}
+		c := toCommentJSON(*e.Comment)
+		out.Comment = &c
 	}
 	if len(e.Fields) > 0 {
 		out.Fields = map[string]fieldJSON{}

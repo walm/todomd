@@ -121,6 +121,9 @@ func (m *model) openDetail() {
 		fmt.Fprintf(&md, "\n## Comments (%d)\n\n", len(t.Comments))
 		for _, c := range t.Comments {
 			fmt.Fprintf(&md, "**%s** · %s\n\n%s\n\n", c.Author, c.Date, c.Text)
+			if r := reactionsText(c.Reactions); r != "" {
+				fmt.Fprintf(&md, "%s\n\n", r)
+			}
 		}
 	}
 	if md.Len() == 0 {
@@ -277,3 +280,17 @@ func (m *model) viewDetail() string {
 	m.detailRect = rect{max(0, (m.width-w)/2), max(0, (m.height-h)/2), w, h}
 	return compose(m.viewBoard(), box, m.width, m.height)
 }
+
+// reactionsText is a comment's reactions under it in the detail view, as
+// Markdown: "👍 walm, anna · 👀 agent", or "" for none. The only Markdown
+// characters a reaction can hold are '_' in names and '*' or '#' in keycap
+// emoji; they are escaped.
+func reactionsText(rs []task.Reaction) string {
+	parts := make([]string, len(rs))
+	for i, r := range rs {
+		parts[i] = r.Emoji + " " + strings.Join(r.By, ", ")
+	}
+	return markdownEscaper.Replace(strings.Join(parts, " · "))
+}
+
+var markdownEscaper = strings.NewReplacer("_", `\_`, "*", `\*`, "#", `\#`)

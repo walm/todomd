@@ -30,9 +30,10 @@ import (
 )
 
 type commentJSON struct {
-	Author string    `json:"author"`
-	Date   task.Date `json:"date"`
-	Text   string    `json:"text"`
+	Author    string         `json:"author"`
+	Date      task.Date      `json:"date"`
+	Text      string         `json:"text"`
+	Reactions []reactionJSON `json:"reactions"`
 }
 
 type taskJSON struct {
@@ -65,7 +66,7 @@ func toJSON(f *task.File, t *task.Task, board string) taskJSON {
 		Comments:    []commentJSON{},
 	}
 	for _, c := range t.Comments {
-		out.Comments = append(out.Comments, commentJSON{Author: c.Author, Date: c.Date, Text: c.Text})
+		out.Comments = append(out.Comments, toCommentJSON(c))
 	}
 	return out
 }
@@ -474,9 +475,12 @@ func newShow() *cobra.Command {
 			}
 			if len(t.Comments) > 0 {
 				fmt.Println("\ncomments:")
-				for _, c := range t.Comments {
-					text := strings.ReplaceAll(c.Text, "\n", "\n    ")
-					fmt.Printf("  %s (%s): %s\n", c.Author, c.Date, text)
+				for k, c := range t.Comments {
+					text := strings.ReplaceAll(c.Text, "\n", "\n     ")
+					fmt.Printf("  %d. %s (%s): %s\n", k+1, c.Author, c.Date, text)
+					if r := reactionsLine(c.Reactions); r != "" {
+						fmt.Printf("     %s\n", r)
+					}
 				}
 			}
 			return nil

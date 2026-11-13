@@ -21,6 +21,7 @@ func TestSkillPrints(t *testing.T) {
 		"Backlog", "GO", "Never delete cards", "todomd attach", "todomd download",
 		"the user's to change", "todomd split", "todomd links add", "--link related:", "blocked by",
 		"todomd sticker 3f2a fire", "only\nwhen the user asks",
+		"todomd react 3f2a 2 👀 --author agent --as agent --match", "If the user's rules allow it", "fields.reactions",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("skill lacks %q", want)

@@ -91,6 +91,26 @@ todomd sticker 3f2a fire --as agent      # or the emoji 🔥, a ribbon colour (r
 `todomd sticker` lists the choices; `todomd list --sticker fire --json`
 finds cards by sticker.
 
+## Reactions
+
+Comments can carry emoji reactions (`"reactions": [{"emoji": "👍", "by":
+["walm"]}]` on each comment in JSON). If the user's rules allow it, you may
+react instead of posting a comment that only acknowledges: 👀 when you pick
+up a comment's request, ✅ when it's done. That is a suggestion, not a
+rule: when the user's rules ask for comments, or a reply has something to
+say, comment.
+
+```sh
+todomd react 3f2a 2 👀 --author agent --as agent --match "can you check"
+todomd react 3f2a 2 ✅ --author agent --as agent --match "can you check"
+todomd react 3f2a 2 👀 --author agent --as agent --remove
+```
+
+Name the comment by its number in `todomd show 3f2a` (or `last`), and pass
+`--match` with a few words of its text, so a comment added meanwhile can't
+get your reaction. A reaction from someone else shows up in `watch` as a
+`task_updated` with `fields.reactions`.
+
 ## Wait for changes: the `todomd watch` loop
 
 ```sh

@@ -1530,3 +1530,43 @@ func TestStickerSearch(t *testing.T) {
 		}
 	}
 }
+
+func TestDetailShowsReactions(t *testing.T) {
+	m := newTestModel(t, 1, 0)
+	m.width, m.height = 100, 30
+	m.glamourStyle = "notty"
+	m.file.Boards[0].Tasks = []*task.Task{{ID: "aaaa", Title: "t", Comments: []task.Comment{
+		{Author: "anna", Date: task.Date{Year: 2026, Month: 11, Day: 13}, Text: "Look?",
+			Reactions: []task.Reaction{{Emoji: "👍", By: []string{"walm", "x_y"}}, {Emoji: "*️⃣", By: []string{"agent"}}}},
+		{Author: "walm", Date: task.Date{Year: 2026, Month: 11, Day: 13}, Text: "Plain."},
+	}}}
+	m.updateBoard(keyMsg("enter"))
+	body := ansi.Strip(m.vp.View())
+	if !strings.Contains(body, "👍 walm, x_y · *️⃣ agent") {
+		t.Errorf("no reactions line:\n%s", body)
+	}
+	if i, j := strings.Index(body, "Look?"), strings.Index(body, "👍"); i < 0 || j < i || j > strings.Index(body, "Plain.") {
+		t.Errorf("reactions not under their comment:\n%s", body)
+	}
+}
+
+// A reaction alone isn't news: the card gets no unread badge.
+func TestReactionsDontMarkUnread(t *testing.T) {
+	m := newTestModel(t, 1, 1)
+	x := m.file.Boards[0].Tasks[0]
+	x.Comments = []task.Comment{{Author: "a", Date: task.Date{Year: 2026, Month: 1, Day: 1}, Text: "hi"}}
+	m.unread.recompute(m.file)
+	if m.unread.markAllRead(m.file) != 1 {
+		t.Fatal("the new comment wasn't unread")
+	}
+	x.Comments[0].React("👍", "walm", false)
+	m.unread.recompute(m.file)
+	if k := m.unread.marks[x.ID]; k != markNone {
+		t.Errorf("marked %d after a reaction", k)
+	}
+	x.Comments = append(x.Comments, task.Comment{Author: "b", Date: task.Date{Year: 2026, Month: 1, Day: 2}, Text: "new"})
+	m.unread.recompute(m.file)
+	if m.unread.marks[x.ID] != markUpdated {
+		t.Error("a new comment isn't unread")
+	}
+}
