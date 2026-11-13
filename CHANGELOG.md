@@ -29,7 +29,10 @@ reactions, they sync whole files (no `todomd upgrade` needed).
   doesn't mark a card unread.
 - `todomd changes`/`watch` report reaction changes as
   `fields.reactions {old, new}` in `task_updated` (`{comment, emoji, by}`
-  for the comments that changed).
+  for the comments that changed). A change to reactions alone is reported
+  only when it is on a comment the watcher wrote: by its `--as` name, or
+  the new `--author <name>` (repeatable), so an agent wakes when you ✅ its
+  plan, not for every reaction on the board.
 - `todomd skill` suggests agents react 👀 when they pick up a comment and ✅
   when it's done, instead of "on it" comments, where the user's rules allow.
 

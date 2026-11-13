@@ -73,7 +73,7 @@ func toEventJSON(e changes.Event) eventJSON {
 func newChanges() *cobra.Command {
 	var as string
 	var peek bool
-	var ignoreAuthors []string
+	var ignoreAuthors, authors []string
 	var wait bool
 	var timeout time.Duration
 	cmd := &cobra.Command{
@@ -82,7 +82,8 @@ func newChanges() *cobra.Command {
 		Long: `Diffs the file against a per-cursor snapshot (stored under
 $XDG_STATE_HOME/todomd, default ~/.local/state/todomd) and reports semantic
 events: task_added, task_deleted, task_moved, task_updated, comment_added.
-Reading advances the cursor unless --peek is given. The first call
+A change to reactions alone is reported only when it is on a comment of
+yours: written by --author, or by the --as name. Reading advances the cursor unless --peek is given. The first call
 initializes the cursor and reports no events.
 
 --wait blocks until there is something to report (or --timeout passes), for
@@ -103,7 +104,7 @@ your own writes go up and nothing online is missed.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors)
+			look := cursorLook(s, cpath, ignoreAuthors, myNames(as, authors))
 
 			prev, ok, err := changes.LoadCursor(cpath)
 			if err != nil {
@@ -150,6 +151,7 @@ your own writes go up and nothing online is missed.`,
 		"cursor name (one per consumer, e.g. an agent name; env TODOMD_CURSOR)")
 	cmd.Flags().BoolVar(&peek, "peek", false, "report without advancing the cursor")
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
+	authorFlag(cmd, &authors)
 	cmd.Flags().BoolVar(&wait, "wait", false, "block until there are changes to report")
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "with --wait, give up after this long (reports no events, timed_out: true)")
 	jsonFlag(cmd)

@@ -193,7 +193,9 @@ it waits, but only `watch` syncs before and after.
   add `--match <text>` to make sure it's the one you mean. `show` prints
   them under each comment, the TUI too, and JSON has `"reactions":
   [{"emoji": "👍", "by": ["walm"]}]` on every comment. Names are lowercase
-  (`walm`, `agent`). A reaction alone doesn't make a card unread.
+  (`walm`, `agent`). A reaction alone doesn't make a card unread, and
+  `watch`/`changes` report it only when it is on a comment the watcher
+  wrote (by its `--as` name, or `--author <name>`).
 - **Exit codes**: `0` ok · `1` general error · `2` task or board not found ·
   `3` ambiguous ID prefix · `8` board name already taken · and for
   todomd.online sync (below): `4` not logged in · `5` not linked ·

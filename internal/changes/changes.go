@@ -126,6 +126,27 @@ func reactionChanges(old, cur []task.Comment) (before, after []ReactionValue) {
 	return before, after
 }
 
+// ReactedComments lists the 1-based numbers of the comments whose
+// reactions e reports as changed (fields.reactions), in order, each once.
+// They index e.Task.Comments: the comments were already on the card.
+func ReactedComments(e Event) []int {
+	fc, ok := e.Fields["reactions"]
+	if !ok {
+		return nil
+	}
+	var out []int
+	for _, side := range []any{fc.Old, fc.New} {
+		rs, _ := side.([]ReactionValue)
+		for _, r := range rs {
+			if !slices.Contains(out, r.Comment) {
+				out = append(out, r.Comment)
+			}
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
 // OnlyReactions reports whether e is a task_updated that changes nothing but
 // reactions. People don't count those as unread.
 func OnlyReactions(e Event) bool {

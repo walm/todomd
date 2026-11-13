@@ -108,8 +108,10 @@ todomd react 3f2a 2 👀 --author agent --as agent --remove
 
 Name the comment by its number in `todomd show 3f2a` (or `last`), and pass
 `--match` with a few words of its text, so a comment added meanwhile can't
-get your reaction. A reaction from someone else shows up in `watch` as a
-`task_updated` with `fields.reactions`.
+get your reaction. `watch` wakes you for a reaction only when it is on a
+comment you wrote (author = your `--as` name, or pass `watch --author
+<name>`), as a `task_updated` with `fields.reactions`: the user ✅-ing your
+plan, say. Reactions to other people's comments don't wake you.
 
 ## Wait for changes: the `todomd watch` loop
 
