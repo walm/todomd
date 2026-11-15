@@ -54,6 +54,8 @@ type Link struct {
 	ProjectID    string        `json:"project_id"`
 	ProjectSlug  string        `json:"project_slug"`
 	ProjectURL   string        `json:"project_url"`
+	Owner        string        `json:"owner,omitempty"`      // handle of the person or workspace
+	OwnerName    string        `json:"owner_name,omitempty"` // a workspace's display name
 	Jurisdiction string        `json:"jurisdiction,omitempty"`
 	BaseRev      int           `json:"base_rev"`
 	LinkedAt     time.Time     `json:"linked_at"`

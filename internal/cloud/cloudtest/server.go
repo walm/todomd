@@ -34,6 +34,8 @@ type Project struct {
 	ID, Slug, Name, Repo string
 	Revs                 []string // Revs[i] is revision i+1, canonical
 	ReadOnly             bool     // the caller only has read access
+	Owner, OwnerName     string   // a workspace's handle and name; empty is a person's project
+	OldSlugs             []string // addresses it had before a rename or move; they still resolve
 }
 
 func (p *Project) head() string { return p.Revs[len(p.Revs)-1] }
@@ -41,26 +43,28 @@ func (p *Project) head() string { return p.Revs[len(p.Revs)-1] }
 // Server is the fake.
 type Server struct {
 	*httptest.Server
-	mu        sync.Mutex
-	projects  map[string]*Project
-	order     []string
-	replies   map[string][]byte // request_id → response
-	subs      map[string][]chan int
-	Date      task.Date
-	Requests  []SyncCall
-	Handle    string
-	MinCLI    string
-	Format    int                      // format_version in discovery
-	Down      bool                     // answer 503 to everything
-	Forget    map[int]bool             // revisions treated as pruned (410 base_gone)
-	BadSHA    bool                     // send a wrong content_sha256 once
-	OnSync    func(req map[string]any) // observe raw sync requests
-	revoked   bool
-	deviceHit int
-	images    map[string]map[string]image // project → att → image
-	Uploads   int                         // image uploads accepted
-	Downloads int                         // image downloads served
-	Refused   int                         // file downloads refused with 406
+	mu         sync.Mutex
+	projects   map[string]*Project
+	order      []string
+	replies    map[string][]byte // request_id → response
+	subs       map[string][]chan int
+	Date       task.Date
+	Requests   []SyncCall
+	Handle     string
+	Workspaces map[string]string // workspace handle → name the caller may create projects in
+	Denied     map[string]string // workspace handle → 403 message (or "402:msg" for a plan limit)
+	MinCLI     string
+	Format     int                      // format_version in discovery
+	Down       bool                     // answer 503 to everything
+	Forget     map[int]bool             // revisions treated as pruned (410 base_gone)
+	BadSHA     bool                     // send a wrong content_sha256 once
+	OnSync     func(req map[string]any) // observe raw sync requests
+	revoked    bool
+	deviceHit  int
+	images     map[string]map[string]image // project → att → image
+	Uploads    int                         // image uploads accepted
+	Downloads  int                         // image downloads served
+	Refused    int                         // file downloads refused with 406
 }
 
 type image struct {
@@ -302,7 +306,46 @@ func (s *Server) project(ref string) *Project {
 			return p
 		}
 	}
+	for _, p := range s.projects {
+		for _, old := range p.OldSlugs {
+			if old == ref {
+				return p // a redirect: the old address still finds it
+			}
+		}
+	}
 	return nil
+}
+
+// Move gives a project a new owner (a workspace handle and name, or "" and ""
+// for the caller) and name, keeping the old address as a redirect.
+func (s *Server) Move(id, owner, ownerName, name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p := s.projects[id]
+	p.OldSlugs = append(p.OldSlugs, p.Slug)
+	h := owner
+	if h == "" {
+		h = s.Handle
+	}
+	p.Owner, p.OwnerName, p.Name, p.Slug = owner, ownerName, name, h+"/"+name
+}
+
+// AddWorkspaceProject adds a project owned by workspace handle (named wsName).
+func (s *Server) AddWorkspaceProject(handle, wsName, name, content string) *Project {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p := s.addLocked(name, "", content)
+	p.Owner, p.OwnerName, p.Slug = handle, wsName, handle+"/"+name
+	return p
+}
+
+// AddSharedProject adds another person's project that the caller can open.
+func (s *Server) AddSharedProject(owner, name, content string) *Project {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p := s.addLocked(name, "", content)
+	p.Slug = owner + "/" + name
+	return p
 }
 
 func (s *Server) withProject(w http.ResponseWriter, ref string, fn func(p *Project)) {
@@ -325,7 +368,15 @@ func (s *Server) projectJSON(p *Project) map[string]any {
 	if p.ReadOnly {
 		role = "viewer"
 	}
+	owner, kind, ownerName := s.Handle, "user", any(nil)
+	if h, _, ok := strings.Cut(p.Slug, "/"); ok {
+		owner = h
+	}
+	if p.Owner != "" {
+		kind, ownerName = "workspace", p.OwnerName
+	}
 	return map[string]any{"id": p.ID, "slug": p.Slug, "name": p.Name, "repo": repo, "url": s.URL + "/" + p.Slug,
+		"owner": owner, "owner_kind": kind, "owner_name": ownerName,
 		"head_rev": len(p.Revs), "updated_at": time.Now().UTC().Format(time.RFC3339), "role": role, "jurisdiction": "earth"}
 }
 
@@ -344,7 +395,7 @@ func (s *Server) listProjects(w http.ResponseWriter, repo string) {
 
 func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name, Repo, Content string
+		Name, Repo, Content, Owner string
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		fail(w, 422, "invalid_request", err.Error())
@@ -360,6 +411,20 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if body.Owner != "" && body.Owner != s.Handle {
+		if msg, ok := s.Denied[body.Owner]; ok {
+			if m, found := strings.CutPrefix(msg, "402:"); found {
+				fail(w, 402, "plan_limit", m, "url", s.URL+"/upgrade")
+			} else {
+				fail(w, 403, "forbidden", msg)
+			}
+			return
+		}
+		if _, ok := s.Workspaces[body.Owner]; !ok {
+			fail(w, 404, "not_found", "workspace not found")
+			return
+		}
+	}
 	for _, p := range s.projects {
 		if p.Name == body.Name {
 			fail(w, 409, "name_taken", "a project with that name exists")
@@ -367,6 +432,9 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	p := s.addLocked(body.Name, body.Repo, body.Content)
+	if body.Owner != "" && body.Owner != s.Handle {
+		p.Owner, p.OwnerName, p.Slug = body.Owner, s.Workspaces[body.Owner], body.Owner+"/"+body.Name
+	}
 	out := s.projectJSON(p)
 	out["rev"] = 1
 	out["content"] = p.head()

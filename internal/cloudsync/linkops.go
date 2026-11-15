@@ -24,6 +24,8 @@ func NewLink(host string, p cloud.Project) *Link {
 		ProjectID:    p.ID,
 		ProjectSlug:  p.Slug,
 		ProjectURL:   p.URL,
+		Owner:        p.OwnerHandle(),
+		OwnerName:    p.OwnerName,
 		Jurisdiction: p.Jurisdiction,
 		LinkedAt:     time.Now().UTC(),
 	}
@@ -46,7 +48,7 @@ type Preview struct {
 // CreateProject makes a new project from the file (or from an empty board
 // when there is no file yet), writes the canonical result back and saves the
 // link with its base. s.Link must name the host; it is filled in.
-func (s *Syncer) CreateProject(ctx context.Context, name, repo, jurisdiction string) (*cloud.CreatedProject, error) {
+func (s *Syncer) CreateProject(ctx context.Context, name, repo, jurisdiction, owner string) (*cloud.CreatedProject, error) {
 	raw, local, missing, err := s.readLocal()
 	if err != nil {
 		return nil, err
@@ -55,7 +57,7 @@ func (s *Syncer) CreateProject(ctx context.Context, name, repo, jurisdiction str
 		local = emptyBoard()
 	}
 	created, err := s.Client.CreateProject(ctx, cloud.NewProject{
-		Name: name, Repo: repo, Content: string(markdown.Write(local)), Jurisdiction: jurisdiction,
+		Name: name, Repo: repo, Content: string(markdown.Write(local)), Jurisdiction: jurisdiction, Owner: owner,
 	})
 	if err != nil {
 		return nil, err

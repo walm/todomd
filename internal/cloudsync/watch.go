@@ -383,6 +383,9 @@ func (w *Watcher) stream(ctx context.Context, out chan<- streamMsg) {
 // Describe summarizes a round for people, in one line.
 func Describe(r *Result) string {
 	var parts []string
+	if r.Moved != "" {
+		parts = append(parts, "project moved to "+r.Moved)
+	}
 	if r.Restored {
 		parts = append(parts, "restored the file from the project")
 	}
