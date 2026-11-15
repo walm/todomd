@@ -289,6 +289,7 @@ browser, share it — and the CLI keeps it and your `TODO.md` in step, both ways
 ```sh
 todomd login            # once per machine: approve it in a browser (GitHub or an emailed code)
 todomd link             # once per TODO.md: create the project, or pick one (matched by git remote)
+todomd link --create --owner acme   # …or create it in a workspace
 todomd sync             # push your edits and pull the board's, merged per task
 todomd sync --watch     # stay running: live in both directions
 ```
@@ -316,6 +317,16 @@ todomd sync --watch     # stay running: live in both directions
   after writing. `sync --json` reports `pushed` and `pulled` events in the
   `changes` schema, plus `conflicts` and `renamed_ids` (a task whose id
   collided with one added online gets a new id).
+- **Workspaces.** A project belongs to you or to a
+  [workspace](https://todomd.online/docs/workspaces.md) (`acme/website`). The
+  `link` picker groups projects the way the web does: Personal, then each
+  workspace, then those shared with you. `todomd link --create --owner acme`
+  makes the new project in the workspace `acme`; if you may not (only admins
+  can, or the plan's limit is reached), it says so with the server's reason and
+  creates nothing. When a project is renamed or moved to another owner, the
+  next sync follows it: the link is updated and `sync` says
+  `project moved to acme/website` once. `todomd link --project you/old-name`
+  also works after a move.
 - **Git.** Once synced, todomd.online keeps the history, so `link` offers to
   stop tracking `TODO.md` in git (added to `.gitignore`, removed from the
   index only — you commit that). If you keep it in git (`--git track`), sync

@@ -353,7 +353,24 @@ type Project struct {
 	UpdatedAt    string `json:"updated_at"`
 	Role         string `json:"role"`
 	Jurisdiction string `json:"jurisdiction"`
+	// Who owns it: a person ("user") or a workspace. Older servers leave
+	// these out; OwnerHandle then reads it from the slug.
+	Owner     string `json:"owner"`
+	OwnerKind string `json:"owner_kind"`
+	OwnerName string `json:"owner_name"`
 }
+
+// OwnerHandle is the handle before the slash in the project's address.
+func (p Project) OwnerHandle() string {
+	if p.Owner != "" {
+		return p.Owner
+	}
+	h, _, _ := strings.Cut(p.Slug, "/")
+	return h
+}
+
+// InWorkspace reports whether a workspace, not a person, owns the project.
+func (p Project) InWorkspace() bool { return p.OwnerKind == "workspace" }
 
 // pathID escapes a project id or slug for a path ("owner/name" keeps its
 // slash escaped, which the server accepts).
@@ -389,6 +406,7 @@ type NewProject struct {
 	Repo         string `json:"repo,omitempty"`
 	Content      string `json:"content"`
 	Jurisdiction string `json:"jurisdiction,omitempty"`
+	Owner        string `json:"owner,omitempty"` // a workspace handle; empty is you
 }
 
 // CreatedProject is a project plus its first revision.

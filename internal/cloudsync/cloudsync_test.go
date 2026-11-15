@@ -60,7 +60,7 @@ func setup(t *testing.T, content string) *env {
 
 func (e *env) create() {
 	e.t.Helper()
-	if _, err := e.s.CreateProject(e.ctx, "proj", "", ""); err != nil {
+	if _, err := e.s.CreateProject(e.ctx, "proj", "", "", ""); err != nil {
 		e.t.Fatal(err)
 	}
 }

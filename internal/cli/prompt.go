@@ -42,8 +42,17 @@ func confirmYes(prompt string) bool {
 // choose shows numbered options and returns the index picked (0 is the
 // default on a bare enter), or -1 when input ends.
 func choose(prompt string, options []string) int {
+	return chooseGrouped(prompt, options, nil)
+}
+
+// chooseGrouped is choose with a heading line printed before some options
+// (headings[i] goes above option i). Headings are not choices.
+func chooseGrouped(prompt string, options []string, headings map[int]string) int {
 	fmt.Println(prompt)
 	for i, o := range options {
+		if h, ok := headings[i]; ok {
+			fmt.Printf("    %s\n", h)
+		}
 		marker := " "
 		if i == 0 {
 			marker = "▸"

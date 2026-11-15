@@ -361,9 +361,9 @@ func defaultProjectName(repo, path string) string {
 }
 
 type linkOpts struct {
-	hostFlag, project, name, region, git string
-	create, replaceLocal, replaceRemote  bool
-	yes                                  bool
+	hostFlag, project, name, region, git, owner string
+	create, replaceLocal, replaceRemote         bool
+	yes                                         bool
 }
 
 func newLink() *cobra.Command {
@@ -393,6 +393,7 @@ switches into edits. The recommended answer stops tracking it (added to
 	cmd.Flags().StringVar(&o.project, "project", "", "link to this project (owner/name or id)")
 	cmd.Flags().BoolVar(&o.create, "create", false, "create a new project from this file")
 	cmd.Flags().StringVar(&o.name, "name", "", "name for --create (default: the repo or directory name)")
+	cmd.Flags().StringVar(&o.owner, "owner", "", "workspace handle for --create: make the project there instead of in your account")
 	cmd.Flags().StringVar(&o.region, "region", "", "data location for --create: earth, eu or us (default: your account's)")
 	cmd.Flags().BoolVar(&o.replaceLocal, "replace-local", false, "overwrite this file with the project instead of merging")
 	cmd.Flags().BoolVar(&o.replaceRemote, "replace-remote", false, "make this file the project's new head instead of merging (history keeps the old one)")
@@ -405,6 +406,10 @@ switches into edits. The recommended answer stops tracking it (added to
 func runLink(ctx context.Context, o linkOpts) (*cloudsync.Syncer, error) {
 	if o.replaceLocal && o.replaceRemote {
 		return nil, errors.New("--replace-local and --replace-remote exclude each other")
+	}
+	o.owner = strings.TrimPrefix(strings.TrimSpace(o.owner), "@")
+	if o.owner != "" && o.project != "" {
+		return nil, errors.New("--owner is for a new project; with --project the owner is in its address (owner/name)")
 	}
 	if o.git != "" && o.git != cloudsync.GitIgnore && o.git != cloudsync.GitTrack {
 		return nil, errors.New("--git must be ignore or track")
@@ -458,24 +463,13 @@ func runLink(ctx context.Context, o linkOpts) (*cloudsync.Syncer, error) {
 		if err != nil {
 			return nil, err
 		}
-		var options []string
-		var picks []*cloud.Project
-		seen := map[string]bool{}
-		for i := range matches {
-			options = append(options, matches[i].Slug+"  (this repo)")
-			picks = append(picks, &matches[i])
-			seen[matches[i].ID] = true
+		me, err := a.client.Me(ctx)
+		if err != nil {
+			return nil, err
 		}
-		options = append(options, "Create a new project")
-		picks = append(picks, nil)
-		for i := range all {
-			if !seen[all[i].ID] {
-				options = append(options, all[i].Slug)
-				picks = append(picks, &all[i])
-			}
-		}
+		options, picks, headings := projectChoices(all, matches, me.User.Handle)
 		fmt.Printf("%s isn't linked to a %s project yet.\n", filepath.Base(st.Path), a.name())
-		k := choose("Link to:", options)
+		k := chooseGrouped("Link to:", options, headings)
 		if k < 0 {
 			return nil, errors.New("cancelled")
 		}
@@ -520,7 +514,7 @@ func runLink(ctx context.Context, o linkOpts) (*cloudsync.Syncer, error) {
 			}
 		}
 		region := o.region
-		created, err := s.CreateProject(ctx, name, repo, region)
+		created, err := s.CreateProject(ctx, name, repo, region, o.owner)
 		if err != nil {
 			return nil, createError(err, host)
 		}
@@ -537,7 +531,7 @@ func runLink(ctx context.Context, o linkOpts) (*cloudsync.Syncer, error) {
 		if flagJSON {
 			return s, printJSON(linkJSON(s, created.Rev, nil))
 		}
-		fmt.Printf("Created %s · %s\nLinked %s · rev %d\n", created.Slug, created.URL, st.Path, created.Rev)
+		fmt.Printf("Created %s%s · %s\nLinked %s · rev %d\n", created.Slug, ownerNote(created.Project), created.URL, st.Path, created.Rev)
 		return s, nil
 	}
 
@@ -595,7 +589,7 @@ func runLink(ctx context.Context, o linkOpts) (*cloudsync.Syncer, error) {
 	if flagJSON {
 		return s, printJSON(linkJSON(s, res.Rev, res))
 	}
-	fmt.Printf("Linked %s to %s · rev %d · %s\n", st.Path, project.Slug, res.Rev, project.URL)
+	fmt.Printf("Linked %s to %s%s · rev %d · %s\n", st.Path, project.Slug, ownerNote(*project), res.Rev, project.URL)
 	printConflicts(res)
 	return s, nil
 }
@@ -701,7 +695,12 @@ func createError(err error, host string) error {
 			return fmt.Errorf("%s (%s)", ae.Message, u)
 		}
 	case "forbidden":
-		return fmt.Errorf("this token can't create projects (scoped tokens can only reach their projects): %s", ae.Message)
+		if strings.Contains(ae.Message, "scoped") {
+			return fmt.Errorf("this token can't create projects (scoped tokens can only reach their projects): %s", ae.Message)
+		}
+		return fmt.Errorf("%s", ae.Message) // e.g. only admins can make projects in Acme
+	case "not_found":
+		return fmt.Errorf("%s: check the --owner handle, and that you are a member of that workspace", ae.Message)
 	}
 	return err
 }
@@ -731,7 +730,7 @@ func applyGitMode(path, mode string) error {
 func linkJSON(s *cloudsync.Syncer, rev int, res *cloudsync.Result) map[string]any {
 	out := map[string]any{
 		"file":    s.Path,
-		"project": map[string]any{"id": s.Link.ProjectID, "slug": s.Link.ProjectSlug, "url": s.Link.ProjectURL},
+		"project": projectRef(s.Link),
 		"rev":     rev,
 		"git":     s.Link.Git,
 	}
@@ -854,6 +853,7 @@ type syncJSON struct {
 	DryRun      bool                       `json:"dry_run,omitempty"`
 	ReadOnly    bool                       `json:"read_only,omitempty"`
 	FullFile    bool                       `json:"full_file,omitempty"`
+	Moved       string                     `json:"moved,omitempty"` // the project's new address
 	Restored    bool                       `json:"restored,omitempty"`
 	Import      bool                       `json:"import,omitempty"`
 	Note        string                     `json:"note,omitempty"`
@@ -863,7 +863,8 @@ type syncJSON struct {
 func toSyncJSON(s *cloudsync.Syncer, r *cloudsync.Result) syncJSON {
 	return syncJSON{
 		File:        s.Path,
-		Project:     map[string]any{"id": s.Link.ProjectID, "slug": s.Link.ProjectSlug, "url": s.Link.ProjectURL},
+		Project:     projectRef(s.Link),
+		Moved:       r.Moved,
 		Rev:         r.Rev,
 		Pushed:      eventsJSON(r.Pushed),
 		Pulled:      eventsJSON(r.Pulled),
@@ -1109,7 +1110,11 @@ func newSyncStatus() *cobra.Command {
 				}
 				return printJSON(out)
 			}
-			fmt.Printf("file:     %s\nproject:  %s · %s\nhost:     %s\nbase rev: %d\n", st.Path, l.ProjectSlug, l.ProjectURL, cloud.HostName(l.Host), l.BaseRev)
+			owner := ""
+			if l.OwnerName != "" {
+				owner = " (workspace " + l.OwnerName + ")"
+			}
+			fmt.Printf("file:     %s\nproject:  %s%s · %s\nhost:     %s\nbase rev: %d\n", st.Path, l.ProjectSlug, owner, l.ProjectURL, cloud.HostName(l.Host), l.BaseRev)
 			if head >= 0 {
 				behind := ""
 				if head > l.BaseRev {

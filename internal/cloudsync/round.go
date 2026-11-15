@@ -42,7 +42,8 @@ type Syncer struct {
 	// URLs in the file.
 	NoAttachments bool
 
-	im *images // the current round's image handling
+	im        *images   // the current round's image handling
+	refreshed time.Time // when the project's address was last checked
 }
 
 // Options for one round.
@@ -52,6 +53,7 @@ type Options struct {
 
 // Result of a round.
 type Result struct {
+	Moved     string // the project's new address, when it changed since the last round
 	Rev       int
 	Unchanged bool // already up to date with nothing to push
 	// Pushed are the local changes sent (base → this file); Pulled what the
@@ -166,8 +168,18 @@ func (s *Syncer) readLocal() (raw []byte, f *task.File, missing bool, err error)
 	return raw, f, false, nil
 }
 
-// Round pushes local changes and pulls the project's, in one exchange.
+// Round pushes local changes and pulls the project's, in one exchange. After
+// a real round it also checks the project's address (see RefreshProject);
+// Result.Moved is set when that changed.
 func (s *Syncer) Round(ctx context.Context, opts Options) (*Result, error) {
+	res, err := s.round(ctx, opts)
+	if err == nil && !opts.DryRun {
+		res.Moved = s.RefreshProject(ctx)
+	}
+	return res, err
+}
+
+func (s *Syncer) round(ctx context.Context, opts Options) (*Result, error) {
 	l := s.Link
 	baseText, err := LoadBase(s.Path)
 	if err != nil {
@@ -484,6 +496,34 @@ func (s *Syncer) writeBack(raw []byte, missing bool, mergeBase, result *task.Fil
 		}
 		return s.Store.Save(out)
 	})
+}
+
+// refreshEvery is how often a long-running watch re-checks the address.
+const refreshEvery = 10 * time.Minute
+
+// RefreshProject asks the server for the project by id and, when its address
+// or owner changed (renamed, moved to a workspace), updates the link and
+// returns the new slug (otherwise ""). It is best effort: any failure keeps
+// the old link. Checks run at most every refreshEvery per Syncer.
+func (s *Syncer) RefreshProject(ctx context.Context) string {
+	if !s.refreshed.IsZero() && time.Since(s.refreshed) < refreshEvery {
+		return ""
+	}
+	s.refreshed = time.Now()
+	p, err := s.Client.Project(ctx, s.Link.ProjectID)
+	if err != nil || p.ID != s.Link.ProjectID || p.Slug == "" {
+		return ""
+	}
+	l := s.Link
+	if l.ProjectSlug == p.Slug && l.ProjectURL == p.URL && l.Owner == p.OwnerHandle() && l.OwnerName == p.OwnerName {
+		return ""
+	}
+	moved := l.ProjectSlug != p.Slug
+	l.ProjectSlug, l.ProjectURL, l.Owner, l.OwnerName = p.Slug, p.URL, p.OwnerHandle(), p.OwnerName
+	if err := l.Save(s.Path); err != nil || !moved {
+		return ""
+	}
+	return p.Slug
 }
 
 func (s *Syncer) recordOK(rev int, head string) {

@@ -4,6 +4,28 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased (next: v0.17.0)
+
+Workspaces, together with todomd.online's workspaces. Older servers keep
+working: without owner information every project is just yours.
+
+### Added
+
+- **`todomd link` groups its picker by owner**: Personal first, then each
+  workspace (by name), then projects shared with you.
+- **`todomd link --create --owner <handle>`** makes the new project in a
+  workspace. A refusal (not an admin there, a plan limit, no such workspace)
+  shows the server's message and creates nothing. `--owner` can't be combined
+  with `--project`.
+- **Moved projects.** When a project is renamed or moved to another owner,
+  `sync`, `sync --watch` and the TUI's sync notice it (checked after each
+  round, at most every 10 minutes in a long-running watch), update the link
+  and say `project moved to acme/website` once (`"moved"` in `--json`).
+  `link --project old/name` already finds it through the server's redirect.
+- `link` and `sync status` show a workspace project's workspace
+  (`acme/website (workspace Acme)`); `--json` project objects gain `owner`
+  and `owner_name`. The link file records them (`owner`, `owner_name`).
+
 ## v0.16.0 — 2026-11-13
 
 Comment reactions, together with todomd.online's reaction support.
