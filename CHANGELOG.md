@@ -4,7 +4,7 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
-## Unreleased (next: v0.17.0)
+## v0.17.0 — 2026-11-15
 
 Workspaces, together with todomd.online's workspaces. Older servers keep
 working: without owner information every project is just yours.
