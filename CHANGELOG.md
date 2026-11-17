@@ -13,9 +13,9 @@ breaking changes to the file format or CLI (they will be called out).
   at 5 MB). An image is still inline (`![name](path)`); any other file is a
   plain link (`[name](path)`) that the board shows as a download. Sizes are
   checked before anything is copied. `sync` uploads files linked from the
-  description or a comment, once. Needs a todomd.online with file uploads for
-  the CLI; an older server answers that it doesn't accept files from the CLI
-  yet, and the link stays local until it does.
+  description or a comment, once. Needs todomd.online with CLI file uploads
+  (Nov 2026); an older server answers that it doesn't accept files from the
+  CLI yet, and the link stays local until it does.
 - **`todomd attach --comment "<text>" --author <name>`** adds a new comment
   with the file instead of changing the description.
 
