@@ -937,11 +937,11 @@ task and field. When both sides changed the same thing, the online version
 wins and this file's version is kept as a comment by todomd-sync — nothing
 is lost. Conflicts are reported, not errors.
 
-Images travel too: an image linked from this machine's attachment folder
-(see 'todomd attach') is uploaded when the project lacks it, and images added
-online are downloaded and linked by local path, so agents can open them.
-Other files attached online (a PDF, a zip, …) stay links; 'todomd download'
-fetches one on request.
+Images and files travel too: an image or file linked from this machine's
+attachment folder (see 'todomd attach') is uploaded when the project lacks it,
+and images added online are downloaded and linked by local path, so agents can
+open them. Other files attached online (a PDF, a zip, …) stay links;
+'todomd download' fetches one on request.
 
 --watch keeps running: online edits arrive within a second or two and local
 edits are pushed as they happen. Online changes land in the file like any

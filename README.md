@@ -340,12 +340,22 @@ todomd sync --watch     # stay running: live in both directions
 - `--host` / `TODOMD_HOST` point at another server, e.g. a local one for
   development (plain `http` only for localhost).
 
-### 🖼️ Images
+### 🖼️ Images and files
 
 ```sh
 todomd attach 3f2a ~/Desktop/screenshot.png   # copies it in, links it from the task
 todomd sync                                   # uploads it; the board online shows it
+
+todomd attach 3f2a plan.md                    # any file the board takes (up to 25 MB): a download link
+todomd attach 3f2a plan.md --comment "Plan for review" --author ai   # in a new comment instead
 ```
+
+An image (PNG, JPEG, GIF, WebP up to 5 MB) is shown inline, as `![name](path)`.
+Any other file (a Markdown plan, a PDF, a CSV, a zip…) is a plain
+`[name](path)` link, which the board shows as a download; the local web client
+just shows the link. Both need a linked board (`todomd link`), and the limits are
+checked before the file is copied. The paragraphs below say "image", but a file
+you attach follows the same path rule, hash check and sync.
 
 - In `TODO.md` an image is a **local path** — `~/.local/state/todomd/attachments/<project>/att_<hash>/<name>`
   — so an agent or the TUI opens it like any file. Online the same image is
@@ -355,8 +365,8 @@ todomd sync                                   # uploads it; the board online sho
 - **Images pasted on the web board are downloaded** on the next sync and
   linked by local path.
 - **Only images in todomd's own folder are ever uploaded** — a regular file
-  whose real path is inside it, whose content matches its id, PNG, JPEG, GIF
-  or WebP, at most 5 MB. A link to any other file (`![x](/Users/you/.ssh/id_rsa)`,
+  whose real path is inside it, whose content matches its id, at most 5 MB
+  for an image (PNG, JPEG, GIF, WebP) or 25 MB for any other file. A link to any other file (`![x](/Users/you/.ssh/id_rsa)`,
   say) is never read, let alone sent; downloads come only from the linked
   host, and the token goes nowhere else.
 - Anything that can't sync keeps its link and is listed under `skipped` in
@@ -366,6 +376,8 @@ todomd sync                                   # uploads it; the board online sho
   when you `todomd link`, after which they sync like the rest.
 - **Other files** attached on the web board (a PDF, a zip, a CSV…, up to
   25 MB) stay todomd.online links in `TODO.md`; sync doesn't download them.
+  (A file you attach with `todomd attach` is a local path until the next
+  sync uploads it, then a link like these.)
   Fetch one when you need it:
 
   ```sh

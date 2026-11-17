@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/walm/todomd/internal/cloud"
 	"github.com/walm/todomd/internal/cloud/cloudtest"
 	"github.com/walm/todomd/internal/markdown"
 	"github.com/walm/todomd/internal/task"
@@ -284,12 +285,6 @@ func TestAttachSyncsImages(t *testing.T) {
 	var linked struct{ Project struct{ ID string } }
 	json.Unmarshal([]byte(out), &linked)
 
-	notImage := filepath.Join(t.TempDir(), "notes.txt")
-	os.WriteFile(notImage, []byte("hello"), 0o644)
-	if _, err := run(t, "--file", path, "attach", id, notImage); err == nil {
-		t.Error("attached a text file")
-	}
-
 	if out, err := run(t, "--file", path, "attach", id, img); err != nil || !strings.Contains(out, "Screen-Shot.png") {
 		t.Fatalf("attach: %v %s", err, out)
 	}
@@ -330,6 +325,134 @@ func TestAttachSyncsImages(t *testing.T) {
 	}
 	if out, _ := run(t, "--file", path, "sync"); !strings.Contains(out, "up to date") {
 		t.Errorf("not idle after download: %s", out)
+	}
+}
+
+func TestAttachFiles(t *testing.T) {
+	srv, path := cloudEnv(t)
+	login(t)
+	id := addOne(t, path, "Task with a plan")
+	plan := filepath.Join(t.TempDir(), "My Plan.md")
+	os.WriteFile(plan, []byte("# Plan\n\n1. do it\n"), 0o644)
+
+	// Unlinked: a clear message, exit 5, nothing copied.
+	_, err := run(t, "--file", path, "attach", id, plan)
+	if classify(err) != 5 || !strings.Contains(err.Error(), "needs a linked board") {
+		t.Fatalf("attach unlinked: exit %d (%v)", classify(err), err)
+	}
+	out, err := run(t, "--file", path, "link", "--create", "--name", "proj", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var linked struct{ Project struct{ ID string } }
+	json.Unmarshal([]byte(out), &linked)
+	p := linked.Project.ID
+
+	// --comment needs an author; --author needs --comment.
+	if _, err := run(t, "--file", path, "attach", id, plan, "--comment", "x"); err == nil {
+		t.Error("--comment without --author")
+	}
+	if _, err := run(t, "--file", path, "attach", id, plan, "--author", "ai"); err == nil {
+		t.Error("--author without --comment")
+	}
+	// Limits are checked before anything is copied.
+	big := filepath.Join(t.TempDir(), "big.zip")
+	f, _ := os.Create(big)
+	f.Truncate(cloud.MaxFileBytes + 1)
+	f.Close()
+	if _, err := run(t, "--file", path, "attach", id, big); err == nil || !strings.Contains(err.Error(), "at most 25 MB") {
+		t.Errorf("oversized file: %v", err)
+	}
+	empty := filepath.Join(t.TempDir(), "empty.txt")
+	os.WriteFile(empty, nil, 0o644)
+	if _, err := run(t, "--file", path, "attach", id, empty); err == nil || !strings.Contains(err.Error(), "empty") {
+		t.Errorf("empty file: %v", err)
+	}
+
+	// A file in the description: a plain link, in the web's format.
+	if out, err := run(t, "--file", path, "attach", id, plan); err != nil || !strings.Contains(out, "My-Plan.md") {
+		t.Fatalf("attach: %v %s", err, out)
+	}
+	// A file in a new comment, after its text.
+	if out, err := run(t, "--file", path, "attach", id, plan, "--comment", "Plan for review", "--author", "ai"); err != nil || !strings.Contains(out, "to a comment on") {
+		t.Fatalf("attach --comment: %v %s", err, out)
+	}
+	data, _ := os.ReadFile(path)
+	hostDir := strings.TrimPrefix(srv.URL, "http://")
+	if !strings.Contains(string(data), "[My-Plan.md](/") || strings.Contains(string(data), "![My-Plan") || !strings.Contains(string(data), "/todomd/attachments/"+hostDir+"/"+p+"/att_") {
+		t.Fatalf("file after attach:\n%s", data)
+	}
+	if !strings.Contains(string(data), "Plan for review") {
+		t.Fatalf("no comment:\n%s", data)
+	}
+
+	// Sync uploads it once, in the description and the comment alike.
+	out, err = run(t, "--file", path, "sync", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res syncJSON
+	json.Unmarshal([]byte(out), &res)
+	if len(res.Attachments.Uploaded) != 1 || len(res.Attachments.Skipped) != 0 || srv.Uploads != 1 {
+		t.Fatalf("sync: %s", out)
+	}
+	head := srv.Head(p)
+	url := srv.URL + "/a/" + p + "/att_"
+	if strings.Count(head, url) != 2 || strings.Contains(head, "todomd/attachments") || !strings.Contains(head, "[My-Plan.md](") {
+		t.Errorf("head wants two file URLs:\n%s", head)
+	}
+	if _, err := run(t, "--file", path, "sync", "--json"); err != nil || srv.Uploads != 1 {
+		t.Errorf("second sync uploaded again (%d): %v", srv.Uploads, err)
+	}
+	if out, _ := run(t, "--file", path, "sync"); !strings.Contains(out, "up to date") {
+		t.Errorf("not idle: %s", out)
+	}
+	// It can be fetched back.
+	dir := filepath.Join(t.TempDir(), "out")
+	if _, err := run(t, "--file", path, "download", id, "My-Plan.md", "-o", dir); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(dir, "My-Plan.md")); !strings.Contains(string(got), "1. do it") {
+		t.Errorf("downloaded %q", got)
+	}
+
+	// An image attached with --comment stays inline.
+	img := filepath.Join(t.TempDir(), "shot.png")
+	os.WriteFile(img, pngBytes("inline"), 0o644)
+	if _, err := run(t, "--file", path, "attach", id, img, "--comment", "see", "--author", "ai"); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(path); !strings.Contains(string(data), "![shot](") {
+		t.Errorf("image not inline:\n%s", data)
+	}
+}
+
+func TestAttachFileToOldServer(t *testing.T) {
+	srv, path := cloudEnv(t)
+	srv.ImagesOnly = true
+	login(t)
+	id := addOne(t, path, "Task")
+	if _, err := run(t, "--file", path, "link", "--create", "--name", "proj", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	plan := filepath.Join(t.TempDir(), "plan.md")
+	os.WriteFile(plan, []byte("# Plan\n"), 0o644)
+	if _, err := run(t, "--file", path, "attach", id, plan); err != nil {
+		t.Fatal(err)
+	}
+	out, err := run(t, "--file", path, "sync", "--json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res syncJSON
+	json.Unmarshal([]byte(out), &res)
+	if len(res.Attachments.Skipped) != 1 || !strings.Contains(res.Attachments.Skipped[0].Reason, "doesn't accept files from the CLI yet") {
+		t.Fatalf("want the old-server message: %s", out)
+	}
+	// The local link stays, so a later sync against a newer server uploads it.
+	srv.ImagesOnly = false
+	if _, err := run(t, "--file", path, "sync", "--json"); err != nil || srv.Uploads != 1 {
+		t.Errorf("retry: %v, uploads %d", err, srv.Uploads)
 	}
 }
 
