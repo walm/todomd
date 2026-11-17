@@ -62,7 +62,8 @@ type Server struct {
 	revoked    bool
 	deviceHit  int
 	images     map[string]map[string]image // project → att → image
-	Uploads    int                         // image uploads accepted
+	ImagesOnly bool                        // act like a server that still takes images only (415 for a file)
+	Uploads    int                         // uploads accepted
 	Downloads  int                         // image downloads served
 	Refused    int                         // file downloads refused with 406
 }
@@ -786,26 +787,43 @@ func (s *Server) attachment(w http.ResponseWriter, r *http.Request, ref, att str
 			fail(w, 403, "read_only", "read-only access")
 			return
 		}
-		if !strings.HasPrefix(r.Header.Get("Content-Type"), "image/") {
+		isImage := strings.HasPrefix(r.Header.Get("Content-Type"), "image/")
+		if !isImage && s.ImagesOnly {
 			fail(w, 415, "unsupported_type", "upload an image")
 			return
 		}
 		data, _ := io.ReadAll(r.Body)
-		if len(data) > cloud.MaxImageBytes {
-			fail(w, 413, "too_large", "images can be at most 5 MB")
+		name, _ := url.PathUnescape(r.Header.Get("X-Filename"))
+		// The rules of the web route: an image/* body must be an image of at
+		// most 5 MB; any other body is a file of at most 25 MB.
+		if isImage {
+			if cloud.SniffImage(data) == "" {
+				fail(w, 415, "unsupported_type", "only PNG, JPEG, GIF and WebP images can be uploaded")
+				return
+			}
+			if len(data) > cloud.MaxImageBytes {
+				fail(w, 413, "too_large", "images can be at most 5 MB")
+				return
+			}
+		}
+		if len(data) > cloud.MaxFileBytes {
+			fail(w, 413, "too_large", "files can be at most 25 MB")
 			return
 		}
-		typ := cloud.SniffImage(data)
-		if typ == "" {
-			fail(w, 415, "unsupported_type", "only PNG, JPEG, GIF and WebP images can be uploaded")
+		if len(data) == 0 {
+			fail(w, 400, "empty", "the file is empty")
 			return
 		}
 		if id := cloud.ImageID(data); id != att {
-			fail(w, 422, "hash_mismatch", "the image hashes to "+id, "id", id)
+			fail(w, 422, "hash_mismatch", "the file hashes to "+id, "id", id)
 			return
 		}
-		name, _ := url.PathUnescape(r.Header.Get("X-Filename"))
-		u := s.AddImage(p.ID, data, name)
+		var u string
+		if cloud.IsImage(data) {
+			u = s.AddImage(p.ID, data, name)
+		} else {
+			u = s.AddFile(p.ID, data, cloud.CleanFileName(name), "application/octet-stream")
+		}
 		s.mu.Lock()
 		s.Uploads++
 		img := s.images[p.ID][att]

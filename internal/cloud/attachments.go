@@ -93,6 +93,48 @@ func CleanName(name, typ string) string {
 	return base + "." + imageExt[typ]
 }
 
+var fileExtRe = regexp.MustCompile(`\.([A-Za-z0-9]{1,10})$`)
+
+// FileContentType is what an upload of a file that isn't a (small) image
+// is labelled with; the server picks the stored type by extension.
+const FileContentType = "application/octet-stream"
+
+// IsImage reports whether the server will keep data as an inline image: a
+// PNG, JPEG, GIF or WebP signature and at most MaxImageBytes. Anything else
+// is a file (a larger GIF included), only ever served as a download.
+func IsImage(data []byte) bool {
+	return len(data) <= MaxImageBytes && SniffImage(data) != ""
+}
+
+// CleanFileName is the name todomd.online stores a file that isn't an inline
+// image under: the base made safe for a URL path segment, the extension
+// (up to 10 letters or digits) kept and lower-cased. It mirrors the
+// server's cleanName, so a name cleaned here comes back unchanged.
+func CleanFileName(name string) string {
+	base := extRe.ReplaceAllString(name, "")
+	base = norm.NFKD.String(base)
+	base = unsafeRe.ReplaceAllString(base, "-")
+	base = edgeDotRe.ReplaceAllString(base, "")
+	if len(base) > 60 {
+		base = base[:60]
+	}
+	if base == "" {
+		base = "file"
+	}
+	if m := fileExtRe.FindStringSubmatch(name); m != nil {
+		base += "." + strings.ToLower(m[1])
+	}
+	return base
+}
+
+// IsUnsupportedType reports whether an upload was refused as a type the
+// server doesn't take (415) — for a file, a server that still accepts
+// images only.
+func IsUnsupportedType(err error) bool {
+	var ae *APIError
+	return errors.As(err, &ae) && ae.Status == http.StatusUnsupportedMediaType
+}
+
 // ImageID is an image's content-derived id: att_ plus the first 20 hex
 // characters of its SHA-256.
 func ImageID(b []byte) string {
@@ -128,7 +170,7 @@ type Attachment struct {
 	URL  string `json:"url"`
 }
 
-// UploadAttachment stores an image under its content-derived id. The server
+// UploadAttachment stores an image (or, with FileContentType, a file) under its content-derived id. The server
 // hashes the bytes itself; a mismatch is 422 hash_mismatch.
 func (c *Client) UploadAttachment(ctx context.Context, projectID string, data []byte, typ, name string) (*Attachment, error) {
 	hdr := http.Header{"Content-Type": {typ}, "X-Filename": {url.PathEscape(name)}}

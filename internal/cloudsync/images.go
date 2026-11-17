@@ -211,8 +211,10 @@ func (im *images) findLocal(att, name string) string {
 
 // readUploadable applies the upload rule: a regular file whose real path,
 // after resolving .. and symlinks, is exactly <root>/<project>/<att>/<name>,
-// at most MaxImageBytes, whose bytes hash to att, of an allowed type, under
-// the name the server would store it as. Nothing else is ever uploaded.
+// non-empty, at most MaxImageBytes for an image or MaxFileBytes for any
+// other file, whose bytes hash to att, under the name the server would
+// store it as. It returns the bytes and the Content-Type to upload with.
+// Nothing else is ever uploaded.
 func (im *images) readUploadable(att, name string) ([]byte, string, error) {
 	dirReal, err := filepath.EvalSymlinks(im.dir)
 	if err != nil {
@@ -229,24 +231,30 @@ func (im *images) readUploadable(att, name string) ([]byte, string, error) {
 	if err != nil || !st.Mode().IsRegular() {
 		return nil, "", errors.New("not a regular file")
 	}
-	if st.Size() > cloud.MaxImageBytes {
-		return nil, "", fmt.Errorf("larger than %d MB", cloud.MaxImageBytes>>20)
+	if st.Size() > cloud.MaxFileBytes {
+		return nil, "", fmt.Errorf("larger than %d MB", cloud.MaxFileBytes>>20)
 	}
 	data, err := os.ReadFile(real)
 	if err != nil {
 		return nil, "", err
 	}
+	if len(data) == 0 {
+		return nil, "", errors.New("the file is empty")
+	}
 	if cloud.ImageID(data) != att {
 		return nil, "", errors.New("its content doesn't match its id")
 	}
-	typ := cloud.SniffImage(data)
-	if typ == "" {
-		return nil, "", errors.New("not a PNG, JPEG, GIF or WebP image")
+	if cloud.IsImage(data) {
+		typ := cloud.SniffImage(data)
+		if cloud.CleanName(name, typ) != name {
+			return nil, "", errors.New("its file name isn't in the form todomd.online stores")
+		}
+		return data, typ, nil
 	}
-	if cloud.CleanName(name, typ) != name {
+	if cloud.CleanFileName(name) != name {
 		return nil, "", errors.New("its file name isn't in the form todomd.online stores")
 	}
-	return data, typ, nil
+	return data, cloud.FileContentType, nil
 }
 
 // wireMode says how toWire may decide.
@@ -317,7 +325,11 @@ func (im *images) toWire(ctx context.Context, f *task.File, known map[string]str
 				url = im.URL(att, name)
 			default:
 				if _, err := im.client.UploadAttachment(ctx, im.project, data, typ, name); err != nil {
-					im.rep.Skipped = append(im.rep.Skipped, Skip{att, name, "upload failed: " + apiReason(err)})
+					reason := apiReason(err)
+					if typ == cloud.FileContentType && cloud.IsUnsupportedType(err) {
+						reason = "this server doesn't accept files from the CLI yet"
+					}
+					im.rep.Skipped = append(im.rep.Skipped, Skip{att, name, "upload failed: " + reason})
 				} else {
 					im.known[att] = true
 					im.rep.Uploaded = append(im.rep.Uploaded, att)
@@ -439,11 +451,36 @@ func StoreImage(l *Link, data []byte, name string) (att, stored, link string, er
 	if len(data) > cloud.MaxImageBytes {
 		return "", "", "", fmt.Errorf("images can be at most %d MB", cloud.MaxImageBytes>>20)
 	}
+	att, stored, link, err = storeAttachment(l, data, cloud.CleanName(name, typ))
+	return
+}
+
+// StoreFile copies any file todomd.online takes into this machine's folder
+// for the project, as StoreImage does for an image. image says how to link
+// it: inline (![…](…)) for a PNG, JPEG, GIF or WebP up to 5 MB, otherwise a
+// plain link. Files may be up to 25 MB; an empty file is refused.
+func StoreFile(l *Link, data []byte, name string) (att, stored, link string, image bool, err error) {
+	if len(data) == 0 {
+		return "", "", "", false, errors.New("the file is empty")
+	}
+	if len(data) > cloud.MaxFileBytes {
+		return "", "", "", false, fmt.Errorf("files can be at most %d MB", cloud.MaxFileBytes>>20)
+	}
+	image = cloud.IsImage(data)
+	clean := cloud.CleanFileName(name)
+	if image {
+		clean = cloud.CleanName(name, cloud.SniffImage(data))
+	}
+	att, stored, link, err = storeAttachment(l, data, clean)
+	return att, stored, link, image, err
+}
+
+func storeAttachment(l *Link, data []byte, clean string) (att, stored, link string, err error) {
 	im, err := newImages(nil, l, &AttachmentReport{})
 	if err != nil {
 		return "", "", "", err
 	}
-	att, stored = cloud.ImageID(data), cloud.CleanName(name, typ)
+	att, stored = cloud.ImageID(data), clean
 	if existing := im.findLocal(att, stored); existing != "" {
 		stored = existing
 	} else if err := writeImage(im.path(att, stored), data); err != nil {

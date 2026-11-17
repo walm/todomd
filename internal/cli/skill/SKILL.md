@@ -167,7 +167,10 @@ win over these.
   the card links several).
 - `todomd attach 3f2a screenshot.png --as agent` adds an image (PNG, JPEG,
   GIF, WebP up to 5 MB) to a card on a linked board; it goes up with the
-  next `watch`.
+  next `watch`. Any other file works too (a Markdown plan, a PDF, a CSV, a
+  zip; up to 25 MB), as a download link: `todomd attach 3f2a plan.md`.
+  Add `--comment "Plan for review" --author ai` to put it in a new comment
+  instead of the description. Needs a linked board (exit 5 otherwise).
 
 ## Exit codes
 

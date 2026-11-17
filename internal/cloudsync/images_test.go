@@ -269,3 +269,55 @@ func TestFileLinksStayLinks(t *testing.T) {
 		t.Errorf("file links lost online:\n%s", head)
 	}
 }
+
+func TestAttachedFileIsUploadedFromDescriptionAndComment(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	p := e.s.Link.ProjectID
+	plan := []byte("# Plan\n\n- one\n")
+	att, name, link, image, err := StoreFile(e.s.Link, plan, "Plan v2.md")
+	if err != nil || image || name != "Plan-v2.md" {
+		t.Fatalf("%v %v %q", err, image, name)
+	}
+	e.mutate(func(f *task.File) error {
+		for _, t := range f.AllTasks() {
+			if t.ID == "aaaa" {
+				t.Description = "see [Plan-v2.md](" + link + ")"
+				t.Comments = append(t.Comments, task.Comment{Author: "ai", Date: task.Date{Year: 2026, Month: 11, Day: 7}, Text: "again\n\n[Plan-v2.md](" + link + ")"})
+			}
+		}
+		return nil
+	})
+	r := e.round()
+	if len(r.Attachments.Uploaded) != 1 || !e.srv.HasImage(p, att) || e.srv.Uploads != 1 {
+		t.Fatalf("not uploaded once: %+v", r.Attachments)
+	}
+	url := e.srv.URL + "/a/" + p + "/" + att + "/Plan-v2.md"
+	if head := e.srv.Head(p); strings.Count(head, "[Plan-v2.md]("+url+")") != 2 {
+		t.Fatalf("head:\n%s", head)
+	}
+	for i := 0; i < 2; i++ {
+		if r := e.round(); !r.Unchanged || e.srv.Uploads != 1 || len(r.Attachments.Uploaded) != 0 {
+			t.Fatalf("round %d not idle: %+v, uploads %d", i, r, e.srv.Uploads)
+		}
+	}
+}
+
+func TestStoreFileRules(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	if _, _, _, _, err := StoreFile(e.s.Link, nil, "x.txt"); err == nil {
+		t.Error("empty file stored")
+	}
+	if _, _, _, _, err := StoreFile(e.s.Link, make([]byte, cloud.MaxFileBytes+1), "x.zip"); err == nil {
+		t.Error("26 MB file stored")
+	}
+	// A GIF over 5 MB is kept as a file: linked, not shown inline.
+	gif := append([]byte("GIF89a"), make([]byte, cloud.MaxImageBytes)...)
+	if _, _, _, image, err := StoreFile(e.s.Link, gif, "big.gif"); err != nil || image {
+		t.Errorf("big gif: image=%v err=%v", image, err)
+	}
+	if _, _, _, image, err := StoreFile(e.s.Link, png("x"), "x.png"); err != nil || !image {
+		t.Errorf("png: image=%v err=%v", image, err)
+	}
+}
