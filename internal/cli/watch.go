@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -191,7 +192,7 @@ type lookFunc func(snapshot []byte) (evs []changes.Event, raw []byte, err error)
 // A task_updated that only changes reactions is dropped unless one of the
 // reacted comments was written by one of mine (the watcher's own names, see
 // myNames): a reaction to someone else's comment isn't worth waking for.
-func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, mine []string) lookFunc {
+func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, notMyCards, mine []string) lookFunc {
 	return func(snapshot []byte) ([]changes.Event, []byte, error) {
 		raw, cur, err := s.ReadPersisted()
 		if errors.Is(err, store.ErrNoFile) {
@@ -216,6 +217,9 @@ func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, mine []st
 				continue
 			}
 			if changes.OnlyReactions(e) && !reactsToMine(e, mine) {
+				continue
+			}
+			if assignedToOthers(e, notMyCards) {
 				continue
 			}
 			evs = append(evs, e)
@@ -267,7 +271,7 @@ func waitContexts(timeout time.Duration) (sig, wait context.Context, cancel func
 
 func newWatch() *cobra.Command {
 	var as string
-	var ignoreAuthors, authors, notForMe []string
+	var ignoreAuthors, authors, notForMe, notMyCards []string
 	var timeout time.Duration
 	var noWait bool
 	cmd := &cobra.Command{
@@ -325,7 +329,7 @@ too old.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors, notForMe, myNames(as, authors))
+			look := cursorLook(s, cpath, ignoreAuthors, notForMe, notMyCards, myNames(as, authors))
 
 			primed, err := bs.round(ctx)
 			if err != nil {
@@ -400,6 +404,7 @@ too old.`,
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
 	authorFlag(cmd, &authors)
 	notForMeFlag(cmd, &notForMe)
+	notMyCardsFlag(cmd, &notMyCards)
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "give up waiting after this long (reports no events, timed_out: true)")
 	cmd.Flags().BoolVar(&noWait, "no-wait", false, "sync and report what is pending without waiting")
 	jsonFlag(cmd)
@@ -417,6 +422,46 @@ func authorFlag(cmd *cobra.Command, authors *[]string) {
 func notForMeFlag(cmd *cobra.Command, names *[]string) {
 	cmd.Flags().StringArrayVar(names, "ignore-mentioning-others", nil,
 		"your @handle: drop comment_added events that @mention someone but not you (comments with no @mention are kept; repeatable)")
+}
+
+// notMyCardsFlag adds --ignore-assigned-to-others to watch and changes.
+func notMyCardsFlag(cmd *cobra.Command, names *[]string) {
+	cmd.Flags().StringArrayVar(names, "ignore-assigned-to-others", nil,
+		"your handle: drop events about cards assigned to someone else (kept: unassigned cards, your own, a card taken from you, a comment that @mentions you; repeatable)")
+}
+
+// assignedToOthers reports whether e is about a card assigned to someone
+// who isn't one of me, so the watcher can skip it. Kept: unassigned cards,
+// cards assigned to me, a change that takes the card away from me, and a
+// comment that @mentions me.
+func assignedToOthers(e changes.Event, me []string) bool {
+	if len(me) == 0 || e.Task == nil || e.Task.Assignee == "" || handleIn(e.Task.Assignee, me) {
+		return false
+	}
+	if fc, ok := e.Fields["assignee"]; ok {
+		if old, _ := fc.Old.(string); old != "" && handleIn(old, me) {
+			return false
+		}
+	}
+	if e.Type == changes.CommentAdded && e.Comment != nil {
+		ms := mentions.Extract(e.Comment.Text)
+		for _, h := range me {
+			if mentions.Has(ms, h) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// handleIn reports whether handle is one of names (any case, @ optional).
+func handleIn(handle string, names []string) bool {
+	for _, n := range names {
+		if strings.EqualFold(strings.TrimPrefix(n, "@"), handle) {
+			return true
+		}
+	}
+	return false
 }
 
 // forOthers reports whether a comment's text @mentions someone, and none of

@@ -1,0 +1,122 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "aa01",
+          "title": "Everything on one card",
+          "tags": [
+            "infra"
+          ],
+          "priority": "high",
+          "due": "2026-11-20",
+          "sticker": "fire",
+          "assignee": "anna",
+          "description": "Export the board as CSV.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "aa02"
+            }
+          ],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-17",
+              "text": "Please look, @anna.",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "anna"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "aa02",
+          "title": "Only an assignee",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "agent",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "aa03",
+          "title": "Metadata and an assignee, no sticker",
+          "tags": [
+            "web"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "bob",
+          "description": "Some text.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "aa04",
+          "title": "Sticker and assignee, no metadata",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "red",
+          "assignee": "claude",
+          "description": "",
+          "links": [],
+          "comments": []
+        }
+      ]
+    },
+    {
+      "name": "In Progress",
+      "tasks": [
+        {
+          "id": "aa05",
+          "title": "Assignee and comments, no description",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "walm",
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-18",
+              "text": "Mine.",
+              "reactions": []
+            }
+          ]
+        },
+        {
+          "id": "aa06",
+          "title": "Unassigned",
+          "tags": [],
+          "priority": "low",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "Nobody has this one.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    },
+    {
+      "name": "Done",
+      "tasks": []
+    }
+  ]
+}

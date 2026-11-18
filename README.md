@@ -90,6 +90,20 @@ are never deleted. The rules are yours: edit the installed `SKILL.md`, or
 tell the agent otherwise. `todomd skill` prints the text without installing;
 `--install --dir <dir>` puts it elsewhere and `--force` overwrites.
 
+**Assignees are opt-in.** The default rules ignore who a card is assigned
+to, and the agent never assigns itself. If you want it to, say so in your
+rules (to the agent, or on a "Rules for agents" card), for example:
+
+> Only work on cards assigned to @agent. Watch with
+> `todomd watch --as agent --ignore-assigned-to-others agent --json`.
+
+> Work on cards that are unassigned or assigned to you. Before you start an
+> unassigned one, run `todomd assign <id> me --as agent` and sync; if the
+> card turns out to be someone else's, leave it.
+
+The skill teaches the agent `list --assignee me`, `assign`, `unassign` and
+`--ignore-assigned-to-others`, so a one-line rule is enough.
+
 ## 🤖 CLI (for agents and scripts)
 
 ```sh
@@ -109,6 +123,9 @@ todomd links rm 9e41 3f2a             # wherever the link is stored
 todomd add "Follow-up" --link related:3f2a
 todomd sticker 3f2a fire              # or 🔥, a ribbon colour (red, …), or none
 todomd list --sticker any --json      # cards with a sticker (or --sticker fire, none)
+todomd assign 3f2a @anna              # one assignee per card; `me` is your --as name or login
+todomd unassign 3f2a                  # or `unassign 3f2a agent`: only if it's agent's
+todomd list --assignee me --as claude --json   # or a handle, none, any
 todomd react 3f2a 2 👍 --author walm  # react to comment 2 (as `show` numbers them); --remove takes it back
 todomd boards --json
 todomd boards add Review              # before Done; or --after/--before <board>
@@ -118,6 +135,7 @@ todomd boards delete Review           # --force if it still holds tasks
 todomd archive --dry-run              # what clearing Done would remove
 todomd changes --as claude --ignore-author claude --json
 todomd watch --as claude --ignore-mentioning-others claude --json   # skip comments @mentioning others
+todomd watch --as claude --ignore-assigned-to-others claude --json  # skip cards assigned to others
 todomd watch --as claude --json       # sync, wait for changes, print them
 ```
 
@@ -147,6 +165,14 @@ events that mention someone and not `<me>`; a comment with no mention is
 kept. Agents treat a comment that mentions others but not them as not
 theirs to act on or answer. Editing a comment in place is still reported
 as `task_updated` with `fields.comments`, without mentions.
+
+**Assignees.** Every event carries the card's `assignee` when it has one,
+and a change shows as `fields.assignee` (`old`/`new`, a handle or `null`).
+`changes` and `watch` take `--ignore-assigned-to-others <me>` (repeatable):
+it drops events about cards that are assigned to someone other than `<me>`,
+judged by the card as it is when `changes` reads it. It keeps unassigned
+cards, `<me>`'s cards, a card taken from `<me>`, and comments that
+`@mention` `<me>`.
 
 Events are about tasks: renaming a board reports a `task_moved` (old name →
 new) for each of its tasks, while adding, reordering or renaming an empty
@@ -201,6 +227,16 @@ it waits, but only `watch` syncs before and after.
   <name|emoji|none>`, `add --sticker` or `update --sticker`; `todomd sticker`
   lists them. JSON has `"sticker": "fire"` or `null`. A sticker isn't a tag:
   filter on tags for meaning, use a sticker to stand out.
+- **Assignees**: one per card, a handle (`anna`, `agent`; the @mention
+  rule: lowercase letters, digits and inner hyphens, up to 39). Set it with
+  `todomd assign <id> <@handle|me>`, `add --assignee` or `update --assignee`
+  (`none` unassigns); `todomd unassign <id> [handle]` removes it. `me` is
+  your `--as` name (or `TODOMD_CURSOR`), else your todomd.online handle;
+  write `@me` for someone called "me". It doesn't have to be a project
+  member. `list --assignee <handle|me|none|any>` filters; JSON has
+  `"assignee": "anna"` or `null`; `list` and the TUI show `@anna`. todomd
+  never acts on assignees by itself, and the agent skill has no default
+  rule about them: tell your agent if it should (see Agents).
 - **Reactions** on comments: any emoji, by any number of people. `todomd
   react <id> <comment> <emoji> --author <name>` adds yours (`--remove`
   takes it back); name the comment by its number in `show`, or `last`, and
@@ -413,6 +449,8 @@ Free-form preamble — never touched by the tool.
 
 <!-- sticker: fire -->
 
+<!-- assignee: anna -->
+
 Description: any markdown, multiple paragraphs, code fences, lists.
 
 #### Links
@@ -445,6 +483,11 @@ Rules, briefly:
   metadata line (`fire`, `star`, …, `red`, …; ASCII names, not the emoji).
   Only that position and only a known name count; anything else is
   description text. Details: [docs/card-stickers-format.md](docs/card-stickers-format.md).
+- An assignee is a hidden `<!-- assignee: HANDLE -->` line after the sticker
+  (or the metadata line): one handle, lowercase, no `@`. Only that position
+  and only an exact match count; anything else is description text. Older
+  todomd versions keep it as the description's first line, byte for byte.
+  Details: [docs/card-assignees-format.md](docs/card-assignees-format.md).
 - Everything up to `#### Links` / `#### Comments` / the next heading is the
   description, preserved verbatim.
 - `#### Links` lists links to other cards, one per line: `- <kind> <id>`,

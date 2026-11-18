@@ -73,6 +73,9 @@ func changedFields(a, b *task.Task) Fields {
 	if a.Sticker != b.Sticker {
 		s.Sticker = strp(b.Sticker)
 	}
+	if a.Assignee != b.Assignee {
+		s.Assignee = strp(b.Assignee)
+	}
 	if a.Description != b.Description {
 		s.Description = strp(b.Description)
 	}
@@ -445,6 +448,9 @@ func applyOne(f *task.File, home map[string]*task.Board, op Op) string {
 		}
 		if s.Sticker != nil {
 			t.Sticker = *s.Sticker
+		}
+		if s.Assignee != nil {
+			t.Assignee = *s.Assignee
 		}
 		if s.Description != nil {
 			t.Description = *s.Description

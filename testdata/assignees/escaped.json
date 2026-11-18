@@ -1,0 +1,121 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "dd01",
+          "title": "Escaped, no sticker",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "<!-- assignee: anna -->\n\nThe first line is text that looks like an assignee line.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd02",
+          "title": "Escaped twice",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "\\<!-- assignee: anna -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd03",
+          "title": "Escaped after a sticker",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "star",
+          "assignee": null,
+          "description": "<!-- assignee: bob -->\n\nText.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd04",
+          "title": "Escaped under a real assignee: no unescape",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "\\<!-- assignee: bob -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd05",
+          "title": "Assignee-looking first line under a real assignee",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "<!-- assignee: bob -->\n\nThe second assignee line is description text.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd06",
+          "title": "Sticker-looking first line under an assignee",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "<!-- sticker: fire -->\n\nIt's past the sticker's place, so it's text and isn't escaped.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd07",
+          "title": "Escaped sticker-looking first line under an assignee",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "\\<!-- sticker: fire -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd08",
+          "title": "Escaped sticker, no assignee",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nThe assignee line after an escaped sticker is description text.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "dd09",
+          "title": "Escaped metadata line under an assignee",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "`#tag` **priority:** high",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

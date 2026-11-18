@@ -687,3 +687,57 @@ func TestReactionsToAnOldServerSendTheWholeFile(t *testing.T) {
 		t.Errorf("no reactions left: sent %s form, want ops", last.Form)
 	}
 }
+
+func TestAssigneesSyncAsOps(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[0].Assignee = "anna"; return nil })
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" || !strings.Contains(fmt.Sprint(last.Raw["ops"]), "assignee") {
+		t.Errorf("sent %s form: %v", last.Form, last.Raw["ops"])
+	}
+	e.sameAsHead()
+	if !strings.Contains(e.srv.Head(e.s.Link.ProjectID), "\n<!-- assignee: anna -->\n") {
+		t.Errorf("head:\n%s", e.srv.Head(e.s.Link.ProjectID))
+	}
+}
+
+// A server on format 4 can't read assignees in ops, and holds an assignee
+// line as the description's first line. While the file has assignees, every
+// change goes as the whole file.
+func TestAssigneesToAnOldServerSendTheWholeFile(t *testing.T) {
+	e := setup(t, startDoc)
+	e.s.FormatVersion = 4
+	e.create()
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[1].Title = "Renamed"; return nil })
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no assignees: sent %s form, want ops", last.Form)
+	}
+	steps := []func(f *task.File){
+		func(f *task.File) { f.Boards[0].Tasks[0].Assignee = "anna" },       // assigns
+		func(f *task.File) { f.Boards[0].Tasks[1].Title = "Other card" },    // edits another card
+		func(f *task.File) { f.Boards[0].Tasks[0].Description = "Changed" }, // edits under the line
+		func(f *task.File) { f.Boards[0].Tasks[0].Assignee = "" },           // unassigns the last one
+	}
+	for i, step := range steps {
+		e.mutate(func(f *task.File) error { step(f); return nil })
+		r := e.round()
+		calls = e.srv.Calls()
+		if last := calls[len(calls)-1]; last.Form != "content" || !r.FullFile {
+			t.Errorf("step %d: sent %s form, want content", i, last.Form)
+		}
+		e.sameAsHead()
+	}
+	if e.s.Link.FullFile != nil {
+		t.Error("the link switched to full-file mode for good")
+	}
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[1].Title = "Again"; return nil })
+	e.round()
+	calls = e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no assignees left: sent %s form, want ops", last.Form)
+	}
+}

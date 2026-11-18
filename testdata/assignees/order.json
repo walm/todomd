@@ -1,0 +1,76 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "ee01",
+          "title": "Assignee before the sticker",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "<!-- sticker: fire -->\n\nThe sticker line is description text, as older versions read it.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ee02",
+          "title": "Assignee before the metadata line",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "`#tag` **priority:** high",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ee03",
+          "title": "Two assignee lines",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "<!-- assignee: bob -->",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ee04",
+          "title": "Assignee in a code fence",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "```\n<!-- assignee: anna -->\n```",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ee05",
+          "title": "Assignee then links",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "ee01"
+            }
+          ],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

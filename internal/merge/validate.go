@@ -68,6 +68,9 @@ func CheckTask(t *task.Task) error {
 	if t.Sticker != "" && !task.ValidSticker(t.Sticker) {
 		return invalid("sticker", "unknown sticker %q", t.Sticker)
 	}
+	if t.Assignee != "" && !task.ValidHandle(t.Assignee) {
+		return invalid("assignee", "invalid assignee %q (a lowercase handle without @)", t.Assignee)
+	}
 	if err := checkLinks(t); err != nil {
 		return err
 	}

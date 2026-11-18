@@ -17,6 +17,11 @@
 //   - NoDeletesFromOurs also covers tags, links and comments.
 //   - The sticker is a scalar with no conflict: one side's change wins,
 //     and when both changed it, theirs (the later write) wins silently.
+//   - The assignee is a scalar where a set beats a clear: when one side
+//     unassigns and the other assigns someone new, the new assignee wins
+//     without a conflict. Two different new assignees: theirs, with a
+//     conflict comment. NoDeletesFromOurs ignores an unassign by ours. See
+//     mergeAssignee.
 //   - Reactions merge per comment as a set of (emoji, name) pairs, like
 //     tags, apart from the comment list: a reaction is never a comment edit
 //     and never a conflict. See mergeReactions.
@@ -129,6 +134,7 @@ func sameContent(a, b *task.Task) bool {
 		a.Priority == b.Priority &&
 		task.SameDue(a.Due, b.Due) &&
 		a.Sticker == b.Sticker &&
+		a.Assignee == b.Assignee &&
 		a.Description == b.Description &&
 		slices.Equal(a.Tags, b.Tags) &&
 		slices.Equal(a.Links, b.Links) &&
@@ -272,6 +278,36 @@ func pick[T any](hasBase bool, b, o, t T, eq func(x, y T) bool) (T, bool) {
 }
 
 func eqString(a, b string) bool { return a == b }
+
+// mergeAssignee is pick with two changes. A set beats a clear: "not me any
+// more" is weaker than "give it to bob", so when one side unassigns and the
+// other assigns someone new, the new one wins and nothing conflicts. And
+// with noDeletes an unassign by ours doesn't apply, as for tags. Only two
+// different handles conflict (theirs kept). Without a base: theirs if set,
+// else ours.
+func mergeAssignee(hasBase bool, b, o, t string, noDeletes bool) (string, bool) {
+	switch {
+	case o == t:
+		return o, false
+	case !hasBase:
+		if t == "" {
+			return o, false
+		}
+		return t, o != ""
+	case o == b:
+		return t, false
+	case t == b:
+		if o == "" && noDeletes {
+			return t, false
+		}
+		return o, false
+	case o == "":
+		return t, false
+	case t == "":
+		return o, false
+	}
+	return t, true
+}
 
 func eqPriority(a, b task.Priority) bool { return a == b }
 
@@ -746,6 +782,11 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 	}
 	// Last writer wins: a sticker is decoration, not worth a conflict note.
 	sticker, _ := pick(hasB, bt.Sticker, ot.Sticker, tt.Sticker, eqString)
+	assignee, c := mergeAssignee(hasB, bt.Assignee, ot.Assignee, tt.Assignee, mg.noDeletes)
+	if c {
+		// The bare handle: an @ would @mention the losing handle.
+		field("assignee", "field", was("assignee")+": "+ot.Assignee)
+	}
 	due, c := pick(hasB, bt.Due, ot.Due, tt.Due, task.SameDue)
 	if c {
 		v := "none"
@@ -799,6 +840,7 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 		Priority:    prio,
 		Due:         dueCopy,
 		Sticker:     sticker,
+		Assignee:    assignee,
 		Description: description,
 		Comments:    mergeReactions(hasB, bt.Comments, ot.Comments, tt.Comments, cm.list, mg.noDeletes),
 	}

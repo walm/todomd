@@ -241,6 +241,9 @@ func renderCard(t *task.Task, w int, selected bool, mark markKind) string {
 		}
 		meta = append(meta, style.Render(t.Due.String()))
 	}
+	if t.Assignee != "" {
+		meta = append(meta, tagStyle.Render(ansi.Truncate("@"+t.Assignee, inner, "…")))
+	}
 	if n := len(t.Comments); n > 0 {
 		meta = append(meta, countStyle.Render(fmt.Sprintf("(%d)", n)))
 	}

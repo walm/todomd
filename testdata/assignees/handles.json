@@ -1,0 +1,71 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "bb01",
+          "title": "One character",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "a",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bb02",
+          "title": "Digits only",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "42",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bb03",
+          "title": "Inner hyphens",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "x-y--z",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bb04",
+          "title": "Longest handle (39)",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "abcdefghijklmnopqrstuvwxyz0123456789abc",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bb05",
+          "title": "Too long (40): text",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "<!-- assignee: abcdefghijklmnopqrstuvwxyz0123456789abcd -->",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

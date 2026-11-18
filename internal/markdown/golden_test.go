@@ -13,10 +13,10 @@ import (
 	"github.com/walm/todomd/internal/task"
 )
 
-// The golden files under testdata/links, testdata/stickers and
-// testdata/reactions are shared
-// with todomd.online's TypeScript implementation (packages/todofile), which
-// must read and write them the same way. For each NAME.md:
+// The golden files under testdata/links, testdata/stickers,
+// testdata/reactions and testdata/assignees are shared with todomd.online's
+// TypeScript implementation (packages/todofile), which must read and write
+// them the same way. For each NAME.md:
 //
 //	NAME.out.md  Write(Parse(NAME.md)), byte for byte
 //	NAME.json    the parsed model
@@ -30,12 +30,14 @@ const (
 	linksDir     = "../../testdata/links"
 	stickersDir  = "../../testdata/stickers"
 	reactionsDir = "../../testdata/reactions"
+	assigneesDir = "../../testdata/assignees"
 )
 
 // goldenMode is what a golden directory's JSON shows beyond format 2.
 type goldenMode struct {
 	sticker   bool // each card's sticker, a name or null
 	reactions bool // each comment's reactions, an array
+	assignee  bool // each card's assignee, a handle or null
 }
 
 type goldenLink struct {
@@ -61,7 +63,8 @@ type goldenTask struct {
 	Tags        []string        `json:"tags"`
 	Priority    string          `json:"priority"`
 	Due         *string         `json:"due"`
-	Sticker     json.RawMessage `json:"sticker,omitempty"` // stickers only: a name or null
+	Sticker     json.RawMessage `json:"sticker,omitempty"`  // stickers and later: a name or null
+	Assignee    json.RawMessage `json:"assignee,omitempty"` // assignees only: a handle or null
 	Description string          `json:"description"`
 	Links       []goldenLink    `json:"links"`
 	Comments    []goldenComment `json:"comments"`
@@ -97,6 +100,12 @@ func goldenModel(f *task.File, mode goldenMode) []byte {
 				gt.Sticker = json.RawMessage("null")
 				if t.Sticker != "" {
 					gt.Sticker, _ = json.Marshal(t.Sticker)
+				}
+			}
+			if mode.assignee {
+				gt.Assignee = json.RawMessage("null")
+				if t.Assignee != "" {
+					gt.Assignee, _ = json.Marshal(t.Assignee)
 				}
 			}
 			for _, l := range t.Links {
@@ -148,6 +157,9 @@ func TestGoldenLinks(t *testing.T)    { runGolden(t, linksDir, goldenMode{}, 10)
 func TestGoldenStickers(t *testing.T) { runGolden(t, stickersDir, goldenMode{sticker: true}, 10) }
 func TestGoldenReactions(t *testing.T) {
 	runGolden(t, reactionsDir, goldenMode{sticker: true, reactions: true}, 8)
+}
+func TestGoldenAssignees(t *testing.T) {
+	runGolden(t, assigneesDir, goldenMode{sticker: true, reactions: true, assignee: true}, 11)
 }
 
 func runGolden(t *testing.T, goldenDir string, mode goldenMode, min int) {
