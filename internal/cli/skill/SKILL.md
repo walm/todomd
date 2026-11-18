@@ -130,6 +130,9 @@ todomd watch --as agent --json             # blocks until something changes, pri
   `comment_added`, `task_deleted`), `task` (the ID), `title`, `board`, and
   `from`/`to`, `fields` or `comment` as fits. `task_added` carries the whole
   card as `detail`. Run `todomd show <id> --json` for the full card.
+- A comment's `mentions` lists the `@handles` in its text (lowercase; `[]`
+  for none); a `comment_added` event repeats them as `mentions`. See
+  "Comments for other people" below.
 - It waits up to `--timeout` (default 10m), then prints no events and
   `"timed_out": true`: just run it again. Give your shell tool a longer
   timeout than `--timeout`, or lower it to fit (`--timeout 100s` under a
@@ -155,7 +158,13 @@ win over these.
    links), then move the card to Done.
 4. **Stuck, or a decision is needed**: ask on the card in a comment, then
    keep watching for the answer. Don't guess on things that matter.
-5. **Never delete cards.** Don't rewrite the user's titles, descriptions or
+5. **Comments for other people**: a comment that `@mentions` people but
+   not you is for them. Don't act on it or reply, unless the board's owner
+   asks you to. A comment with no `@mention` is for everyone. Your handle
+   is your `--as` name, so you can have `watch`/`changes` drop these:
+   `--ignore-mentioning-others agent` (repeat it for more handles). An
+   `@mention` inside code, a link or an email address doesn't count.
+6. **Never delete cards.** Don't rewrite the user's titles, descriptions or
    comments unless asked; add a comment instead.
 
 ## Attachments

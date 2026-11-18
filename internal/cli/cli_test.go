@@ -1093,3 +1093,93 @@ func TestSafeFileName(t *testing.T) {
 		}
 	}
 }
+
+func TestChangesMentions(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	path := testFile(t)
+	id := addOne(t, path, "Task A")
+	if _, err := run(t, "--file", path, "changes", "--as", "bot", "--json"); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range [][2]string{
+		{"walm", "@Anna can you check?"},                 // for someone else
+		{"walm", "@anna and @bot, both please"},          // includes me
+		{"walm", "no mention here, bob@example.com"},     // for everyone
+		{"anna", "`@carol` in code, nothing for others"}, // not a mention
+	} {
+		if _, err := run(t, "--file", path, "comment", id, "--author", c[0], c[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	type result struct {
+		Events []struct {
+			Type     string   `json:"type"`
+			Mentions []string `json:"mentions"`
+			Comment  *struct {
+				Text     string   `json:"text"`
+				Mentions []string `json:"mentions"`
+			} `json:"comment"`
+		} `json:"events"`
+	}
+	read := func(args ...string) result {
+		t.Helper()
+		out, err := run(t, append([]string{"--file", path, "changes", "--as", "bot", "--json"}, args...)...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var r result
+		if err := json.Unmarshal([]byte(out), &r); err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+		return r
+	}
+
+	all := read("--peek")
+	if len(all.Events) != 4 {
+		t.Fatalf("want 4 events, got %+v", all)
+	}
+	if got := all.Events[0].Mentions; len(got) != 1 || got[0] != "anna" {
+		t.Errorf("event mentions = %v", got)
+	}
+	if got := all.Events[1].Comment.Mentions; len(got) != 2 || got[1] != "bot" {
+		t.Errorf("comment mentions = %v", got)
+	}
+	if m := all.Events[2].Comment.Mentions; m == nil || len(m) != 0 {
+		t.Errorf("no mentions should be [], got %v", m)
+	}
+
+	// --peek leaves the cursor, so the filtered read sees the same four.
+	kept := read("--peek", "--ignore-mentioning-others", "bot")
+	if len(kept.Events) != 3 {
+		t.Errorf("filtered = %+v", kept)
+	}
+	for _, e := range kept.Events {
+		if e.Comment.Text == "@Anna can you check?" {
+			t.Error("comment for anna was kept")
+		}
+	}
+	// Combined with --ignore-author, and with an @ in the handle.
+	both := read("--peek", "--ignore-mentioning-others", "@BOT", "--ignore-author", "anna")
+	if len(both.Events) != 2 {
+		t.Errorf("combined = %+v", both)
+	}
+	// As anna, nothing is for others: every comment mentions her or no one.
+	if n := len(read("--peek", "--ignore-mentioning-others", "anna").Events); n != 4 {
+		t.Errorf("as anna: want 4 events, got %d", n)
+	}
+
+	out, err := run(t, "--file", path, "changes", "--as", "bot", "--peek")
+	if err != nil || !strings.Contains(out, "→ @anna") || !strings.Contains(out, "→ @anna @bot") {
+		t.Errorf("human output: %v\n%s", err, out)
+	}
+
+	// show and list carry mentions on comments.
+	out, err = run(t, "--file", path, "show", id, "--json")
+	if err != nil || !strings.Contains(out, `"mentions": [`) || !strings.Contains(out, `"anna"`) {
+		t.Errorf("show: %v\n%s", err, out)
+	}
+	out, err = run(t, "--file", path, "list", "--json")
+	if err != nil || !strings.Contains(out, `"mentions": [`) {
+		t.Errorf("list: %v\n%s", err, out)
+	}
+}

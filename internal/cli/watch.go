@@ -12,6 +12,7 @@ import (
 
 	"github.com/walm/todomd/internal/changes"
 	"github.com/walm/todomd/internal/cloudsync"
+	"github.com/walm/todomd/internal/mentions"
 	"github.com/walm/todomd/internal/store"
 )
 
@@ -190,7 +191,7 @@ type lookFunc func(snapshot []byte) (evs []changes.Event, raw []byte, err error)
 // A task_updated that only changes reactions is dropped unless one of the
 // reacted comments was written by one of mine (the watcher's own names, see
 // myNames): a reaction to someone else's comment isn't worth waking for.
-func cursorLook(s *store.Store, cpath string, ignoreAuthors, mine []string) lookFunc {
+func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, mine []string) lookFunc {
 	return func(snapshot []byte) ([]changes.Event, []byte, error) {
 		raw, cur, err := s.ReadPersisted()
 		if errors.Is(err, store.ErrNoFile) {
@@ -209,6 +210,9 @@ func cursorLook(s *store.Store, cpath string, ignoreAuthors, mine []string) look
 		var evs []changes.Event
 		for _, e := range changes.Diff(old, cur) {
 			if e.Type == changes.CommentAdded && authorIn(e.Comment.Author, ignoreAuthors) {
+				continue
+			}
+			if e.Type == changes.CommentAdded && forOthers(e.Comment.Text, notForMe) {
 				continue
 			}
 			if changes.OnlyReactions(e) && !reactsToMine(e, mine) {
@@ -263,7 +267,7 @@ func waitContexts(timeout time.Duration) (sig, wait context.Context, cancel func
 
 func newWatch() *cobra.Command {
 	var as string
-	var ignoreAuthors, authors []string
+	var ignoreAuthors, authors, notForMe []string
 	var timeout time.Duration
 	var noWait bool
 	cmd := &cobra.Command{
@@ -321,7 +325,7 @@ too old.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors, myNames(as, authors))
+			look := cursorLook(s, cpath, ignoreAuthors, notForMe, myNames(as, authors))
 
 			primed, err := bs.round(ctx)
 			if err != nil {
@@ -395,6 +399,7 @@ too old.`,
 		"cursor name, and the --as of your own writes (e.g. agent; env TODOMD_CURSOR)")
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
 	authorFlag(cmd, &authors)
+	notForMeFlag(cmd, &notForMe)
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "give up waiting after this long (reports no events, timed_out: true)")
 	cmd.Flags().BoolVar(&noWait, "no-wait", false, "sync and report what is pending without waiting")
 	jsonFlag(cmd)
@@ -406,6 +411,30 @@ too old.`,
 func authorFlag(cmd *cobra.Command, authors *[]string) {
 	cmd.Flags().StringArrayVar(authors, "author", nil,
 		"your comment author name, so reactions to your comments are reported (repeatable; default: the --as name)")
+}
+
+// notForMeFlag adds --ignore-mentioning-others to watch and changes.
+func notForMeFlag(cmd *cobra.Command, names *[]string) {
+	cmd.Flags().StringArrayVar(names, "ignore-mentioning-others", nil,
+		"your @handle: drop comment_added events that @mention someone but not you (comments with no @mention are kept; repeatable)")
+}
+
+// forOthers reports whether a comment's text @mentions someone, and none of
+// me (handles, any case, with or without @): it is for them, not for me.
+func forOthers(text string, me []string) bool {
+	if len(me) == 0 {
+		return false
+	}
+	ms := mentions.Extract(text)
+	if len(ms) == 0 {
+		return false
+	}
+	for _, h := range me {
+		if mentions.Has(ms, h) {
+			return false
+		}
+	}
+	return true
 }
 
 // myNames is who the watcher writes comments as: --author, else the cursor

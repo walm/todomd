@@ -34,6 +34,7 @@ type commentJSON struct {
 	Date      task.Date      `json:"date"`
 	Text      string         `json:"text"`
 	Reactions []reactionJSON `json:"reactions"`
+	Mentions  []string       `json:"mentions"` // @handles in text, lowercase; [] for none
 }
 
 type taskJSON struct {

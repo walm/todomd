@@ -15,6 +15,7 @@ import (
 	"github.com/walm/todomd/internal/changes"
 	"github.com/walm/todomd/internal/cloudsync"
 	"github.com/walm/todomd/internal/markdown"
+	"github.com/walm/todomd/internal/mentions"
 	"github.com/walm/todomd/internal/store"
 	"github.com/walm/todomd/internal/task"
 )
@@ -25,15 +26,16 @@ type fieldJSON struct {
 }
 
 type eventJSON struct {
-	Type    string               `json:"type"`
-	TaskID  string               `json:"task"`
-	Title   string               `json:"title"`
-	Board   string               `json:"board"`
-	From    string               `json:"from,omitempty"`
-	To      string               `json:"to,omitempty"`
-	Fields  map[string]fieldJSON `json:"fields,omitempty"`
-	Comment *commentJSON         `json:"comment,omitempty"`
-	Detail  *taskJSON            `json:"detail,omitempty"` // full task, task_added only
+	Type     string               `json:"type"`
+	TaskID   string               `json:"task"`
+	Title    string               `json:"title"`
+	Board    string               `json:"board"`
+	From     string               `json:"from,omitempty"`
+	To       string               `json:"to,omitempty"`
+	Fields   map[string]fieldJSON `json:"fields,omitempty"`
+	Comment  *commentJSON         `json:"comment,omitempty"`
+	Mentions []string             `json:"mentions,omitempty"` // comment_added with @mentions
+	Detail   *taskJSON            `json:"detail,omitempty"`   // full task, task_added only
 }
 
 type changesJSON struct {
@@ -56,6 +58,9 @@ func toEventJSON(e changes.Event) eventJSON {
 	if e.Comment != nil {
 		c := toCommentJSON(*e.Comment)
 		out.Comment = &c
+		if len(c.Mentions) > 0 {
+			out.Mentions = c.Mentions
+		}
 	}
 	if len(e.Fields) > 0 {
 		out.Fields = map[string]fieldJSON{}
@@ -74,6 +79,7 @@ func newChanges() *cobra.Command {
 	var as string
 	var peek bool
 	var ignoreAuthors, authors []string
+	var notForMe []string
 	var wait bool
 	var timeout time.Duration
 	cmd := &cobra.Command{
@@ -104,7 +110,7 @@ your own writes go up and nothing online is missed.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors, myNames(as, authors))
+			look := cursorLook(s, cpath, ignoreAuthors, notForMe, myNames(as, authors))
 
 			prev, ok, err := changes.LoadCursor(cpath)
 			if err != nil {
@@ -152,6 +158,7 @@ your own writes go up and nothing online is missed.`,
 	cmd.Flags().BoolVar(&peek, "peek", false, "report without advancing the cursor")
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
 	authorFlag(cmd, &authors)
+	notForMeFlag(cmd, &notForMe)
 	cmd.Flags().BoolVar(&wait, "wait", false, "block until there are changes to report")
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "with --wait, give up after this long (reports no events, timed_out: true)")
 	jsonFlag(cmd)
@@ -208,6 +215,9 @@ func eventDetail(e changes.Event) string {
 		text := e.Comment.Text
 		if i := strings.IndexByte(text, '\n'); i >= 0 {
 			text = text[:i] + "…"
+		}
+		if m := mentions.Extract(e.Comment.Text); len(m) > 0 {
+			text += " → @" + strings.Join(m, " @")
 		}
 		return e.Comment.Author + ": " + text
 	case changes.TaskUpdated:
