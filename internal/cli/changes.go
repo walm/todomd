@@ -42,6 +42,7 @@ type eventJSON struct {
 type changesJSON struct {
 	File        string      `json:"file"`
 	Cursor      string      `json:"cursor"`
+	Filter      string      `json:"filter,omitempty"` // the filter in force
 	Initialized bool        `json:"initialized"`
 	Events      []eventJSON `json:"events"`
 	TimedOut    bool        `json:"timed_out,omitempty"`
@@ -84,6 +85,7 @@ func newChanges() *cobra.Command {
 	var notForMe, notMyCards []string
 	var wait bool
 	var timeout time.Duration
+	var ff filterFlags
 	cmd := &cobra.Command{
 		Use:   "changes",
 		Short: "Show what changed since this cursor last looked",
@@ -100,6 +102,18 @@ and no watcher is running, it syncs while it waits, so online edits count;
 sync problems are printed on stderr. A wait cut short by Ctrl-C or SIGTERM
 doesn't advance the cursor.
 
+--filter '<query>' reports only events about the cards the query matches,
+in the web board's filter syntax: words (title, description, id, tags),
+!high, priority:low, sticker:fire, assignee:me|none|any|<handle>,
+mentions:me (or @me), plus tag:x, -tag:x, board:x, -board:x and OR. "me" is
+--as. A card that leaves the filter (tag removed, reassigned, moved) is still
+reported, as is one that enters it, and every comment that @mentions your
+--as name comes through whatever the filter says (-mentions:me turns that
+off). What the filter drops is consumed: the cursor moves past it.
+--tag ios and --assignee ios (repeatable) are short forms, OR-ed with
+--filter. --save keeps the filter for this --as name, so later runs need
+only --as; --show-filter prints it, --clear-filter forgets it.
+
 Agents: 'todomd watch' is this plus a sync before and after the wait, so
 your own writes go up and nothing online is missed.`,
 		Args: cobra.NoArgs,
@@ -112,7 +126,11 @@ your own writes go up and nothing online is missed.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors, notForMe, notMyCards, myNames(as, authors))
+			q, done, err := ff.resolve(cmd, cpath, as)
+			if err != nil || done {
+				return err
+			}
+			look := cursorLook(s, cpath, ignoreAuthors, notForMe, notMyCards, myNames(as, authors), q)
 
 			prev, ok, err := changes.LoadCursor(cpath)
 			if err != nil {
@@ -130,7 +148,7 @@ your own writes go up and nothing online is missed.`,
 				}
 				if !wait {
 					if flagJSON {
-						return printJSON(changesJSON{File: s.Path, Cursor: as, Initialized: true, Events: []eventJSON{}})
+						return printJSON(changesJSON{File: s.Path, Cursor: as, Filter: q.String(), Initialized: true, Events: []eventJSON{}})
 					}
 					fmt.Printf("cursor %q initialized; future calls report changes from now\n", as)
 					return nil
@@ -150,7 +168,7 @@ your own writes go up and nothing online is missed.`,
 			}
 
 			if flagJSON {
-				return printJSON(changesJSON{File: s.Path, Cursor: as, Initialized: !ok, Events: eventsJSON(evs), TimedOut: timedOut})
+				return printJSON(changesJSON{File: s.Path, Cursor: as, Filter: q.String(), Initialized: !ok, Events: eventsJSON(evs), TimedOut: timedOut})
 			}
 			return printEvents(evs, timedOut)
 		},
@@ -162,6 +180,7 @@ your own writes go up and nothing online is missed.`,
 	authorFlag(cmd, &authors)
 	notForMeFlag(cmd, &notForMe)
 	notMyCardsFlag(cmd, &notMyCards)
+	ff.add(cmd)
 	cmd.Flags().BoolVar(&wait, "wait", false, "block until there are changes to report")
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "with --wait, give up after this long (reports no events, timed_out: true)")
 	jsonFlag(cmd)

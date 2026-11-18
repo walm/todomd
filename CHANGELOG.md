@@ -4,6 +4,22 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- **Filter what `watch` and `changes` report (card 62bk).** `--filter
+  '<query>'` takes the web board's filter syntax (words, `!high`,
+  `sticker:`, `assignee:me|none|any|<handle>`, `mentions:me`) plus `tag:x`,
+  `-tag:x`, `board:x`, `-board:x`, `-mentions:me` and `OR`. `--tag` and
+  `--assignee` are repeatable short forms, OR-ed with `--filter`. A card that
+  leaves the filter (tag removed, reassigned, moved) or enters it is still
+  reported; `@mentions` of your `--as` name always come through (unless the
+  filter has `-mentions:me`); what the filter drops is consumed, so nothing
+  piles up. `--save` remembers it for the `--as` name, `--show-filter` and
+  `--clear-filter` show and forget it. The `--ignore-*` flags keep working.
+  The agent skill gets a "one agent per tag" section.
+
 ## v0.20.0 — 2026-11-18
 
 Format version 5 (card v1do). Older todomd versions keep the new line as
