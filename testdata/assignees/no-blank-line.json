@@ -1,0 +1,63 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "ff01",
+          "title": "Right after the metadata line",
+          "tags": [
+            "a"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "Description right after.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ff02",
+          "title": "Right after the sticker",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "bug",
+          "assignee": "bob",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ff03",
+          "title": "Right after the id",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "agent",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "ff04",
+          "title": "Several blank lines",
+          "tags": [
+            "a"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": "zap",
+          "assignee": "walm",
+          "description": "Text.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

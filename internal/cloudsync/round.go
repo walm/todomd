@@ -336,6 +336,14 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		// keeps the line in a whole file byte for byte.
 		full = true
 	}
+	if push && !full && s.FormatVersion > 0 && s.FormatVersion < markdown.AssigneesFormatVersion && (hasAssignees(base) || hasAssignees(local)) {
+		// The server predates assignees: its ops reader would reject the
+		// assignee field, and it holds an assignee line as the first line of
+		// the card's description (after the sticker), which a description
+		// change in an op would overwrite. It keeps the line in a whole file
+		// byte for byte.
+		full = true
+	}
 	req, sent := build(full, push)
 	res.FullFile = full
 	resp, err := s.Client.Sync(ctx, l.ProjectID, req)
@@ -371,6 +379,16 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 func hasStickers(f *task.File) bool {
 	for _, t := range f.AllTasks() {
 		if t.Sticker != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// hasAssignees reports whether any card in f has an assignee.
+func hasAssignees(f *task.File) bool {
+	for _, t := range f.AllTasks() {
+		if t.Assignee != "" {
 			return true
 		}
 	}

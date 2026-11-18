@@ -1,0 +1,222 @@
+[
+  {
+    "name": "ours assigns, theirs unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "theirs assigns, ours unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours unassigns, theirs unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "theirs unassigns, ours unchanged",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both assign different people: theirs, with a conflict",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: @carl\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "field",
+        "task": "bbbb",
+        "field": "assignee",
+        "kept": "theirs",
+        "note": "Sync conflict on assignee — this machine's version was: @carl"
+      }
+    ],
+    "renamed": []
+  },
+  {
+    "name": "both reassign differently: theirs, with a conflict",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: dora -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: dora -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: @carl\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "field",
+        "task": "aaaa",
+        "field": "assignee",
+        "kept": "theirs",
+        "note": "Sync conflict on assignee — this machine's version was: @carl"
+      }
+    ],
+    "renamed": []
+  },
+  {
+    "name": "both assign the same person",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "both unassign",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours reassigns, theirs unassigns: the assign wins",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: carl -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: carl -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "ours unassigns, theirs reassigns: the assign wins",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: dora -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: dora -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "different cards",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: dora -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: dora -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "assignee and sticker change on one card",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: carl -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: star -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: star -->\n\n<!-- assignee: carl -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours: ours' unassign doesn't apply",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours: theirs' unassign still applies",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "no deletes from ours: ours' reassign applies",
+    "options": {
+      "no_deletes_from_ours": true
+    },
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "baseless: theirs when set",
+    "options": {
+      "baseless": true
+    },
+    "base": "# TODO\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: @carl\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "field",
+        "task": "aaaa",
+        "field": "assignee",
+        "kept": "theirs",
+        "note": "Sync conflict on assignee — this machine's version was: @carl"
+      }
+    ],
+    "renamed": []
+  },
+  {
+    "name": "baseless: ours when theirs has none",
+    "options": {
+      "baseless": true
+    },
+    "base": "# TODO\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "baseless: theirs' assignee over none",
+    "options": {
+      "baseless": true
+    },
+    "base": "# TODO\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [],
+    "renamed": []
+  },
+  {
+    "name": "an assignee change keeps a card the other side deleted",
+    "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "conflicts": [
+      {
+        "kind": "delete_vs_edit",
+        "task": "bbbb",
+        "kept": "ours",
+        "note": "deleted by theirs but changed by ours; kept ours"
+      }
+    ],
+    "renamed": []
+  }
+]

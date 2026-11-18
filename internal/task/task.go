@@ -145,6 +145,7 @@ type Task struct {
 	Description string // verbatim markdown
 	Links       []Link // stored on this card, in file order
 	Sticker     string // a name from Stickers, or "" for none
+	Assignee    string // a handle (see assignee.go), or "" for none
 	Comments    []Comment
 }
 

@@ -56,7 +56,13 @@ var lines = []string{
 	"<!-- reactions: 👍 walm -->", "<!-- reactions: 👍 walm,anna; 👀 agent -->", "\\<!-- reactions: ✅ ai -->",
 	"\\\\<!-- reactions: 🎉 x -->", "<!-- reactions: ❤ a; ❤️ b -->", "<!-- reactions: 👍 a,a -->", "<!-- reactions: 👍 Walm -->",
 	"<!-- reactions: 👍  walm -->", "<!-- reactions: 👍 walm --> ", "<!-- reactions: ok walm -->", "<!-- reactions: 👍 -->",
+	"<!-- assignee: anna -->", "<!-- assignee: a-1 -->", "\\<!-- assignee: bob -->", "\\\\<!-- assignee: agent -->",
+	"<!-- assignee: @anna -->", "<!-- assignee: Anna -->", "<!-- assignee: anna,bob -->", "<!--assignee: anna-->",
+	"<!-- assignee: anna --> ", "<!-- assignee: -anna -->", "<!-- assignee: a_b -->", "<!-- assignee:  anna -->",
 }
+
+// handles are assignees the generator picks from.
+var handles = []string{"anna", "bob", "agent", "claude", "walm", "a", "x-1", "z0"}
 
 var preambleLines = []string{
 	"Project notes.", "", "See [docs](https://example.com).", "- a list", "```", "code", "```", "### not a task?",
@@ -249,6 +255,9 @@ func newTask(r *Rng, taken map[string]bool, idPool []string) *task.Task {
 	if r.Chance(0.25) {
 		t.Sticker = pick(r, task.Stickers).Name
 	}
+	if r.Chance(0.25) {
+		t.Assignee = pick(r, handles)
+	}
 	n := 0
 	if r.Chance(0.5) {
 		n = r.Int(4)
@@ -425,7 +434,7 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 	}
 
 	for s := 0; s < steps; s++ {
-		switch r.Int(20) {
+		switch r.Int(21) {
 		case 0:
 			if len(f.Boards) == 0 {
 				break
@@ -561,6 +570,14 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 			editTask(func(t *task.Task) {
 				if len(t.Comments) > 0 {
 					react(r, &t.Comments[r.Int(len(t.Comments))])
+				}
+			})
+		case 20:
+			editTask(func(t *task.Task) {
+				if t.Assignee != "" && r.Chance(0.4) {
+					t.Assignee = ""
+				} else {
+					t.Assignee = pick(r, handles)
 				}
 			})
 		}

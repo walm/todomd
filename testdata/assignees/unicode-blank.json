@@ -1,0 +1,37 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "gg01",
+          "title": "No-break space line before",
+          "tags": [
+            "a"
+          ],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "gg02",
+          "title": "Line separator before",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "fire",
+          "assignee": "bob",
+          "description": "Text.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

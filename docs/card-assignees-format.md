@@ -1,19 +1,19 @@
 # Card assignees: file format, sync and merge (format version 5)
 
-**Status: proposal (card v1do), for review. Nothing here is implemented
-yet.** Once it's agreed, this becomes the reference, as for links, stickers and
-reactions. The Go code (`internal/task`, `internal/markdown/assignee.go`,
-`internal/ops`, `internal/merge`, `internal/changes`) will implement it, and
-todomd.online's `packages/todofile` must match it byte for byte. The shared
-golden files will be in `testdata/assignees/`.
+**Status: agreed (card v1do).** This is the reference for the assignee line
+and how sync and merge treat it. The Go code (`internal/task/assignee.go`,
+`internal/markdown/assignees.go`, `internal/ops`, `internal/merge`,
+`internal/changes`, `internal/cloudsync`) implements it. todomd.online's
+`packages/todofile` must match it byte for byte. The shared golden files are
+in [`testdata/assignees/`](../testdata/assignees/README.md).
 
 ## The field
 
 A card has **at most one assignee**: a handle, or none.
 
 - **One, not several.** The user asked for "a specific user". One owner
-  also keeps three things simple. The agent rule ("unassigned or assigned to
-  you") has a single answer. The merge is a scalar, not a set. The card face
+  also keeps three things simple. A rule like "unassigned or assigned to
+  you" has a single answer. The merge is a scalar, not a set. The card face
   shows one avatar. If cards ever need several assignees, a later format can
   allow a list in the same line. Format-5 readers will keep such a line as
   description text, losslessly (see Reading).
@@ -31,6 +31,9 @@ A card has **at most one assignee**: a handle, or none.
   check membership: it works offline and has no members API.
 - **Local-only files** (no online project) work the same way, with any valid
   handle. `me` is resolved by the CLI (see CLI).
+- **Nobody is assigned automatically.** Assigning is up to people and to the
+  rules a person or workspace gives its agent. todomd has no default rule
+  about assignees (see Agents).
 
 ## In TODO.md
 
@@ -55,8 +58,8 @@ Move the attachment bucket to lifecycle rules.
 | C | `**assignee:** @anna` on its own line, after the sticker | Visible when rendered. Older clients keep it byte for byte (tested). | Looks like a metadata token, so people will type it on the metadata line, which is option A's breakage. A description that starts with someone's own "**Assignee:** …" convention needs escaping. The web renders `@anna` there as a mention chip in older builds. |
 | D | `` `#@anna` `` as a tag | Older clients would show it as a tag. | `@` isn't a tag character (`` ^`#([a-z0-9_-]+)`$ ``), so it breaks the metadata line just like A. |
 
-**Recommendation: B.** It's the only form besides C that older clients keep
-intact, and it has none of C's lookalike traps. The CLI, web and app show the
+**Chosen: B.** It's the only form besides C that older clients keep intact,
+and it has none of C's lookalike traps. The CLI, web and app show the
 assignee as a field, so the raw line rarely needs to be visible.
 
 ### Reading
@@ -110,7 +113,7 @@ assignee**. Otherwise the reader would no longer find that line at the
 sticker position, so it wouldn't unescape it, and the line wouldn't
 round-trip.
 
-## Compatibility today (tested)
+## Compatibility (tested)
 
 All tests ran on throwaway files in a temp directory. The fixture has three
 cards: one with tags, priority, due, a sticker, a description, links and a
@@ -179,7 +182,7 @@ shouldn't show. Today's Expo app wasn't run either (see Rollout).
 **Go (`internal/…`):**
 
 - `Task.Assignee string`, where `""` means none.
-- `markdown/assignee.go` holds the reader and writer above, plus the change
+- `markdown/assignees.go` holds the reader and writer above, plus the change
   to the sticker escape. `FormatVersion = 5` and
   `AssigneesFormatVersion = 5`.
 - `merge.CheckTask` rejects a handle that doesn't match the rule.
@@ -224,15 +227,15 @@ The assignee is a scalar. `pick(base, ours, theirs)` behaves as follows:
 |---|---|
 | Only one side changed it | That side's value |
 | Both set the same handle | That handle |
-| **Both set different handles** (two people assign at once) | **theirs**, a field conflict `assignee`, and a todomd-sync comment: `Sync conflict — assignee on this machine was: @bob` |
+| **Both set different handles** (two people assign at once) | **theirs**, a field conflict `assignee`, and a todomd-sync comment: `Sync conflict on assignee — this machine's version was: @bob` |
 | **One side unassigned, the other set a new handle** | **the new handle**, with no conflict |
 | Baseless | theirs if set, else ours |
 | `NoDeletesFromOurs` | an unassign on ours doesn't apply (as for tags) |
 
 - On the server, *theirs* is head: the write that reached todomd.online
-  first. A claim race between two agents therefore goes to whoever synced
-  first. The other one gets a conflict, which it sees on its next read (the
-  agent rule says to check).
+  first. So when two people assign at once, whoever synced first keeps the
+  card. The other one gets the conflict comment, which @mentions the handle
+  that lost.
 - **Set beats clear.** "Not me any more" is weaker than "give it to bob". If
   clear won, walm's reassignment could silently vanish because anna
   unassigned herself at the same moment.
@@ -264,7 +267,7 @@ than `<me>`. It keeps:
 
 An assignee-only `task_updated` marks the card unread in the TUI.
 
-## CLI (phase 2)
+## CLI
 
 ```sh
 todomd assign r209 @anna          # @ optional; replaces any assignee
@@ -277,38 +280,37 @@ todomd list --assignee me|<handle>|none|any --json
 ```
 
 **`me`** is the `--as` name (or `TODOMD_CURSOR`), else the logged-in handle
-(`whoami`). Without either, it's an error that suggests `--as`. Human `list`
-output shows `@anna` after the tags.
+(`whoami`). Without either, it's an error that suggests `--as`. `me` is
+reserved in these arguments: a user whose handle is literally `me` is written
+`@me`. Human `list` output shows `@anna` after the tags.
 
-## Agent rule
+## Agents
 
-This is new rule 1 in `internal/cli/skill/SKILL.md` under **Board rules**.
-The others move down one.
+**There is no default agent rule about assignees.** The skill doesn't tell an
+agent to pick up only some cards, and it doesn't tell it to assign itself.
+Whether and how an agent uses assignees is up to the person or workspace
+that runs it, through the rules they give it. That keeps TODO.md, and the
+default behaviour, simple.
 
-> 1. **Whose card**: work on cards that are unassigned or assigned to you
->    (your `--as` name). A card assigned to someone else is theirs: don't
->    start it, move it or answer on it, unless they or the board's owner ask
->    you to (an `@mention` of you counts). When you start an unassigned card,
->    assign it to yourself first (`todomd assign <id> me --as agent`), run
->    `todomd watch --as agent --no-wait --json`, and check with
->    `todomd show <id> --json` that it is still yours. If someone else got
->    it, leave it. If you stop working on a card, `todomd unassign <id> agent`.
->    `watch --ignore-assigned-to-others agent` drops events on other
->    people's cards.
+The skill (`internal/cli/skill/SKILL.md`), the README and
+`web/src/docs/agents.md` explain the tools for such rules:
 
-The existing sentence above the rules already says that board and user rules
-win. For an example of an override, the README and `web/src/docs/agents.md`
-will show a "Rules for agents" card saying *"Only work on cards assigned to
-@agent."*
+- `todomd list --assignee me --as agent --json` lists the agent's cards;
+  `--assignee none` lists the unassigned ones.
+- `todomd watch --as agent --ignore-assigned-to-others agent --json` drops
+  events about cards assigned to someone else.
+- `todomd assign <id> me --as agent` and `todomd unassign <id> agent` let an
+  agent claim a card and let it go, if its rules say so.
 
-The rule also goes in these places:
+Here are example rules a person can give their agent, or write on the board
+(say, on a "Rules for agents" card):
 
-- the README's Agents paragraph on default rules, and its file-format list
-  (one bullet that links here);
-- `web/src/lib/agent-prompt.ts`, the default rules in "Connect an agent";
-- `web/src/docs/agents.md`, under "Change the rules", with the override
-  example;
-- `web/src/docs/cli.md`, which lists the commands.
+> Only work on cards assigned to @agent. Watch with
+> `--ignore-assigned-to-others agent`.
+
+> Work on cards that are unassigned or assigned to you. Before you start an
+> unassigned one, run `todomd assign <id> me --as agent` and sync, and leave
+> the card if someone else got it.
 
 ## Rollout
 
@@ -316,7 +318,8 @@ Every step is safe on its own, because each older reader keeps the line as
 text (tested above). The steps:
 
 1. **todomd v0.20.0:** the model, parser and writer, goldens, ops, merge,
-   `changes`, the CLI, the skill and the README. Against today's server
+   `changes`, the CLI, the skill (how to use assignees, with no default
+   rule) and the README. Against today's server
    (format 4), `cloudsync` sends the whole file whenever a card has an
    assignee. The server keeps the line as description text, and the
    round-trip is byte for byte.
@@ -338,14 +341,14 @@ Between steps 1 and 2, a v0.20 CLI's assignees reach todomd.online as
 description text. The web hides that text (an HTML comment), and step 2's
 parser turns it back into the field. Nothing is lost.
 
-## Open questions
+## Decisions
 
-- Syntax B (hidden, like the sticker) or C (visible `**assignee:** @anna`)?
-- When two people assign different handles at once, should the losing side
-  get a conflict comment, or should theirs win silently as stickers do?
-- Should agents self-assign when they start an unassigned card (proposed),
-  or only read the field?
-- Should assigning someone notify them the way an @mention does (web push,
-  the @ badge)?
-- Is `me` reserved in CLI arguments? A todomd.online user whose handle is
-  `me` would then need `@me`.
+- **The hidden `<!-- assignee: HANDLE -->` line**, after the sticker,
+  following the sticker's pattern: older clients keep it byte for byte.
+- **One assignee per card.**
+- **No default agent rule and no self-assign.** The docs show how to write
+  such a rule.
+- **Two different assignees at once: theirs wins, with a conflict comment.**
+  **A set beats a clear.**
+- **`me` is reserved** in CLI arguments; `@me` means the handle `me`.
+- **Format version 5.**

@@ -1,0 +1,36 @@
+{
+  "title": "TODO",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "hh01",
+          "title": "Assignee in a comment",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": "anna",
+          "description": "",
+          "links": [],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-18",
+              "text": "Set it to:\n<!-- assignee: bob -->",
+              "reactions": []
+            },
+            {
+              "author": "anna",
+              "date": "2026-11-18",
+              "text": "<!-- assignee: anna -->",
+              "reactions": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

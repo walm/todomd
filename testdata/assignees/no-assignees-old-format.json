@@ -1,0 +1,60 @@
+{
+  "title": "TODO",
+  "preamble": "Format 4, no assignees: it reads and writes back unchanged.",
+  "boards": [
+    {
+      "name": "Backlog",
+      "tasks": [
+        {
+          "id": "jj01",
+          "title": "Sticker, links and reactions",
+          "tags": [
+            "infra"
+          ],
+          "priority": "high",
+          "due": null,
+          "sticker": "fire",
+          "assignee": null,
+          "description": "Text.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "jj02"
+            }
+          ],
+          "comments": [
+            {
+              "author": "walm",
+              "date": "2026-11-17",
+              "text": "Hi.",
+              "reactions": [
+                {
+                  "emoji": "👍",
+                  "by": [
+                    "anna"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "jj02",
+          "title": "Plain",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        }
+      ]
+    },
+    {
+      "name": "Done",
+      "tasks": []
+    }
+  ]
+}

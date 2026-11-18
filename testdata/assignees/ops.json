@@ -1,0 +1,195 @@
+[
+  {
+    "name": "assignee set",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: bob -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "assignee": "bob"
+        }
+      }
+    ]
+  },
+  {
+    "name": "assignee changed",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: agent -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "assignee": "agent"
+        }
+      }
+    ]
+  },
+  {
+    "name": "assignee removed",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "assignee": null
+        }
+      }
+    ]
+  },
+  {
+    "name": "assignee next to other fields",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two!\n<!-- id:bbbb -->\n**priority:** low\n\n<!-- sticker: bug -->\n\n<!-- assignee: claude -->\n\nNew.\n\n#### Links\n\n- related aaaa\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "title": "Two!",
+          "priority": "low",
+          "sticker": "bug",
+          "assignee": "claude",
+          "description": "New.",
+          "links": [
+            {
+              "kind": "related",
+              "id": "aaaa"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "sticker removed, assignee kept",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "sticker": null
+        }
+      }
+    ]
+  },
+  {
+    "name": "description changed under an assignee",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nOther.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "aaaa",
+        "set": {
+          "description": "Other."
+        }
+      }
+    ]
+  },
+  {
+    "name": "description that looks like an assignee line",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\n\\<!-- assignee: bob -->\n\n## Done\n",
+    "ops": [
+      {
+        "op": "task.update",
+        "id": "bbbb",
+        "set": {
+          "description": "\u003c!-- assignee: bob --\u003e"
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added with an assignee",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: heart -->\n\n<!-- assignee: walm -->\n\n#### Links\n\n- blocks aaaa\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "sticker": "heart",
+          "assignee": "walm",
+          "description": "",
+          "links": [
+            {
+              "kind": "blocks",
+              "id": "aaaa"
+            }
+          ],
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added with only an assignee",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n\n<!-- assignee: x-1 -->\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "assignee": "x-1",
+          "description": "",
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "task added without an assignee has no assignee key",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### Three\n<!-- id:cccc -->\n",
+    "ops": [
+      {
+        "op": "task.add",
+        "board": "Done",
+        "after": null,
+        "task": {
+          "id": "cccc",
+          "title": "Three",
+          "tags": [],
+          "priority": "normal",
+          "due": null,
+          "description": "",
+          "comments": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "moved task keeps its assignee",
+    "a": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n",
+    "b": "# TODO\n\n## Backlog\n\n### Two\n<!-- id:bbbb -->\n\nDesc.\n\n## Done\n\n### One\n<!-- id:aaaa -->\n`#x` **priority:** high\n\n<!-- sticker: fire -->\n\n<!-- assignee: anna -->\n\nDesc.\n",
+    "ops": [
+      {
+        "op": "task.move",
+        "id": "aaaa",
+        "board": "Done",
+        "after": null
+      }
+    ]
+  }
+]

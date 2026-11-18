@@ -3,8 +3,8 @@
 // The format is line-based: `#` file title, `##` boards, `###` tasks, an
 // `<!-- id:xxxx -->` comment per task, an optional metadata line (inline-code
 // tags, an optional priority, and a due date) immediately after the ID
-// comment, an optional sticker line (see stickers.go), a verbatim
-// description, an optional `#### Links` list (see links.go) and an optional
+// comment, an optional sticker line (see stickers.go), an optional assignee
+// line (see assignees.go), a verbatim description, an optional `#### Links` list (see links.go) and an optional
 // `#### Comments` list, each comment's reactions on its last line (see
 // reactions.go). Code fences at column 0 shield their contents from
 // structural interpretation. Lines in descriptions that would otherwise read
@@ -29,7 +29,8 @@ import (
 //	2  adds the `#### Links` section (card links)
 //	3  adds the `<!-- sticker: NAME -->` line (card stickers)
 //	4  adds the `<!-- reactions: … -->` line (comment reactions)
-const FormatVersion = 4
+//	5  adds the `<!-- assignee: HANDLE -->` line (card assignees)
+const FormatVersion = 5
 
 // LinksFormatVersion is the first format version with card links. A server
 // on an older one can't take links in sync ops.
@@ -42,6 +43,10 @@ const StickersFormatVersion = 3
 // ReactionsFormatVersion is the first format version with comment
 // reactions. A server on an older one can't take them in sync ops.
 const ReactionsFormatVersion = 4
+
+// AssigneesFormatVersion is the first format version with card assignees. A
+// server on an older one can't take them in sync ops.
+const AssigneesFormatVersion = 5
 
 // ParseError is a structural error at a specific line of the file.
 type ParseError struct {
@@ -341,6 +346,24 @@ func parse(data []byte, strict bool) (*task.File, error) {
 				}
 			}
 
+			// Assignee: the next non-blank line, iff it is exactly an
+			// assignee line. An escaped one is the description's first line.
+			assigneeEscaped := -1
+			j = i
+			for j < len(lines) && isBlank(lines[j]) {
+				j++
+			}
+			if j < len(lines) && structural[j] {
+				if h, n, ok := assigneeLine(lines[j]); ok {
+					if n == 0 {
+						t.Assignee = h
+						i = j + 1
+					} else {
+						assigneeEscaped = j
+					}
+				}
+			}
+
 			// Description, and the links section at its end.
 			descStart := i
 			for i < len(lines) && !isTerminator(i) {
@@ -358,7 +381,7 @@ func parse(data []byte, strict bool) (*task.File, error) {
 			out := make([]string, len(desc))
 			for j, l := range desc {
 				switch k := descStart + off + j; {
-				case k == escaped, k == stickerEscaped:
+				case k == escaped, k == stickerEscaped, k == assigneeEscaped:
 					l = l[1:]
 				case structural[k]:
 					l = unescapeLine(l)
@@ -492,6 +515,10 @@ func writeTask(b *strings.Builder, t *task.Task) {
 		// After a blank line, where older versions start a description.
 		b.WriteString("\n" + writeStickerLine(t.Sticker) + "\n")
 	}
+	if t.Assignee != "" {
+		// After the sticker, so older versions still see it.
+		b.WriteString("\n" + writeAssigneeLine(t.Assignee) + "\n")
+	}
 	if t.Description != "" {
 		b.WriteString("\n")
 		lines := strings.Split(t.Description, "\n")
@@ -507,8 +534,13 @@ func writeTask(b *strings.Builder, t *task.Task) {
 				l = escapeLine(l)
 				if j == 0 {
 					l = escapeMetaLine(l)
-					if _, _, ok := stickerLine(l); ok && t.Sticker == "" {
-						// It would read as the card's sticker.
+					if _, _, ok := stickerLine(l); ok && t.Sticker == "" && t.Assignee == "" {
+						// It would read as the card's sticker. (After an
+						// assignee line it's past the sticker's place.)
+						l = `\` + l
+					}
+					if _, _, ok := assigneeLine(l); ok && t.Assignee == "" {
+						// It would read as the card's assignee.
 						l = `\` + l
 					}
 				}

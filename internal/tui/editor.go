@@ -94,6 +94,7 @@ func (m *model) applyEditor(msg editorFinishedMsg) {
 		t.Description = edited.Description
 		t.Links = edited.Links
 		t.Sticker = edited.Sticker
+		t.Assignee = edited.Assignee
 		t.Comments = edited.Comments
 		return nil
 	}, msg.id, "saved from editor")

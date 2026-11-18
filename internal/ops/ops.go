@@ -69,7 +69,8 @@ type Op struct {
 // Fields are the task fields a task.update replaces; nil means unchanged.
 // Due needs a separate flag because "clear the due date" is a change too.
 // Links, like Tags, is the card's whole list after the change. Sticker is
-// the new sticker's name, "" to remove it.
+// the new sticker's name, "" to remove it; Assignee the new handle, "" to
+// unassign.
 type Fields struct {
 	Title       *string
 	Tags        *[]string
@@ -77,13 +78,14 @@ type Fields struct {
 	HasDue      bool
 	Due         *task.Date
 	Sticker     *string
+	Assignee    *string
 	Description *string
 	Links       *[]task.Link
 }
 
 // Empty reports whether no field is set.
 func (s Fields) Empty() bool {
-	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Sticker == nil && s.Description == nil && s.Links == nil
+	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Sticker == nil && s.Assignee == nil && s.Description == nil && s.Links == nil
 }
 
 // OpError names the first op that couldn't be read or applied.
@@ -189,7 +191,7 @@ func linksJSON(ls []task.Link) json.RawMessage {
 	return b.Bytes()
 }
 
-// stickerJSON is a sticker name, or null for none.
+// stickerJSON is a sticker name (or an assignee's handle), or null for none.
 func stickerJSON(name string) any {
 	if name == "" {
 		return nil
@@ -222,6 +224,9 @@ func taskJSON(t *task.Task) json.RawMessage {
 	// links key), so every other task.add reads as it did before.
 	if t.Sticker != "" {
 		o.field("sticker", t.Sticker)
+	}
+	if t.Assignee != "" {
+		o.field("assignee", t.Assignee)
 	}
 	o.field("description", t.Description)
 	if len(t.Links) > 0 {
@@ -285,6 +290,9 @@ func (op Op) MarshalJSON() ([]byte, error) {
 		if op.Set.Sticker != nil {
 			s.field("sticker", stickerJSON(*op.Set.Sticker))
 		}
+		if op.Set.Assignee != nil {
+			s.field("assignee", stickerJSON(*op.Set.Assignee))
+		}
 		if op.Set.Description != nil {
 			s.field("description", *op.Set.Description)
 		}
@@ -323,7 +331,7 @@ var opKeys = map[string][]string{
 
 var (
 	taskKeys    = []string{"id", "title", "tags", "priority", "due", "description", "comments"}
-	fieldKeys   = []string{"title", "tags", "priority", "due", "sticker", "description", "links"}
+	fieldKeys   = []string{"title", "tags", "priority", "due", "sticker", "assignee", "description", "links"}
 	commentKeys = []string{"author", "date", "text"}
 	// reactions is optional in a comment: one without them leaves it out.
 	reactionKeys = []string{"emoji", "by"}
@@ -520,6 +528,18 @@ func readSticker(raw json.RawMessage, what string) string {
 	return name
 }
 
+// readAssignee reads a handle, or null for none ("").
+func readAssignee(raw json.RawMessage, what string) string {
+	if isNull(raw) {
+		return ""
+	}
+	h := readString(raw, what)
+	if !task.ValidHandle(h) {
+		fail("%s must be a lowercase handle without @ (letters, digits, inner hyphens; up to 39) or null", what)
+	}
+	return h
+}
+
 func readAfter(raw json.RawMessage, id bool) *string {
 	if isNull(raw) {
 		return nil
@@ -562,9 +582,9 @@ func readOp(raw json.RawMessage) Op {
 		op.Board = readString(o["board"], "board")
 		op.Name = readString(o["name"], "name")
 	case TaskAdd:
-		// sticker and links are optional: a task without them leaves them
-		// out.
-		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "sticker", "links"), false)
+		// sticker, assignee and links are optional: a task without them
+		// leaves them out.
+		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "sticker", "assignee", "links"), false)
 		for _, k := range taskKeys {
 			if _, ok := t[k]; !ok {
 				fail("missing key %s in task", strconv.Quote(k))
@@ -580,6 +600,9 @@ func readOp(raw json.RawMessage) Op {
 		}
 		if v, ok := t["sticker"]; ok {
 			tk.Sticker = readSticker(v, "task.sticker")
+		}
+		if v, ok := t["assignee"]; ok {
+			tk.Assignee = readAssignee(v, "task.assignee")
 		}
 		if v, ok := t["links"]; ok {
 			tk.Links = readLinks(v, "task.links")
@@ -619,6 +642,9 @@ func readOp(raw json.RawMessage) Op {
 		}
 		if v, ok := s["sticker"]; ok {
 			op.Set.Sticker = strp(readSticker(v, "set.sticker"))
+		}
+		if v, ok := s["assignee"]; ok {
+			op.Set.Assignee = strp(readAssignee(v, "set.assignee"))
 		}
 		if v, ok := s["description"]; ok {
 			op.Set.Description = strp(readString(v, "set.description"))
