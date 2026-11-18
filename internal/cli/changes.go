@@ -30,6 +30,7 @@ type eventJSON struct {
 	TaskID   string               `json:"task"`
 	Title    string               `json:"title"`
 	Board    string               `json:"board"`
+	Assignee string               `json:"assignee,omitempty"` // the card's, after the change (before, for task_deleted)
 	From     string               `json:"from,omitempty"`
 	To       string               `json:"to,omitempty"`
 	Fields   map[string]fieldJSON `json:"fields,omitempty"`
@@ -48,12 +49,13 @@ type changesJSON struct {
 
 func toEventJSON(e changes.Event) eventJSON {
 	out := eventJSON{
-		Type:   e.Type,
-		TaskID: e.Task.ID,
-		Title:  e.Task.Title,
-		Board:  e.Board,
-		From:   e.From,
-		To:     e.To,
+		Type:     e.Type,
+		TaskID:   e.Task.ID,
+		Title:    e.Task.Title,
+		Board:    e.Board,
+		Assignee: e.Task.Assignee,
+		From:     e.From,
+		To:       e.To,
 	}
 	if e.Comment != nil {
 		c := toCommentJSON(*e.Comment)
@@ -79,7 +81,7 @@ func newChanges() *cobra.Command {
 	var as string
 	var peek bool
 	var ignoreAuthors, authors []string
-	var notForMe []string
+	var notForMe, notMyCards []string
 	var wait bool
 	var timeout time.Duration
 	cmd := &cobra.Command{
@@ -110,7 +112,7 @@ your own writes go up and nothing online is missed.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors, notForMe, myNames(as, authors))
+			look := cursorLook(s, cpath, ignoreAuthors, notForMe, notMyCards, myNames(as, authors))
 
 			prev, ok, err := changes.LoadCursor(cpath)
 			if err != nil {
@@ -159,6 +161,7 @@ your own writes go up and nothing online is missed.`,
 	cmd.Flags().StringArrayVar(&ignoreAuthors, "ignore-author", nil, "drop comment_added events by this author (repeatable)")
 	authorFlag(cmd, &authors)
 	notForMeFlag(cmd, &notForMe)
+	notMyCardsFlag(cmd, &notMyCards)
 	cmd.Flags().BoolVar(&wait, "wait", false, "block until there are changes to report")
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "with --wait, give up after this long (reports no events, timed_out: true)")
 	jsonFlag(cmd)

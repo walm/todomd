@@ -91,6 +91,26 @@ todomd sticker 3f2a fire --as agent      # or the emoji 🔥, a ribbon colour (r
 `todomd sticker` lists the choices; `todomd list --sticker fire --json`
 finds cards by sticker.
 
+## Assignees
+
+A card can have one assignee (`"assignee"` in JSON: a handle such as `anna`
+or `agent`, or `null`). The assignee doesn't change the board rules below:
+there is no default rule about it. Assign or unassign a card only when the
+user, or the rules they give you, say so. If their rules use assignees
+("only work on cards assigned to you", say), these help:
+
+```sh
+todomd list --assignee me --as agent --json    # your cards (me = your --as name); or none, any, a handle
+todomd watch --as agent --ignore-assigned-to-others agent --json   # skip cards assigned to someone else
+todomd assign 3f2a me --as agent               # or a handle: todomd assign 3f2a @anna
+todomd unassign 3f2a agent --as agent          # only if it's yours; without a handle, whoever has it
+```
+
+`--ignore-assigned-to-others` keeps events on unassigned cards, on yours,
+on a card taken from you, and comments that `@mention` you. Every event
+carries the card's `assignee` when it has one; a change shows as
+`fields.assignee` (`old`/`new`, a handle or `null`).
+
 ## Reactions
 
 Comments can carry emoji reactions (`"reactions": [{"emoji": "👍", "by":

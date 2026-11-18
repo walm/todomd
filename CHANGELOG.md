@@ -4,6 +4,51 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+Format version 5 (card v1do). Older todomd versions keep the new line as
+the description's first line, byte for byte.
+
+### Added
+
+- **Card assignees.** A card can have one assignee, a handle (the @mention
+  rule; it doesn't have to be a project member). In TODO.md it's a hidden
+  `<!-- assignee: anna -->` line after the sticker. See
+  [docs/card-assignees-format.md](docs/card-assignees-format.md).
+- **`todomd assign <id> <@handle|me>`** and **`todomd unassign <id>
+  [handle]`** (with a handle: only if it's that one's card). `add
+  --assignee`, `update --assignee` (`none` unassigns). `me` is the `--as`
+  name (or `TODOMD_CURSOR`), else your todomd.online handle; `@me` is a
+  handle called "me".
+- **`todomd list --assignee <handle|me|none|any>`**. `show --json`, `list
+  --json` and `task_added` details have `"assignee"` (a handle or `null`);
+  `list`, `show` and the TUI show `@anna`.
+- **Change feed:** `task_updated` reports `fields.assignee` (`old`/`new`),
+  and every event carries the card's `assignee` when it has one.
+  `changes`/`watch --ignore-assigned-to-others <me>` drops events about
+  cards assigned to someone else (keeping unassigned cards, yours, a card
+  taken from you, and comments that `@mention` you).
+- **Skill:** how to use assignees when the user's rules ask for it. There
+  is no default rule: the agent neither filters by assignee nor assigns
+  itself unless told to.
+
+### Sync
+
+- Assignees travel as `set.assignee` / `task.add` `assignee` to a server on
+  format 5. To an older server, a round whose base or local file has an
+  assignee sends the whole file, where the line is kept as text.
+- Merge: one side's change wins; when one side unassigns and the other
+  assigns someone, the assign wins; two different handles at once keep
+  theirs (the server's) and add a `todomd-sync` conflict comment that
+  @mentions the other handle. A change to the assignee keeps a card the
+  other side deleted.
+
+### Changed
+
+- A description whose first line looks like a sticker line is escaped only
+  when the card has neither a sticker nor an assignee (after an assignee
+  line it's past the sticker's place).
+
 ## v0.19.0 — 2026-11-18
 
 ### Added

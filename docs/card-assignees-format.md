@@ -177,6 +177,16 @@ replaces that with the rules under Merge.
 react-markdown, rehype-sanitize and no rehype-raw, so an HTML comment
 shouldn't show. Today's Expo app wasn't run either (see Rollout).
 
+**After the implementation, with the v0.19.0 binary.** I checked this on
+throwaway copies:
+
+- 3,000 random format-5 files from `internal/todogen` (5,710 cards with an
+  assignee) and all 10 `testdata/assignees/*.out.md` were byte-identical
+  after v0.19.0 rewrote them.
+- Then v0.19.0 set a tag on every card (3,551 cards in 600 of the random
+  files, and 61 cards in the golden files). The format-5 parser read every
+  assignee, sticker, description, link and comment back unchanged.
+
 ### What changes
 
 **Go (`internal/…`):**
@@ -259,13 +269,16 @@ to `task_updated`. Each value is a handle or `null`. Every event also carries
 
 **Filtering.** `changes` and `watch` take `--ignore-assigned-to-others <me>`
 (repeatable). It drops events about cards that are assigned to someone other
-than `<me>`. It keeps:
+than `<me>`, judged by the card as it is when `changes` reads it (a comment
+made while a card was open, and the card was then given to someone else, is
+dropped). It keeps:
 
 - events on unassigned cards;
 - events where the assignee changed from or to `<me>`;
 - a `comment_added` that @mentions `<me>`.
 
-An assignee-only `task_updated` marks the card unread in the TUI.
+An assignee-only `task_updated` marks the card unread in the TUI, like any
+other field change.
 
 ## CLI
 

@@ -353,6 +353,7 @@ type UpdateOpts struct {
 	Priority    *task.Priority
 	Due         *task.Date
 	Sticker     *string // a canonical name, "" removes it
+	Assignee    *string // a handle, "" unassigns
 	ClearDue    bool
 	ClearTags   bool
 }
@@ -394,6 +395,12 @@ func Update(f *task.File, ref string, opts UpdateOpts) (*task.Task, error) {
 			return nil, fmt.Errorf("unknown sticker %q", *opts.Sticker)
 		}
 		t.Sticker = *opts.Sticker
+	}
+	if opts.Assignee != nil {
+		if *opts.Assignee != "" && !task.ValidHandle(*opts.Assignee) {
+			return nil, fmt.Errorf("invalid assignee %q", *opts.Assignee)
+		}
+		t.Assignee = *opts.Assignee
 	}
 	if opts.ClearDue {
 		t.Due = nil

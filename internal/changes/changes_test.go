@@ -343,3 +343,24 @@ func TestReactedComments(t *testing.T) {
 		t.Error("reacted comments without reactions")
 	}
 }
+
+func TestDiffAndApplyAssignee(t *testing.T) {
+	old := file(board("B", &task.Task{ID: "aaaa", Title: "x", Assignee: "anna"}, &task.Task{ID: "bbbb", Title: "y"}, &task.Task{ID: "cccc", Title: "z", Assignee: "bob"}))
+	cur := old.Clone()
+	cur.Boards[0].Tasks[0].Assignee = ""
+	cur.Boards[0].Tasks[1].Assignee = "agent"
+	cur.Boards[0].Tasks[2].Assignee = "anna"
+	evs := Diff(old, cur)
+	if len(evs) != 3 {
+		t.Fatalf("events = %+v", evs)
+	}
+	a, b, c := evs[0].Fields["assignee"], evs[1].Fields["assignee"], evs[2].Fields["assignee"]
+	if a.Old != "anna" || a.New != nil || b.Old != nil || b.New != "agent" || c.Old != "bob" || c.New != "anna" {
+		t.Errorf("fields: %+v %+v %+v", a, b, c)
+	}
+	snap := old.Clone()
+	Apply(snap, evs)
+	if len(Diff(snap, cur)) != 0 {
+		t.Error("Apply didn't fold the assignee changes")
+	}
+}
