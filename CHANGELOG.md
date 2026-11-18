@@ -4,6 +4,22 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- **`@mentions` in comments.** A comment can address someone with `@handle`
+  (same syntax as todomd.online; plain text, no format change). Comments in
+  `show --json`, `list --json` and `changes`/`watch` events get `mentions`
+  (lowercase handles, `[]` for none), and the human change feed shows
+  `→ @bob`.
+- **`todomd changes` and `todomd watch` take `--ignore-mentioning-others
+  <me>`**, which drops `comment_added` events that `@mention` someone but
+  not `<me>`. Comments with no mention are kept.
+- **Agent rule**: `todomd skill` now says a comment that `@mentions` others
+  but not the agent is for them; don't act on it or reply unless the board's
+  owner asks.
+
 ## v0.18.0 — 2026-11-17
 
 ### Added

@@ -117,6 +117,7 @@ todomd boards move QA --to 1          # or --after/--before <board>
 todomd boards delete Review           # --force if it still holds tasks
 todomd archive --dry-run              # what clearing Done would remove
 todomd changes --as claude --ignore-author claude --json
+todomd watch --as claude --ignore-mentioning-others claude --json   # skip comments @mentioning others
 todomd watch --as claude --json       # sync, wait for changes, print them
 ```
 
@@ -134,6 +135,19 @@ Events: `task_added` (includes the full task as `detail`), `task_deleted`,
 `task_moved` (`from`/`to`), `task_updated` (`fields` with old/new per
 changed field — renames stay the same task, identity is the ID),
 `comment_added` (the comment). Reorders within a board are not reported.
+**`@mentions`.** A comment can address people with `@handle` (lowercase
+letters, digits and inner hyphens, up to 39 characters; at the start of the
+text or after whitespace, `(`, `[`, `"` or `'`; case-insensitive; not in
+emails, code or link URLs). It's plain text in `TODO.md`. Every comment in
+`show --json`, `list --json` and `changes --json` has `mentions`, the
+handles in order (`[]` for none); `comment_added` events carry them too, and
+the human output ends the line with `→ @bob`. `changes` and `watch` take
+`--ignore-mentioning-others <me>` (repeatable): it drops `comment_added`
+events that mention someone and not `<me>`; a comment with no mention is
+kept. Agents treat a comment that mentions others but not them as not
+theirs to act on or answer. Editing a comment in place is still reported
+as `task_updated` with `fields.comments`, without mentions.
+
 Events are about tasks: renaming a board reports a `task_moved` (old name →
 new) for each of its tasks, while adding, reordering or renaming an empty
 board reports nothing.

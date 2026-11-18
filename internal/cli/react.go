@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"github.com/walm/todomd/internal/mentions"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -129,5 +130,9 @@ func reactionsLine(rs []task.Reaction) string {
 }
 
 func toCommentJSON(c task.Comment) commentJSON {
-	return commentJSON{Author: c.Author, Date: c.Date, Text: c.Text, Reactions: reactionsJSON(c.Reactions)}
+	m := mentions.Extract(c.Text)
+	if m == nil {
+		m = []string{}
+	}
+	return commentJSON{Author: c.Author, Date: c.Date, Text: c.Text, Reactions: reactionsJSON(c.Reactions), Mentions: m}
 }
