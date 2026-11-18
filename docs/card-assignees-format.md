@@ -237,15 +237,16 @@ The assignee is a scalar. `pick(base, ours, theirs)` behaves as follows:
 |---|---|
 | Only one side changed it | That side's value |
 | Both set the same handle | That handle |
-| **Both set different handles** (two people assign at once) | **theirs**, a field conflict `assignee`, and a todomd-sync comment: `Sync conflict on assignee — this machine's version was: @bob` |
+| **Both set different handles** (two people assign at once) | **theirs**, a field conflict `assignee`, and a todomd-sync comment: `Sync conflict on assignee — this machine's version was: bob` |
 | **One side unassigned, the other set a new handle** | **the new handle**, with no conflict |
 | Baseless | theirs if set, else ours |
 | `NoDeletesFromOurs` | an unassign on ours doesn't apply (as for tags) |
 
 - On the server, *theirs* is head: the write that reached todomd.online
   first. So when two people assign at once, whoever synced first keeps the
-  card. The other one gets the conflict comment, which @mentions the handle
-  that lost.
+  card, the same rule as for priority and due. The conflict comment names
+  the handle that lost without an `@`, so it isn't an @mention and gives
+  that person no @ badge.
 - **Set beats clear.** "Not me any more" is weaker than "give it to bob". If
   clear won, walm's reassignment could silently vanish because anna
   unassigned herself at the same moment.

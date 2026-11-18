@@ -39,8 +39,9 @@ the description's first line, byte for byte.
   assignee sends the whole file, where the line is kept as text.
 - Merge: one side's change wins; when one side unassigns and the other
   assigns someone, the assign wins; two different handles at once keep
-  theirs (the server's) and add a `todomd-sync` conflict comment that
-  @mentions the other handle. A change to the assignee keeps a card the
+  theirs (the server's, i.e. the first to arrive) and add a `todomd-sync`
+  conflict comment naming the other handle (without `@`, so it isn't a
+  mention). A change to the assignee keeps a card the
   other side deleted.
 
 ### Changed

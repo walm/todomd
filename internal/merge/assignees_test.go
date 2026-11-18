@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/walm/todomd/internal/mentions"
 	"github.com/walm/todomd/internal/merge"
 	"github.com/walm/todomd/internal/task"
 )
@@ -59,6 +60,9 @@ func TestMergeAssignees(t *testing.T) {
 				if !found {
 					t.Errorf("no conflict comment %q", note)
 				}
+				if m := mentions.Extract(note); len(m) > 0 {
+					t.Errorf("conflict comment @mentions %v", m)
+				}
 			}
 			if write(m(t, b, o, r.Merged, opts).Merged) != write(r.Merged) {
 				t.Error("re-push changed the result")
@@ -88,7 +92,7 @@ func TestMergeAssignees(t *testing.T) {
 		})
 	}
 	none := merge.Options{}
-	conflictNote := "Sync conflict on assignee — this machine's version was: @carl"
+	conflictNote := "Sync conflict on assignee — this machine's version was: carl"
 
 	run("ours assigns, theirs unchanged", base, ed(setAssignee("bbbb", "carl")), base, none,
 		map[string]string{"bbbb": "carl"}, 0, "")

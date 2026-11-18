@@ -784,7 +784,8 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 	sticker, _ := pick(hasB, bt.Sticker, ot.Sticker, tt.Sticker, eqString)
 	assignee, c := mergeAssignee(hasB, bt.Assignee, ot.Assignee, tt.Assignee, mg.noDeletes)
 	if c {
-		field("assignee", "field", was("assignee")+": @"+ot.Assignee)
+		// The bare handle: an @ would @mention the losing handle.
+		field("assignee", "field", was("assignee")+": "+ot.Assignee)
 	}
 	due, c := pick(hasB, bt.Due, ot.Due, tt.Due, task.SameDue)
 	if c {

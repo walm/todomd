@@ -40,14 +40,14 @@
     "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: carl -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
-    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: @carl\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n<!-- assignee: dora -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: carl\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "conflicts": [
       {
         "kind": "field",
         "task": "bbbb",
         "field": "assignee",
         "kept": "theirs",
-        "note": "Sync conflict on assignee — this machine's version was: @carl"
+        "note": "Sync conflict on assignee — this machine's version was: carl"
       }
     ],
     "renamed": []
@@ -57,14 +57,14 @@
     "base": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: dora -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
-    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: dora -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: @carl\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: dora -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: carl\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "conflicts": [
       {
         "kind": "field",
         "task": "aaaa",
         "field": "assignee",
         "kept": "theirs",
-        "note": "Sync conflict on assignee — this machine's version was: @carl"
+        "note": "Sync conflict on assignee — this machine's version was: carl"
       }
     ],
     "renamed": []
@@ -167,14 +167,14 @@
     "base": "# TODO\n",
     "ours": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: carl -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "theirs": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
-    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: @carl\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
+    "merged": "# TODO\n\n## Backlog\n\n### One\n<!-- id:aaaa -->\n\n<!-- assignee: anna -->\n\n#### Comments\n\n- **todomd-sync** (2026-11-05): Sync conflict on assignee — this machine's version was: carl\n\n### Two\n<!-- id:bbbb -->\n\n### Three\n<!-- id:cccc -->\n\n<!-- sticker: fire -->\n\n<!-- assignee: bob -->\n\n## Done\n",
     "conflicts": [
       {
         "kind": "field",
         "task": "aaaa",
         "field": "assignee",
         "kept": "theirs",
-        "note": "Sync conflict on assignee — this machine's version was: @carl"
+        "note": "Sync conflict on assignee — this machine's version was: carl"
       }
     ],
     "renamed": []
