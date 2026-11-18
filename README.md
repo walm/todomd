@@ -137,6 +137,7 @@ todomd changes --as claude --ignore-author claude --json
 todomd watch --as claude --ignore-mentioning-others claude --json   # skip comments @mentioning others
 todomd watch --as claude --ignore-assigned-to-others claude --json  # skip cards assigned to others
 todomd watch --as claude --json       # sync, wait for changes, print them
+todomd watch --as ios --tag ios --assignee ios --save --json   # only iOS cards; remembered for --as ios
 ```
 
 ### 🔄 Change tracking for agents
@@ -173,6 +174,41 @@ it drops events about cards that are assigned to someone other than `<me>`,
 judged by the card as it is when `changes` reads it. It keeps unassigned
 cards, `<me>`'s cards, a card taken from `<me>`, and comments that
 `@mention` `<me>`.
+
+**Filtering: one agent per tag.** `changes` and `watch` take
+`--filter '<query>'`, so an agent is only woken for the cards it watches. The
+query is the web board's filter box: words (matched in the title, description,
+id and tags), `!high` / `priority:low`, `sticker:fire`,
+`assignee:me|none|any|<handle>` (`has:assignee`), `mentions:me` (`@me`); and
+the CLI adds `tag:x`, `-tag:x`, `board:x` (`board:"In progress"`), `-board:x`
+and `OR` (`tag:ios OR assignee:ios`; without `OR` every term must match).
+`me` is the `--as` name. Nothing from the web's syntax is left out. Short
+forms: `--tag ios` and `--assignee ios`, repeatable, OR-ed with each other
+and with `--filter`.
+
+- An event is reported if the card matches the filter after the change *or
+  before it*: a card that leaves it (tag removed, reassigned, moved off the
+  board, deleted) tells the agent about the hand-over, and one that enters
+  it (tag added, a new card with the tag) is reported too.
+- Every comment that `@mentions` your `--as` name (or `--author`) comes
+  through whatever the filter says, and so does a description that newly
+  does. Add `-mentions:me` to the filter to switch that off.
+- What the filter drops is consumed with the rest: the cursor moves past
+  it, so nothing piles up.
+- `--save` keeps the filter for that `--as` name (next to its cursor); later
+  runs need only `--as ios`. `--filter`/`--tag` on a run override the saved
+  one for that run, `--filter ''` turns it off for a run, `--show-filter`
+  prints it and `--clear-filter` forgets it. `--json` echoes the filter in
+  force as `filter`.
+- The `--ignore-*` flags still apply on top.
+
+```sh
+# the orchestrator: everything on the board, as it was
+todomd watch --as orchestrator --json
+# the iOS agent: cards tagged or assigned ios, and any @ios on any card
+todomd watch --as ios --tag ios --assignee ios --save --no-wait --json   # once
+todomd watch --as ios --json                                             # then
+```
 
 Events are about tasks: renaming a board reports a `task_moved` (old name →
 new) for each of its tasks, while adding, reordering or renaming an empty

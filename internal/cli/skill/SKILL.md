@@ -163,6 +163,33 @@ todomd watch --as agent --json             # blocks until something changes, pri
 - Before you stop, run `todomd watch --as agent --no-wait --json` once, so
   your last writes reach todomd.online, and handle anything it reports.
 
+### One agent per tag: filter what you watch
+
+When several agents share a board, each watches only its cards:
+
+```sh
+# once: remember what this agent cares about, for the --as name "ios"
+todomd watch --as ios --tag ios --assignee ios --save --no-wait --json
+# the loop is then the same as before; the saved filter applies
+todomd watch --as ios --json
+```
+
+- `--filter '<query>'` takes the board's filter syntax: `tag:ios`,
+  `-tag:ios`, `board:Doing`, `assignee:me|none|any|<handle>`, `mentions:me`,
+  `!high`, `sticker:fire`, plain words, and `OR`
+  (`tag:ios OR assignee:ios`). `--tag ios` and `--assignee ios` are short
+  forms; everything given is OR-ed. `me` is your `--as` name.
+- You also hear about a card that **leaves** your filter (the tag was
+  removed, it was reassigned, moved off the board): that is the hand-over.
+  A card that enters it (tag added, new card with the tag) is reported.
+- Every `@mention` of your `--as` name comes through on any card,
+  whatever the filter. `-mentions:me` in the filter turns that off.
+- Events the filter drops are gone for good; don't go looking for them.
+- `todomd watch --as ios --show-filter` prints the saved filter,
+  `--clear-filter` forgets it. A different `--filter` on one run overrides
+  the saved one for that run. The orchestrator simply runs
+  `todomd watch --as orchestrator` with no filter.
+
 ## Board rules
 
 These are the defaults. They are the user's to change: rules the user

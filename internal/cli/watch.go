@@ -13,6 +13,7 @@ import (
 
 	"github.com/walm/todomd/internal/changes"
 	"github.com/walm/todomd/internal/cloudsync"
+	"github.com/walm/todomd/internal/filter"
 	"github.com/walm/todomd/internal/mentions"
 	"github.com/walm/todomd/internal/store"
 )
@@ -192,7 +193,12 @@ type lookFunc func(snapshot []byte) (evs []changes.Event, raw []byte, err error)
 // A task_updated that only changes reactions is dropped unless one of the
 // reacted comments was written by one of mine (the watcher's own names, see
 // myNames): a reaction to someone else's comment isn't worth waking for.
-func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, notMyCards, mine []string) lookFunc {
+//
+// A filter keeps the events about cards that match it, before or after the
+// change (so a card leaving it, or entering it, is reported), and every
+// @mention of me. What it drops is consumed with the rest: the caller saves
+// the cursor past it.
+func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, notMyCards, mine []string, q *filter.Query) lookFunc {
 	return func(snapshot []byte) ([]changes.Event, []byte, error) {
 		raw, cur, err := s.ReadPersisted()
 		if errors.Is(err, store.ErrNoFile) {
@@ -209,6 +215,10 @@ func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, notMyCard
 			return nil, nil, err
 		}
 		var evs []changes.Event
+		var oldCards map[string]oldCard
+		if q != nil {
+			oldCards = indexOld(old)
+		}
 		for _, e := range changes.Diff(old, cur) {
 			if e.Type == changes.CommentAdded && authorIn(e.Comment.Author, ignoreAuthors) {
 				continue
@@ -220,6 +230,9 @@ func cursorLook(s *store.Store, cpath string, ignoreAuthors, notForMe, notMyCard
 				continue
 			}
 			if assignedToOthers(e, notMyCards) {
+				continue
+			}
+			if q != nil && !passesFilter(q, e, oldCards, mine) {
 				continue
 			}
 			evs = append(evs, e)
@@ -274,6 +287,7 @@ func newWatch() *cobra.Command {
 	var ignoreAuthors, authors, notForMe, notMyCards []string
 	var timeout time.Duration
 	var noWait bool
+	var ff filterFlags
 	cmd := &cobra.Command{
 		Use:   "watch",
 		Short: "Sync, then wait for card changes and print them (one round per run)",
@@ -292,6 +306,10 @@ are not reported back. A change to reactions alone wakes it only when it is
 on a comment of yours: written by --author, or by the --as name. The first
 run starts the cursor at the synced file and then waits for what changes
 next; read the board with 'todomd list'.
+
+--filter '<query>' (or --tag, --assignee) reports only the cards you care
+about, so an agent isn't woken for the rest. See 'todomd changes --help' for
+the syntax. --save remembers it for this --as name.
 
 --no-wait syncs and reports what is pending without waiting: run it once
 before you stop, so your last writes reach todomd.online.
@@ -329,7 +347,11 @@ too old.`,
 			if err != nil {
 				return err
 			}
-			look := cursorLook(s, cpath, ignoreAuthors, notForMe, notMyCards, myNames(as, authors))
+			q, done, err := ff.resolve(cmd, cpath, as)
+			if err != nil || done {
+				return err
+			}
+			look := cursorLook(s, cpath, ignoreAuthors, notForMe, notMyCards, myNames(as, authors), q)
 
 			primed, err := bs.round(ctx)
 			if err != nil {
@@ -388,7 +410,7 @@ too old.`,
 
 			if flagJSON {
 				out := watchJSON{
-					changesJSON: changesJSON{File: s.Path, Cursor: as, Initialized: !ok, Events: eventsJSON(evs), TimedOut: timedOut},
+					changesJSON: changesJSON{File: s.Path, Cursor: as, Filter: q.String(), Initialized: !ok, Events: eventsJSON(evs), TimedOut: timedOut},
 					Sync:        bs.state(),
 				}
 				return printJSON(out)
@@ -405,6 +427,7 @@ too old.`,
 	authorFlag(cmd, &authors)
 	notForMeFlag(cmd, &notForMe)
 	notMyCardsFlag(cmd, &notMyCards)
+	ff.add(cmd)
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "give up waiting after this long (reports no events, timed_out: true)")
 	cmd.Flags().BoolVar(&noWait, "no-wait", false, "sync and report what is pending without waiting")
 	jsonFlag(cmd)
