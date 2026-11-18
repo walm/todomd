@@ -4,7 +4,7 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
-## Unreleased
+## v0.20.0 — 2026-11-18
 
 Format version 5 (card v1do). Older todomd versions keep the new line as
 the description's first line, byte for byte.
