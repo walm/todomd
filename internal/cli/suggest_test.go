@@ -38,6 +38,9 @@ func TestCommentSuggest(t *testing.T) {
 	if err != nil || !strings.Contains(txt, "→ reply: GO · push and merge") {
 		t.Errorf("show text: %v\n%s", err, txt)
 	}
+	if strings.Contains(txt, "<!--") || !strings.Contains(txt, "Ship it?") {
+		t.Errorf("show text should hide the raw suggest line:\n%s", txt)
+	}
 	// a plain comment has [] and no reply line
 	if _, err := run(t, "--file", path, "comment", id, "--author", "bot", "thanks"); err != nil {
 		t.Fatal(err)

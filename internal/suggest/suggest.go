@@ -53,6 +53,24 @@ func Parse(text string) []string {
 	return out
 }
 
+// Strip removes a valid explicit suggest line from the end of text, for
+// views that show the options separately. Anything else is returned as is.
+func Strip(text string) string {
+	t := strings.TrimRight(strings.ReplaceAll(text, "\r\n", "\n"), " \t\n")
+	i := strings.LastIndexByte(t, '\n')
+	m := explicit.FindStringSubmatch(strings.TrimSpace(t[i+1:]))
+	if m == nil {
+		return text
+	}
+	if _, err := parseOptions(m[1]); err != nil {
+		return text
+	}
+	if i < 0 {
+		return ""
+	}
+	return strings.TrimRight(t[:i], " \t\n")
+}
+
 func parseOptions(s string) ([]string, error) {
 	var out []string
 	for _, o := range strings.Split(s, "|") {

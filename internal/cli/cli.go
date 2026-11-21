@@ -496,15 +496,19 @@ func newShow() *cobra.Command {
 			if len(t.Comments) > 0 {
 				fmt.Println("\ncomments:")
 				for k, c := range t.Comments {
-					text := strings.ReplaceAll(c.Text, "\n", "\n     ")
+					body, sg := c.Text, []string(nil)
+					if k == len(t.Comments)-1 {
+						// the options are shown on the reply line below
+						sg = suggest.Parse(c.Text)
+						body = suggest.Strip(c.Text)
+					}
+					text := strings.ReplaceAll(body, "\n", "\n     ")
 					fmt.Printf("  %d. %s (%s): %s\n", k+1, c.Author, c.Date, text)
 					if r := reactionsLine(c.Reactions); r != "" {
 						fmt.Printf("     %s\n", r)
 					}
-					if k == len(t.Comments)-1 {
-						if sg := suggest.Parse(c.Text); len(sg) > 0 {
-							fmt.Printf("     → reply: %s\n", strings.Join(sg, " · "))
-						}
+					if len(sg) > 0 {
+						fmt.Printf("     → reply: %s\n", strings.Join(sg, " · "))
 					}
 				}
 			}

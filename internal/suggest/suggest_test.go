@@ -52,3 +52,19 @@ func TestLine(t *testing.T) {
 		}
 	}
 }
+
+func TestStrip(t *testing.T) {
+	cases := map[string]string{
+		"Ready?\n<!-- suggest: GO | Done -->": "Ready?",
+		"a\n\nb\n<!-- suggest: GO -->\n\n":    "a\n\nb",
+		"<!-- suggest: GO -->":                "",
+		"Say **GO**":                          "Say **GO**",
+		"x\n<!-- suggest: a||b -->":           "x\n<!-- suggest: a||b -->",
+		"<!-- suggest: GO -->\nmore":          "<!-- suggest: GO -->\nmore",
+	}
+	for in, want := range cases {
+		if got := Strip(in); got != want {
+			t.Errorf("Strip(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
