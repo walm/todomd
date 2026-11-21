@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/walm/todomd/internal/mentions"
+	"github.com/walm/todomd/internal/suggest"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -134,5 +135,9 @@ func toCommentJSON(c task.Comment) commentJSON {
 	if m == nil {
 		m = []string{}
 	}
-	return commentJSON{Author: c.Author, Date: c.Date, Text: c.Text, Reactions: reactionsJSON(c.Reactions), Mentions: m}
+	sg := suggest.Parse(c.Text)
+	if sg == nil {
+		sg = []string{}
+	}
+	return commentJSON{Author: c.Author, Date: c.Date, Text: c.Text, Reactions: reactionsJSON(c.Reactions), Mentions: m, Suggestions: sg}
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/walm/todomd/internal/markdown"
 	"github.com/walm/todomd/internal/selfupdate"
 	"github.com/walm/todomd/internal/store"
+	"github.com/walm/todomd/internal/suggest"
 	"github.com/walm/todomd/internal/task"
 	"github.com/walm/todomd/internal/tui"
 	"github.com/walm/todomd/internal/vcs"
@@ -35,6 +36,8 @@ type commentJSON struct {
 	Text      string         `json:"text"`
 	Reactions []reactionJSON `json:"reactions"`
 	Mentions  []string       `json:"mentions"` // @handles in text, lowercase; [] for none
+	// Suggestions are the replies the comment offers (see internal/suggest); [] for none.
+	Suggestions []string `json:"suggestions"`
 }
 
 type taskJSON struct {
@@ -498,6 +501,11 @@ func newShow() *cobra.Command {
 					if r := reactionsLine(c.Reactions); r != "" {
 						fmt.Printf("     %s\n", r)
 					}
+					if k == len(t.Comments)-1 {
+						if sg := suggest.Parse(c.Text); len(sg) > 0 {
+							fmt.Printf("     → reply: %s\n", strings.Join(sg, " · "))
+						}
+					}
 				}
 			}
 			return nil
@@ -685,19 +693,29 @@ func newDone() *cobra.Command {
 
 func newComment() *cobra.Command {
 	var author string
+	var suggestions []string
 	cmd := &cobra.Command{
 		Use:   "comment <id> <text>",
 		Short: "Add a comment to a task",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			text := args[1]
+			if len(suggestions) > 0 {
+				line, err := suggest.Line(suggestions)
+				if err != nil {
+					return err
+				}
+				text = strings.TrimRight(text, " \t\r\n") + "\n" + line
+			}
 			return mutate(func(f *task.File) (*task.Task, error) {
-				return store.AddComment(f, args[0], author, args[1])
+				return store.AddComment(f, args[0], author, text)
 			}, func(t *task.Task, b string) string {
 				return fmt.Sprintf("commented on %s: %s", t.ID, t.Title)
 			})
 		},
 	}
 	cmd.Flags().StringVar(&author, "author", "", "comment author (e.g. ai, or a name)")
+	cmd.Flags().StringArrayVar(&suggestions, "suggest", nil, "suggested reply, shown as a button on the web (repeatable, max 4, each up to 40 characters)")
 	cmd.MarkFlagRequired("author")
 	asFlag(cmd)
 	jsonFlag(cmd)

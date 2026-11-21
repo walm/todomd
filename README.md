@@ -115,6 +115,7 @@ todomd update 3f2a --title "New" --priority low --tag a --clear-due
 todomd move 3f2a --to "In Progress" --pos 1
 todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
+todomd comment 3f2a --author ai "Merge?" --suggest GO --suggest "push and merge"   # reply buttons on the web
 todomd delete 3f2a --yes
 todomd split 3f2a "Part one" "Part two"   # new cards linked "split from 3f2a"
 todomd links add 9e41 blocks 3f2a     # also blocked-by, related, duplicate-of, …

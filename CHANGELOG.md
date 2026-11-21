@@ -4,6 +4,20 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- **Suggested replies (card zpgz).** `todomd comment <id> "…" --suggest GO
+  --suggest "push and merge"` (repeatable, up to 4, each up to 40 characters,
+  no `|` or `-->`) appends `<!-- suggest: GO | push and merge -->` as the
+  comment's last line; todomd.online shows the options as reply buttons on
+  the latest comment. Comments in `show --json` and `changes --json` carry
+  `suggestions: [...]` (`[]` for none), also read from a "say **GO**" phrase
+  when there is no explicit line. `todomd show` prints `→ reply: GO · push
+  and merge` under the last comment. The agent skill tells agents to add
+  `--suggest` with the exact replies whenever they ask the user for something.
+
 ## v0.21.0 — 2026-11-18
 
 ### Added

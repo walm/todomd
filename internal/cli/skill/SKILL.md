@@ -77,6 +77,23 @@ todomd links rm 9e41 3f2a --as agent              # removes the link wherever it
 `title`, `board`). A card that is `blocked by` an open card (one not on the
 last board): don't start it without asking.
 
+## Asking the user for something
+
+When your comment asks the user to decide or approve, add `--suggest` with
+the exact replies you will act on (repeatable, up to 4, each up to 40
+characters, no `|` or `-->`). todomd.online shows them as one-tap reply
+buttons on the latest comment:
+
+```sh
+todomd comment 3f2a --author agent --as agent "Tests pass. Merge?" --suggest GO --suggest "push and merge" --suggest "wait"
+```
+
+It adds `<!-- suggest: GO | push and merge | wait -->` as the comment's last
+line. Comments in `--json` output carry `suggestions` (`[]` for none), so
+when the user answers with one of them, act on that reply. A reply is just
+a comment; treat it like any other. Don't `--suggest` on comments that ask
+for nothing.
+
 ## Stickers
 
 A card can carry one sticker (`"sticker"` in JSON: `fire`, `wip`, `red`, …,
