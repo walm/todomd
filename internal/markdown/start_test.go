@@ -52,3 +52,43 @@ func TestStartAfterDueKept(t *testing.T) {
 		t.Errorf("got\n%s", got)
 	}
 }
+
+// todomd.online hands clients below format 6 a start date as a hidden first
+// description line; UpgradeStart makes it the field again.
+func TestUpgradeStart(t *testing.T) {
+	in := "# B\n\n## Todo\n\n" +
+		"### Downgraded\n<!-- id:aa01 -->\n`#x` **due:** 2026-11-14\n\n<!-- assignee: anna -->\n\n<!-- start: 2026-11-10 -->\n\nbody\n\n" +
+		"### Only the line\n<!-- id:aa02 -->\n\n<!-- start: 2026-11-11 -->\n\n" +
+		"### Has a start already\n<!-- id:aa03 -->\n**start:** 2026-11-01\n\n<!-- start: 2026-11-11 -->\n\n" +
+		"### Escaped stays text\n<!-- id:aa04 -->\n\n\\<!-- start: 2026-11-11 -->\n\n" +
+		"### Bad date stays text\n<!-- id:aa05 -->\n\n<!-- start: 2026-13-11 -->\n"
+	f, err := ParseStrict([]byte(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !UpgradeStart(f) {
+		t.Fatal("nothing upgraded")
+	}
+	var got []string
+	for _, tk := range f.AllTasks() {
+		s := "-"
+		if tk.Start != nil {
+			s = tk.Start.String()
+		}
+		got = append(got, tk.ID+" "+s+" "+strings.ReplaceAll(tk.Description, "\n", "|"))
+	}
+	want := []string{
+		"aa01 2026-11-10 body",
+		"aa02 2026-11-11 ",
+		"aa03 2026-11-01 <!-- start: 2026-11-11 -->",
+		"aa04 - <!-- start: 2026-11-11 -->",
+		"aa05 - <!-- start: 2026-13-11 -->",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	out := string(Write(f))
+	if !strings.Contains(out, "`#x` **start:** 2026-11-10 **due:** 2026-11-14") || UpgradeStart(f) {
+		t.Errorf("written:\n%s", out)
+	}
+}

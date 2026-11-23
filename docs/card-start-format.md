@@ -85,6 +85,23 @@ unless something protects it. The two protections:
 A local TODO.md edited by an older CLI isn't protected by either; upgrade
 todomd where the file has start dates.
 
+## Downgrade line (older clients)
+
+todomd.online sends a client below format 6 each start date as a hidden
+first description line, `<!-- start: YYYY-MM-DD -->`, instead of
+`**start:**` (a format-5 reader keeps such a line byte for byte). It reads
+the line back as the field on whole-file pushes from new clients. So a
+TODO.md that todomd v0.22 pulled may hold such lines.
+
+`markdown.UpgradeStart` (run when the CLI loads the file and its sync base)
+turns an unescaped `<!-- start: DATE -->` first description line, and the
+blank lines after it, into the card's start. A card that already has a
+start keeps its description. `Parse` itself does not do this (todofile's
+`parse` doesn't either; it is `upgradeStart`, applied to old clients'
+pushes). A backslash-escaped line is left as it is, one backslash and all:
+`write` doesn't escape such lines, so unescaping one here would turn real
+text into a start date on the next read.
+
 ## Sync ops (wire format)
 
 There are no new op names.
@@ -96,7 +113,9 @@ There are no new op names.
   start has ops byte-identical to format 5. (`due` is always present, as
   before.)
 - `Delta` emits `set.start` when the start differs.
-- A client that sends `format_version: 6` gets `start` in delta sync.
+- The CLI sends `format_version` (6) in every sync body and
+  `?format_version=6` on `GET …/document`, besides the `todomd/0.23.0`
+  User-Agent, so the server treats it as a client that reads start dates.
 
 ## Merge
 

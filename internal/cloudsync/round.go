@@ -189,6 +189,7 @@ func (s *Syncer) round(ctx context.Context, opts Options) (*Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sync base: %w", err)
 	}
+	markdown.UpgradeStart(base)
 	raw, local, missing, err := s.readLocal()
 	if err != nil {
 		return nil, err

@@ -38,6 +38,9 @@ func (s *Store) ReadPersisted() (raw []byte, f *task.File, err error) {
 			return err
 		}
 		f, err = markdown.Parse(raw)
+		if err == nil {
+			markdown.UpgradeStart(f)
+		}
 		return err
 	}
 	if err := read(); err != nil {

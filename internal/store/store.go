@@ -87,6 +87,7 @@ func (s *Store) Load() (*task.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", s.Path, err)
 	}
+	markdown.UpgradeStart(f) // a start date an older client got as a hidden line
 	return f, nil
 }
 

@@ -221,11 +221,11 @@ func taskJSON(t *task.Task) json.RawMessage {
 	o.field("title", t.Title)
 	o.field("tags", tagsOf(t.Tags))
 	o.field("priority", t.Priority.String())
-	o.field("due", dueJSON(t.Due))
 	// Like sticker and assignee, only a card with a start carries the key.
 	if t.Start != nil {
 		o.field("start", dueJSON(t.Start))
 	}
+	o.field("due", dueJSON(t.Due))
 	// Only cards with a sticker carry the key (and only with links the
 	// links key), so every other task.add reads as it did before.
 	if t.Sticker != "" {
@@ -340,7 +340,7 @@ var opKeys = map[string][]string{
 
 var (
 	taskKeys    = []string{"id", "title", "tags", "priority", "due", "description", "comments"}
-	fieldKeys   = []string{"title", "tags", "priority", "due", "start", "sticker", "assignee", "description", "links"}
+	fieldKeys   = []string{"title", "tags", "priority", "start", "due", "sticker", "assignee", "description", "links"}
 	commentKeys = []string{"author", "date", "text"}
 	// reactions is optional in a comment: one without them leaves it out.
 	reactionKeys = []string{"emoji", "by"}
