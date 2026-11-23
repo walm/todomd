@@ -81,7 +81,7 @@ func TestUpgradeStart(t *testing.T) {
 		"aa01 2026-11-10 body",
 		"aa02 2026-11-11 ",
 		"aa03 2026-11-01 <!-- start: 2026-11-11 -->",
-		"aa04 - <!-- start: 2026-11-11 -->",
+		"aa04 - \\<!-- start: 2026-11-11 -->",
 		"aa05 - <!-- start: 2026-13-11 -->",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
