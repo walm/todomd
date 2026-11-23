@@ -87,6 +87,7 @@ func (s *Store) Load() (*task.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", s.Path, err)
 	}
+	markdown.UpgradeStart(f) // a start date an older client got as a hidden line
 	return f, nil
 }
 
@@ -327,6 +328,9 @@ func Add(f *task.File, boardName string, t *task.Task) (*task.Task, error) {
 			return nil, err
 		}
 	}
+	if err := task.CheckStartDue(t.Start, t.Due); err != nil {
+		return nil, err
+	}
 	var b *task.Board
 	if boardName == "" {
 		if len(f.Boards) == 0 {
@@ -354,6 +358,8 @@ type UpdateOpts struct {
 	Due         *task.Date
 	Sticker     *string // a canonical name, "" removes it
 	Assignee    *string // a handle, "" unassigns
+	Start       *task.Date
+	ClearStart  bool
 	ClearDue    bool
 	ClearTags   bool
 }
@@ -402,12 +408,24 @@ func Update(f *task.File, ref string, opts UpdateOpts) (*task.Task, error) {
 		}
 		t.Assignee = *opts.Assignee
 	}
+	prevStart, prevDue := t.Start, t.Due
+	if opts.ClearStart {
+		t.Start = nil
+	}
+	if opts.Start != nil {
+		d := *opts.Start
+		t.Start = &d
+	}
 	if opts.ClearDue {
 		t.Due = nil
 	}
 	if opts.Due != nil {
 		d := *opts.Due
 		t.Due = &d
+	}
+	if err := task.CheckStartDue(t.Start, t.Due); err != nil {
+		t.Start, t.Due = prevStart, prevDue
+		return nil, err
 	}
 	return t, nil
 }

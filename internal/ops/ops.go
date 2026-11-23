@@ -67,7 +67,7 @@ type Op struct {
 }
 
 // Fields are the task fields a task.update replaces; nil means unchanged.
-// Due needs a separate flag because "clear the due date" is a change too.
+// Start and Due need a separate flag because "clear the date" is a change too.
 // Links, like Tags, is the card's whole list after the change. Sticker is
 // the new sticker's name, "" to remove it; Assignee the new handle, "" to
 // unassign.
@@ -75,6 +75,8 @@ type Fields struct {
 	Title       *string
 	Tags        *[]string
 	Priority    *task.Priority
+	HasStart    bool
+	Start       *task.Date
 	HasDue      bool
 	Due         *task.Date
 	Sticker     *string
@@ -85,7 +87,7 @@ type Fields struct {
 
 // Empty reports whether no field is set.
 func (s Fields) Empty() bool {
-	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasDue && s.Sticker == nil && s.Assignee == nil && s.Description == nil && s.Links == nil
+	return s.Title == nil && s.Tags == nil && s.Priority == nil && !s.HasStart && !s.HasDue && s.Sticker == nil && s.Assignee == nil && s.Description == nil && s.Links == nil
 }
 
 // OpError names the first op that couldn't be read or applied.
@@ -219,6 +221,10 @@ func taskJSON(t *task.Task) json.RawMessage {
 	o.field("title", t.Title)
 	o.field("tags", tagsOf(t.Tags))
 	o.field("priority", t.Priority.String())
+	// Like sticker and assignee, only a card with a start carries the key.
+	if t.Start != nil {
+		o.field("start", dueJSON(t.Start))
+	}
 	o.field("due", dueJSON(t.Due))
 	// Only cards with a sticker carry the key (and only with links the
 	// links key), so every other task.add reads as it did before.
@@ -284,6 +290,9 @@ func (op Op) MarshalJSON() ([]byte, error) {
 		if op.Set.Priority != nil {
 			s.field("priority", op.Set.Priority.String())
 		}
+		if op.Set.HasStart {
+			s.field("start", dueJSON(op.Set.Start))
+		}
 		if op.Set.HasDue {
 			s.field("due", dueJSON(op.Set.Due))
 		}
@@ -331,7 +340,7 @@ var opKeys = map[string][]string{
 
 var (
 	taskKeys    = []string{"id", "title", "tags", "priority", "due", "description", "comments"}
-	fieldKeys   = []string{"title", "tags", "priority", "due", "sticker", "assignee", "description", "links"}
+	fieldKeys   = []string{"title", "tags", "priority", "start", "due", "sticker", "assignee", "description", "links"}
 	commentKeys = []string{"author", "date", "text"}
 	// reactions is optional in a comment: one without them leaves it out.
 	reactionKeys = []string{"emoji", "by"}
@@ -584,7 +593,7 @@ func readOp(raw json.RawMessage) Op {
 	case TaskAdd:
 		// sticker, assignee and links are optional: a task without them
 		// leaves them out.
-		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "sticker", "assignee", "links"), false)
+		t := readObject(o["task"], "task", append(slices.Clone(taskKeys), "start", "sticker", "assignee", "links"), false)
 		for _, k := range taskKeys {
 			if _, ok := t[k]; !ok {
 				fail("missing key %s in task", strconv.Quote(k))
@@ -606,6 +615,10 @@ func readOp(raw json.RawMessage) Op {
 		}
 		if v, ok := t["links"]; ok {
 			tk.Links = readLinks(v, "task.links")
+		}
+		if v, ok := t["start"]; ok && !isNull(v) {
+			d := readDate(v, "task.start")
+			tk.Start = &d
 		}
 		if !isNull(t["due"]) {
 			d := readDate(t["due"], "task.due")
@@ -632,6 +645,13 @@ func readOp(raw json.RawMessage) Op {
 		if v, ok := s["priority"]; ok {
 			p := readPriority(v)
 			op.Set.Priority = &p
+		}
+		if v, ok := s["start"]; ok {
+			op.Set.HasStart = true
+			if !isNull(v) {
+				d := readDate(v, "set.start")
+				op.Set.Start = &d
+			}
 		}
 		if v, ok := s["due"]; ok {
 			op.Set.HasDue = true

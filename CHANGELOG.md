@@ -4,6 +4,24 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Added
+
+- **Start dates on cards (card utvc, format v6).** A card can have a
+  `**start:** YYYY-MM-DD` on its metadata line, just before `**due:**`
+  (`` `#infra` **priority:** high **start:** 2026-11-10 **due:** 2026-11-14 ``).
+  `todomd add --start <date>`, `todomd update --start <date|none>` and
+  `--clear-start` set it; the date form is the one `--due` takes. A start
+  without a due date is fine; start after due is refused by `add`/`update`
+  and kept as written when read. `show` prints `start:` and `show`/`list
+  --json` carry `"start"`; `changes`/`watch` report `fields.start`. The
+  format version is 6. Against a server on format 5 or older, sync sends
+  the whole file while any card has a start date, so none is lost. Older
+  todomd versions read the metadata line of such a card as description text;
+  upgrade before editing files with start dates. Details:
+  [docs/card-start-format.md](docs/card-start-format.md).
+
 ## v0.22.0 — 2026-11-21
 
 ### Added

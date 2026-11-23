@@ -37,6 +37,7 @@ todomd move 3f2a --to "In Progress" --as agent
 todomd move 3f2a --to Done --as agent
 todomd add "Follow-up: flaky test" --board Backlog --desc "Seen in CI." --as agent
 todomd update 3f2a --desc "Updated description" --as agent
+todomd update 3f2a --start 2026-11-10 --as agent   # optional start date, not after --due; "none" clears
 ```
 
 Comments and descriptions are Markdown: lists, `code`, fenced code blocks,

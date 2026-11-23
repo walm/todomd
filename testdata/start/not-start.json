@@ -1,0 +1,63 @@
+{
+  "title": "Board",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Todo",
+      "tasks": [
+        {
+          "id": "cc01",
+          "title": "Bad date makes the line text",
+          "tags": [],
+          "priority": "normal",
+          "start": null,
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "**start:** 2026-13-40 **due:** 2026-11-14",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cc02",
+          "title": "Two starts make the line text",
+          "tags": [],
+          "priority": "normal",
+          "start": null,
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "**start:** 2026-11-10 **start:** 2026-11-11",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cc03",
+          "title": "Lowercase key only",
+          "tags": [],
+          "priority": "normal",
+          "start": null,
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "**Start:** 2026-11-10",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "cc04",
+          "title": "No value",
+          "tags": [],
+          "priority": "normal",
+          "start": null,
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "**start:**",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

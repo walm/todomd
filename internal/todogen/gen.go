@@ -244,6 +244,11 @@ func newTask(r *Rng, taken map[string]bool, idPool []string) *task.Task {
 		d := date(pick(r, dates))
 		t.Due = &d
 	}
+	if r.Chance(0.25) {
+		// Any date: readers keep a start after the due date as it is.
+		d := date(pick(r, dates))
+		t.Start = &d
+	}
 	if r.Chance(0.6) {
 		t.Description = description(r)
 	}
@@ -434,7 +439,7 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 	}
 
 	for s := 0; s < steps; s++ {
-		switch r.Int(21) {
+		switch r.Int(22) {
 		case 0:
 			if len(f.Boards) == 0 {
 				break
@@ -570,6 +575,14 @@ func Mutate(r *Rng, src *task.File, opts EditOptions) *task.File {
 			editTask(func(t *task.Task) {
 				if len(t.Comments) > 0 {
 					react(r, &t.Comments[r.Int(len(t.Comments))])
+				}
+			})
+		case 21:
+			editTask(func(t *task.Task) {
+				t.Start = nil
+				if !r.Chance(0.3) {
+					d := date(pick(r, dates))
+					t.Start = &d
 				}
 			})
 		case 20:

@@ -107,11 +107,12 @@ The skill teaches the agent `list --assignee me`, `assign`, `unassign` and
 ## 🤖 CLI (for agents and scripts)
 
 ```sh
-todomd add "Fix the parser" --tag parser --priority high --due 2026-08-01 --json
+todomd add "Fix the parser" --tag parser --priority high --start 2026-07-27 --due 2026-08-01 --json
 todomd list --priority high --json    # what to work on first
 todomd list --json                    # everything, grouped by board
 todomd show 3f2a --json               # full task detail
 todomd update 3f2a --title "New" --priority low --tag a --clear-due
+todomd update 3f2a --start 2026-07-30   # a start date; "--start none" clears it
 todomd move 3f2a --to "In Progress" --pos 1
 todomd done 3f2a
 todomd comment 3f2a --author ai "Tried X, going with Y."
@@ -482,7 +483,7 @@ Free-form preamble — never touched by the tool.
 
 ### Implement markdown parser
 <!-- id:3f2a -->
-`#parser` `#core` **priority:** high **due:** 2026-08-01
+`#parser` `#core` **priority:** high **start:** 2026-07-27 **due:** 2026-08-01
 
 <!-- sticker: fire -->
 
@@ -512,10 +513,16 @@ Rules, briefly:
   tasks (card order = file order). Empty boards persist.
 - The `<!-- id:… -->` comment is the task's stable ID (invisible when
   rendered). Hand-added tasks without one get an ID on the next write.
-- The metadata line (tags, priority, due) is the first non-blank line below
+- The metadata line (tags, priority, start, due) is the first non-blank line below
   the ID comment (formatter-inserted blank lines are fine). `**priority:**` is
   `high` or `low`; the default `normal` is left out, so ordinary tasks stay
   clean.
+- `**start:** YYYY-MM-DD` is optional, goes just before `**due:**` and needs
+  no due date; if both are set, start is not after due (the CLI refuses
+  otherwise, readers keep the file as it is). Format 6: todomd versions
+  before it read the whole metadata line as description text, so don't edit
+  a file with start dates with an older one.
+  Details: [docs/card-start-format.md](docs/card-start-format.md).
 - A sticker is a hidden `<!-- sticker: NAME -->` line right after the
   metadata line (`fire`, `star`, …, `red`, …; ASCII names, not the emoji).
   Only that position and only a known name count; anything else is

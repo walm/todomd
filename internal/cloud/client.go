@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/walm/todomd/internal/markdown"
 	"github.com/walm/todomd/internal/merge"
 	"github.com/walm/todomd/internal/ops"
 )
@@ -444,7 +445,7 @@ func (c *Client) Document(ctx context.Context, id string, ifNoneMatch int) (*Doc
 		hdr = http.Header{"If-None-Match": {strconv.Quote(strconv.Itoa(ifNoneMatch))}}
 	}
 	var d Document
-	err := c.doURL(ctx, http.MethodGet, c.API+"/projects/"+pathID(id)+"/document", nil, &d, hdr)
+	err := c.doURL(ctx, http.MethodGet, c.API+"/projects/"+pathID(id)+"/document?format_version="+strconv.Itoa(markdown.FormatVersion), nil, &d, hdr)
 	if errors.Is(err, errNotModified) {
 		return nil, nil
 	}
@@ -475,7 +476,9 @@ type SyncRequest struct {
 // MarshalJSON writes the wire form; the server tells the forms apart by
 // which key is present.
 func (r SyncRequest) MarshalJSON() ([]byte, error) {
-	m := map[string]any{"base_rev": r.BaseRev}
+	// Always say which format this client reads (the server also goes by the
+	// User-Agent): from format 6 on it gets start dates as they are.
+	m := map[string]any{"base_rev": r.BaseRev, "format_version": markdown.FormatVersion}
 	if r.RequestID != "" {
 		m["request_id"] = r.RequestID
 	}

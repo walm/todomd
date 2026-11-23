@@ -90,7 +90,7 @@ func (m *model) applyEditor(msg editorFinishedMsg) {
 		t := b.Tasks[i]
 		t.Title = edited.Title
 		t.Tags = edited.Tags
-		t.Due = edited.Due
+		t.Start, t.Due = edited.Start, edited.Due
 		t.Description = edited.Description
 		t.Links = edited.Links
 		t.Sticker = edited.Sticker

@@ -1,0 +1,26 @@
+{
+  "title": "Board",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Todo",
+      "tasks": [
+        {
+          "id": "dd01",
+          "title": "Description that looks like a start line",
+          "tags": [
+            "x"
+          ],
+          "priority": "normal",
+          "start": "2026-11-10",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "**start:** 2026-11-10 **due:** 2026-11-14\n\nbody",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

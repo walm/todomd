@@ -141,6 +141,7 @@ type Task struct {
 	Title       string
 	Tags        []string
 	Priority    Priority
+	Start       *Date // optional start date (format 6); written before due
 	Due         *Date
 	Description string // verbatim markdown
 	Links       []Link // stored on this card, in file order

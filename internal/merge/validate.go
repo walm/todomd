@@ -57,6 +57,9 @@ func CheckTask(t *task.Task) error {
 	if t.Due != nil && !validDate(*t.Due) {
 		return invalid("due", "invalid date %q", t.Due.String())
 	}
+	if t.Start != nil && !validDate(*t.Start) {
+		return invalid("start", "invalid date %q", t.Start.String())
+	}
 	for _, c := range t.Comments {
 		if !validDate(c.Date) {
 			return invalid("comments", "invalid comment date %q", c.Date.String())
