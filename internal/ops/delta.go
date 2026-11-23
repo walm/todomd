@@ -63,6 +63,13 @@ func changedFields(a, b *task.Task) Fields {
 		p := b.Priority
 		s.Priority = &p
 	}
+	if !task.SameStart(a.Start, b.Start) {
+		s.HasStart = true
+		if b.Start != nil {
+			d := *b.Start
+			s.Start = &d
+		}
+	}
 	if !task.SameDue(a.Due, b.Due) {
 		s.HasDue = true
 		if b.Due != nil {
@@ -438,6 +445,13 @@ func applyOne(f *task.File, home map[string]*task.Board, op Op) string {
 		}
 		if s.Priority != nil {
 			t.Priority = *s.Priority
+		}
+		if s.HasStart {
+			t.Start = nil
+			if s.Start != nil {
+				d := *s.Start
+				t.Start = &d
+			}
 		}
 		if s.HasDue {
 			t.Due = nil

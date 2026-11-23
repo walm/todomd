@@ -1,6 +1,9 @@
 package task
 
-import "slices"
+import (
+	"fmt"
+	"slices"
+)
 
 // Clone deep-copies a task: tags, links, comments (with their reactions)
 // and the due date are never shared with the original.
@@ -9,6 +12,10 @@ func (t *Task) Clone() *Task {
 	c.Tags = slices.Clone(t.Tags)
 	c.Links = slices.Clone(t.Links)
 	c.Comments = CloneComments(t.Comments)
+	if t.Start != nil {
+		s := *t.Start
+		c.Start = &s
+	}
 	if t.Due != nil {
 		d := *t.Due
 		c.Due = &d
@@ -28,6 +35,18 @@ func (f *File) Clone() *File {
 	}
 	return c
 }
+
+// CheckStartDue is the writers' rule: a start date after the due date is
+// refused. Readers keep such a card as it is (see docs/card-start-format.md).
+func CheckStartDue(start, due *Date) error {
+	if start != nil && due != nil && due.Before(*start) {
+		return fmt.Errorf("start %s is after due %s", start, due)
+	}
+	return nil
+}
+
+// SameStart reports whether two start dates are equal.
+func SameStart(a, b *Date) bool { return SameDue(a, b) }
 
 // SameDue reports whether two due dates are equal (both unset, or the same
 // day).

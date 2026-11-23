@@ -685,3 +685,18 @@ func TestMergePropertiesNoSilentLoss(t *testing.T) {
 		}
 	})
 }
+
+func TestMergeStart(t *testing.T) {
+	base := baseFile(t)
+	// One side sets it: kept.
+	th := edit(t, base, func(f *task.File) { s := d("2026-12-01"); f.Boards[0].Tasks[1].Start = &s })
+	r := m(t, base, base, th)
+	eq(t, find(r.Merged, "bbbb").Start.String(), "2026-12-01")
+	eq(t, len(r.Conflicts), 0)
+	// Both set different dates: theirs, with a conflict.
+	o := edit(t, base, func(f *task.File) { s := d("2026-12-05"); f.Boards[0].Tasks[1].Start = &s })
+	r = m(t, base, o, th)
+	eq(t, find(r.Merged, "bbbb").Start.String(), "2026-12-01")
+	eq(t, len(r.Conflicts), 1)
+	eq(t, r.Conflicts[0].Field, "start")
+}

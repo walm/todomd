@@ -1,0 +1,67 @@
+{
+  "title": "Board",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Todo",
+      "tasks": [
+        {
+          "id": "aa01",
+          "title": "Everything",
+          "tags": [
+            "infra"
+          ],
+          "priority": "high",
+          "start": "2026-11-10",
+          "due": "2026-11-14",
+          "sticker": "fire",
+          "assignee": "anna",
+          "description": "Move the bucket.",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "aa02",
+          "title": "Start only",
+          "tags": [],
+          "priority": "normal",
+          "start": "2026-11-10",
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "aa03",
+          "title": "Due only",
+          "tags": [],
+          "priority": "normal",
+          "start": null,
+          "due": "2026-11-14",
+          "sticker": null,
+          "assignee": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "aa04",
+          "title": "Neither",
+          "tags": [
+            "web"
+          ],
+          "priority": "normal",
+          "start": null,
+          "due": null,
+          "sticker": null,
+          "assignee": null,
+          "description": "Plain.",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

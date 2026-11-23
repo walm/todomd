@@ -1183,3 +1183,53 @@ func TestChangesMentions(t *testing.T) {
 		t.Errorf("list: %v\n%s", err, out)
 	}
 }
+
+func TestStartFlags(t *testing.T) {
+	path := testFile(t)
+	if _, err := run(t, "--file", path, "add", "Early", "--start", "2026-11-10", "--due", "2026-11-14"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "add", "Backwards", "--start", "2026-11-15", "--due", "2026-11-14"); err == nil {
+		t.Error("add accepted start after due")
+	}
+	if _, err := run(t, "--file", path, "add", "Bad", "--start", "tomorrow"); err == nil {
+		t.Error("add accepted a bad date")
+	}
+	id := addOne(t, path, "Other")
+	if _, err := run(t, "--file", path, "update", id, "--due", "2026-11-14", "--start", "2026-11-10"); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := run(t, "--file", path, "show", id)
+	if !strings.Contains(out, "start:  2026-11-10") || !strings.Contains(out, "due:    2026-11-14") {
+		t.Errorf("show: %s", out)
+	}
+	out, _ = run(t, "--file", path, "show", id, "--json")
+	if !strings.Contains(out, `"start": "2026-11-10"`) {
+		t.Errorf("show --json: %s", out)
+	}
+	// Moving the due date before the start is refused and changes nothing.
+	if _, err := run(t, "--file", path, "update", id, "--due", "2026-11-01"); err == nil {
+		t.Error("update accepted due before start")
+	}
+	data, _ := os.ReadFile(path)
+	if !strings.Contains(string(data), "**start:** 2026-11-10 **due:** 2026-11-14") {
+		t.Errorf("file after refused update:\n%s", data)
+	}
+	if _, err := run(t, "--file", path, "update", id, "--start", "none"); err != nil {
+		t.Fatal(err)
+	}
+	out, _ = run(t, "--file", path, "show", id, "--json")
+	if !strings.Contains(out, `"start": null`) {
+		t.Errorf("start not cleared: %s", out)
+	}
+	if _, err := run(t, "--file", path, "update", id, "--start", "2026-11-10"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "--file", path, "update", id, "--clear-start"); err != nil {
+		t.Fatal(err)
+	}
+	out, _ = run(t, "--file", path, "show", id, "--json")
+	if !strings.Contains(out, `"start": null`) {
+		t.Errorf("--clear-start: %s", out)
+	}
+}

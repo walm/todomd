@@ -741,3 +741,58 @@ func TestAssigneesToAnOldServerSendTheWholeFile(t *testing.T) {
 		t.Errorf("no assignees left: sent %s form, want ops", last.Form)
 	}
 }
+
+func TestStartSyncsAsOps(t *testing.T) {
+	e := setup(t, startDoc)
+	e.create()
+	e.mutate(func(f *task.File) error {
+		s := task.Date{Year: 2026, Month: 11, Day: 10}
+		f.Boards[0].Tasks[0].Start = &s
+		return nil
+	})
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" || !strings.Contains(fmt.Sprint(last.Raw["ops"]), "start") {
+		t.Errorf("sent %s form: %v", last.Form, last.Raw["ops"])
+	}
+	e.sameAsHead()
+	if !strings.Contains(e.srv.Head(e.s.Link.ProjectID), "**start:** 2026-11-10") {
+		t.Errorf("head:\n%s", e.srv.Head(e.s.Link.ProjectID))
+	}
+}
+
+// A server below format 6 doesn't parse `**start:**`: it would hold the
+// whole metadata line as description text. While the file has a start date,
+// every change goes as the whole file, so the line is never touched.
+func TestStartToAnOldServerSendsTheWholeFile(t *testing.T) {
+	e := setup(t, startDoc)
+	e.s.FormatVersion = 5
+	e.create()
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[1].Title = "Renamed"; return nil })
+	e.round()
+	calls := e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no start: sent %s form, want ops", last.Form)
+	}
+	steps := []func(f *task.File){
+		func(f *task.File) { s := task.Date{Year: 2026, Month: 11, Day: 10}; f.Boards[0].Tasks[0].Start = &s },
+		func(f *task.File) { f.Boards[0].Tasks[1].Title = "Other card" },
+		func(f *task.File) { f.Boards[0].Tasks[0].Priority = task.PriorityHigh },
+		func(f *task.File) { f.Boards[0].Tasks[0].Start = nil },
+	}
+	for i, step := range steps {
+		e.mutate(func(f *task.File) error { step(f); return nil })
+		r := e.round()
+		calls = e.srv.Calls()
+		if last := calls[len(calls)-1]; last.Form != "content" || !r.FullFile {
+			t.Errorf("step %d: sent %s form, want content", i, last.Form)
+		}
+		e.sameAsHead()
+	}
+	e.mutate(func(f *task.File) error { f.Boards[0].Tasks[1].Title = "Again"; return nil })
+	e.round()
+	calls = e.srv.Calls()
+	if last := calls[len(calls)-1]; last.Form != "ops" {
+		t.Errorf("no start left: sent %s form, want ops", last.Form)
+	}
+}

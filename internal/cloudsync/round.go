@@ -344,6 +344,14 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		// byte for byte.
 		full = true
 	}
+	if push && !full && s.FormatVersion > 0 && s.FormatVersion < markdown.StartFormatVersion && (hasStart(base) || hasStart(local)) {
+		// The server predates start dates: its ops reader would reject the
+		// start field, and its metadata parser doesn't know `**start:**`, so
+		// it holds the whole metadata line as the card's description text,
+		// which a description or priority op would corrupt. It keeps the
+		// line in a whole file byte for byte.
+		full = true
+	}
 	req, sent := build(full, push)
 	res.FullFile = full
 	resp, err := s.Client.Sync(ctx, l.ProjectID, req)
@@ -373,6 +381,16 @@ func (s *Syncer) exchange(ctx context.Context, base *task.File, baseText []byte,
 		return nil, nil, err
 	}
 	return resp, sent, nil
+}
+
+// hasStart reports whether any card in f has a start date.
+func hasStart(f *task.File) bool {
+	for _, t := range f.AllTasks() {
+		if t.Start != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // hasStickers reports whether any card in f has a sticker.

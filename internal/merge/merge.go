@@ -132,6 +132,7 @@ func sameComments(a, b []task.Comment) bool {
 func sameContent(a, b *task.Task) bool {
 	return a.Title == b.Title &&
 		a.Priority == b.Priority &&
+		task.SameStart(a.Start, b.Start) &&
 		task.SameDue(a.Due, b.Due) &&
 		a.Sticker == b.Sticker &&
 		a.Assignee == b.Assignee &&
@@ -787,6 +788,14 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 		// The bare handle: an @ would @mention the losing handle.
 		field("assignee", "field", was("assignee")+": "+ot.Assignee)
 	}
+	start, c := pick(hasB, bt.Start, ot.Start, tt.Start, task.SameStart)
+	if c {
+		v := "none"
+		if ot.Start != nil {
+			v = ot.Start.String()
+		}
+		field("start", "field", was("start date")+": "+v)
+	}
 	due, c := pick(hasB, bt.Due, ot.Due, tt.Due, task.SameDue)
 	if c {
 		v := "none"
@@ -827,7 +836,11 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 		}
 	}
 
-	var dueCopy *task.Date
+	var startCopy, dueCopy *task.Date
+	if start != nil {
+		s := *start
+		startCopy = &s
+	}
 	if due != nil {
 		d := *due
 		dueCopy = &d
@@ -838,6 +851,7 @@ func (mg *merger) mergeTask(b, o, t *loc) (*task.Task, string) {
 		Tags:        mergeSet(hasB, bt.Tags, ot.Tags, tt.Tags, mg.noDeletes),
 		Links:       mergeSet(hasB, bt.Links, ot.Links, tt.Links, mg.noDeletes),
 		Priority:    prio,
+		Start:       startCopy,
 		Due:         dueCopy,
 		Sticker:     sticker,
 		Assignee:    assignee,

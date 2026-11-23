@@ -364,3 +364,24 @@ func TestDiffAndApplyAssignee(t *testing.T) {
 		t.Error("Apply didn't fold the assignee changes")
 	}
 }
+
+func TestDiffAndApplyStart(t *testing.T) {
+	s := task.Date{Year: 2026, Month: 11, Day: 10}
+	old := file(board("B", &task.Task{ID: "aaaa", Title: "x", Start: &s}, &task.Task{ID: "bbbb", Title: "y"}))
+	cur := old.Clone()
+	cur.Boards[0].Tasks[0].Start = nil
+	cur.Boards[0].Tasks[1].Start = &s
+	evs := Diff(old, cur)
+	if len(evs) != 2 {
+		t.Fatalf("events = %+v", evs)
+	}
+	a, b := evs[0].Fields["start"], evs[1].Fields["start"]
+	if a.Old != "2026-11-10" || a.New != nil || b.Old != nil || b.New != "2026-11-10" {
+		t.Errorf("fields: %+v %+v", a, b)
+	}
+	snap := old.Clone()
+	Apply(snap, evs)
+	if len(Diff(snap, cur)) != 0 {
+		t.Error("Apply didn't fold the start changes")
+	}
+}

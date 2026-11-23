@@ -46,6 +46,7 @@ type taskJSON struct {
 	Title       string         `json:"title"`
 	Tags        []string       `json:"tags"`
 	Priority    task.Priority  `json:"priority"`
+	Start       *task.Date     `json:"start"`
 	Due         *task.Date     `json:"due"`
 	Sticker     *string        `json:"sticker"`  // a name, or null
 	Assignee    *string        `json:"assignee"` // a handle, or null
@@ -64,6 +65,7 @@ func toJSON(f *task.File, t *task.Task, board string) taskJSON {
 		Title:       t.Title,
 		Tags:        append([]string{}, t.Tags...),
 		Priority:    t.Priority,
+		Start:       t.Start,
 		Due:         t.Due,
 		Sticker:     stickerJSON(t.Sticker),
 		Assignee:    stickerJSON(t.Assignee),
@@ -478,6 +480,9 @@ func newShow() *cobra.Command {
 			if t.Priority != task.PriorityNormal {
 				fmt.Printf("prio:   %s\n", t.Priority)
 			}
+			if t.Start != nil {
+				fmt.Printf("start:  %s\n", t.Start)
+			}
 			if t.Due != nil {
 				fmt.Printf("due:    %s\n", t.Due)
 			}
@@ -520,7 +525,7 @@ func newShow() *cobra.Command {
 }
 
 func newAdd() *cobra.Command {
-	var board, desc, due, priority, sticker, assignee string
+	var board, desc, start, due, priority, sticker, assignee string
 	var tags, links []string
 	cmd := &cobra.Command{
 		Use:   "add <title>",
@@ -541,6 +546,16 @@ func newAdd() *cobra.Command {
 					return err
 				}
 				t.Due = &d
+			}
+			if start != "" {
+				d, err := task.ParseDate(start)
+				if err != nil {
+					return err
+				}
+				t.Start = &d
+			}
+			if err := task.CheckStartDue(t.Start, t.Due); err != nil {
+				return err
 			}
 			if sticker != "" {
 				name, err := task.ParseSticker(sticker)
@@ -569,6 +584,7 @@ func newAdd() *cobra.Command {
 	cmd.Flags().StringVar(&board, "board", "", "target board (default: first board; created if missing)")
 	cmd.Flags().StringVar(&desc, "desc", "", "description (markdown)")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "tag (repeatable)")
+	cmd.Flags().StringVar(&start, "start", "", "start date YYYY-MM-DD (not after the due date)")
 	cmd.Flags().StringVar(&due, "due", "", "due date YYYY-MM-DD")
 	cmd.Flags().StringVar(&priority, "priority", "", "priority: high, normal (default) or low")
 	cmd.Flags().StringArrayVar(&links, "link", nil, "link to a card on the board, kind:id (repeatable; e.g. split-from:3f2a, blocks:9e41)")
@@ -581,7 +597,7 @@ func newAdd() *cobra.Command {
 
 func newUpdate() *cobra.Command {
 	var opts store.UpdateOpts
-	var title, desc, due, priority, sticker, assignee string
+	var title, desc, start, due, priority, sticker, assignee string
 	var tags []string
 	cmd := &cobra.Command{
 		Use:   "update <id>",
@@ -611,6 +627,17 @@ func newUpdate() *cobra.Command {
 				}
 				opts.Due = &d
 			}
+			if start != "" {
+				if strings.EqualFold(start, "none") {
+					opts.ClearStart = true
+				} else {
+					d, err := task.ParseDate(start)
+					if err != nil {
+						return err
+					}
+					opts.Start = &d
+				}
+			}
 			if cmd.Flags().Changed("sticker") {
 				name, err := task.ParseSticker(sticker)
 				if err != nil {
@@ -638,10 +665,12 @@ func newUpdate() *cobra.Command {
 	cmd.Flags().StringVar(&title, "title", "", "new title")
 	cmd.Flags().StringVar(&desc, "desc", "", "new description")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "replacement tag set (repeatable)")
+	cmd.Flags().StringVar(&start, "start", "", "new start date YYYY-MM-DD, or none (not after the due date)")
 	cmd.Flags().StringVar(&due, "due", "", "new due date YYYY-MM-DD")
 	cmd.Flags().StringVar(&priority, "priority", "", "new priority: high, normal or low")
 	cmd.Flags().StringVar(&sticker, "sticker", "", "new sticker (a name, an emoji, a ribbon colour, or none)")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "new assignee: a handle, you (me), or none")
+	cmd.Flags().BoolVar(&opts.ClearStart, "clear-start", false, "remove the start date")
 	cmd.Flags().BoolVar(&opts.ClearDue, "clear-due", false, "remove the due date")
 	cmd.Flags().BoolVar(&opts.ClearTags, "clear-tags", false, "remove all tags")
 	asFlag(cmd)

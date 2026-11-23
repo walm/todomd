@@ -184,6 +184,9 @@ func Diff(old, cur *task.File) []Event {
 			if o.t.Priority != t.Priority {
 				fields["priority"] = FieldChange{o.t.Priority.String(), t.Priority.String()}
 			}
+			if dueValue(o.t.Start) != dueValue(t.Start) {
+				fields["start"] = FieldChange{dueValue(o.t.Start), dueValue(t.Start)}
+			}
 			if dueValue(o.t.Due) != dueValue(t.Due) {
 				fields["due"] = FieldChange{dueValue(o.t.Due), dueValue(t.Due)}
 			}
@@ -265,6 +268,10 @@ func cloneTask(t *task.Task) *task.Task {
 	c.Tags = slices.Clone(t.Tags)
 	c.Links = slices.Clone(t.Links)
 	c.Comments = task.CloneComments(t.Comments)
+	if t.Start != nil {
+		d := *t.Start
+		c.Start = &d
+	}
 	if t.Due != nil {
 		d := *t.Due
 		c.Due = &d
@@ -353,6 +360,12 @@ func Apply(f *task.File, events []Event) {
 					t.Sticker = e.Task.Sticker
 				case "assignee":
 					t.Assignee = e.Task.Assignee
+				case "start":
+					t.Start = nil
+					if e.Task.Start != nil {
+						d := *e.Task.Start
+						t.Start = &d
+					}
 				case "due":
 					t.Due = nil
 					if e.Task.Due != nil {

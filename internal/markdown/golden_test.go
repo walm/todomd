@@ -31,6 +31,7 @@ const (
 	stickersDir  = "../../testdata/stickers"
 	reactionsDir = "../../testdata/reactions"
 	assigneesDir = "../../testdata/assignees"
+	startDir     = "../../testdata/start"
 )
 
 // goldenMode is what a golden directory's JSON shows beyond format 2.
@@ -38,6 +39,7 @@ type goldenMode struct {
 	sticker   bool // each card's sticker, a name or null
 	reactions bool // each comment's reactions, an array
 	assignee  bool // each card's assignee, a handle or null
+	start     bool // each card's start date, a date or null
 }
 
 type goldenLink struct {
@@ -62,6 +64,7 @@ type goldenTask struct {
 	Title       string          `json:"title"`
 	Tags        []string        `json:"tags"`
 	Priority    string          `json:"priority"`
+	Start       json.RawMessage `json:"start,omitempty"` // start only: a date or null
 	Due         *string         `json:"due"`
 	Sticker     json.RawMessage `json:"sticker,omitempty"`  // stickers and later: a name or null
 	Assignee    json.RawMessage `json:"assignee,omitempty"` // assignees only: a handle or null
@@ -95,6 +98,12 @@ func goldenModel(f *task.File, mode goldenMode) []byte {
 			if t.Due != nil {
 				d := t.Due.String()
 				gt.Due = &d
+			}
+			if mode.start {
+				gt.Start = json.RawMessage("null")
+				if t.Start != nil {
+					gt.Start, _ = json.Marshal(t.Start.String())
+				}
 			}
 			if mode.sticker {
 				gt.Sticker = json.RawMessage("null")
@@ -160,6 +169,10 @@ func TestGoldenReactions(t *testing.T) {
 }
 func TestGoldenAssignees(t *testing.T) {
 	runGolden(t, assigneesDir, goldenMode{sticker: true, reactions: true, assignee: true}, 11)
+}
+
+func TestGoldenStart(t *testing.T) {
+	runGolden(t, startDir, goldenMode{sticker: true, reactions: true, assignee: true, start: true}, 4)
 }
 
 func runGolden(t *testing.T, goldenDir string, mode goldenMode, min int) {

@@ -30,7 +30,8 @@ import (
 //	3  adds the `<!-- sticker: NAME -->` line (card stickers)
 //	4  adds the `<!-- reactions: … -->` line (comment reactions)
 //	5  adds the `<!-- assignee: HANDLE -->` line (card assignees)
-const FormatVersion = 5
+//	6  adds `**start:** YYYY-MM-DD` on the metadata line (card start dates)
+const FormatVersion = 6
 
 // LinksFormatVersion is the first format version with card links. A server
 // on an older one can't take links in sync ops.
@@ -47,6 +48,12 @@ const ReactionsFormatVersion = 4
 // AssigneesFormatVersion is the first format version with card assignees. A
 // server on an older one can't take them in sync ops.
 const AssigneesFormatVersion = 5
+
+// StartFormatVersion is the first format version with card start dates. A
+// server on an older one doesn't parse `**start:**` on the metadata line
+// (it would read the whole line as description text), so a start date must
+// travel in a whole-file push.
+const StartFormatVersion = 6
 
 // ParseError is a structural error at a specific line of the file.
 type ParseError struct {
@@ -164,23 +171,33 @@ func isBlank(s string) bool { return strings.TrimSpace(s) == "" }
 // meta is what a task's metadata line carries.
 type meta struct {
 	tags     []string
+	start    *task.Date
 	due      *task.Date
 	priority task.Priority
 }
 
 // parseMetadata reports whether line is a metadata line — only `#tag` tokens,
-// at most one `**due:** YYYY-MM-DD`, and at most one `**priority:** high|
+// at most one `**start:** YYYY-MM-DD`, at most one `**due:** YYYY-MM-DD`, and at most one `**priority:** high|
 // normal|low` — and if so returns its contents.
 func parseMetadata(line string) (m meta, ok bool) {
 	toks := strings.Fields(line)
 	if len(toks) == 0 {
 		return meta{}, false
 	}
-	seenDue, seenPriority := false, false
+	seenStart, seenDue, seenPriority := false, false, false
 	for i := 0; i < len(toks); {
 		if t := tagTokRe.FindStringSubmatch(toks[i]); t != nil {
 			m.tags = append(m.tags, t[1])
 			i++
+			continue
+		}
+		if toks[i] == "**start:**" && !seenStart && i+1 < len(toks) {
+			d, err := task.ParseDate(toks[i+1])
+			if err != nil {
+				return meta{}, false
+			}
+			m.start, seenStart = &d, true
+			i += 2
 			continue
 		}
 		if toks[i] == "**due:**" && !seenDue && i+1 < len(toks) {
@@ -323,7 +340,7 @@ func parse(data []byte, strict bool) (*task.File, error) {
 			}
 			if j < len(lines) && structural[j] && !isTerminator(j) {
 				if md, ok := parseMetadata(lines[j]); ok {
-					t.Tags, t.Due, t.Priority = md.tags, md.due, md.priority
+					t.Tags, t.Start, t.Due, t.Priority = md.tags, md.start, md.due, md.priority
 					i = j + 1
 				}
 			}
@@ -608,6 +625,9 @@ func metaLine(t *task.Task) string {
 		// Normal is the default and by far the common case, so leaving it out
 		// keeps files (and diffs) free of noise.
 		toks = append(toks, "**priority:** "+t.Priority.String())
+	}
+	if t.Start != nil {
+		toks = append(toks, "**start:** "+t.Start.String())
 	}
 	if t.Due != nil {
 		toks = append(toks, "**due:** "+t.Due.String())

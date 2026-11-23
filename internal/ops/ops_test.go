@@ -269,3 +269,30 @@ func TestDecode(t *testing.T) {
 		}
 	}
 }
+
+// A start date travels as task.add.task.start (only when set) and
+// task.update.set.start (a date, or null to clear). A card without one has
+// ops byte-identical to format 5.
+func TestStartOps(t *testing.T) {
+	a := doc(t, baseDoc)
+	start := task.Date{Year: 2026, Month: 11, Day: 10}
+	set := edit(t, a, func(f *task.File) { f.Boards[0].Tasks[0].Start = &start })
+	if got := roundTrip(t, a, set); !strings.Contains(got, `"set":{"start":"2026-11-10"}`) {
+		t.Errorf("set: %s", got)
+	}
+	if got := roundTrip(t, set, a); !strings.Contains(got, `"set":{"start":null}`) {
+		t.Errorf("clear: %s", got)
+	}
+	added := edit(t, a, func(f *task.File) {
+		f.Boards[0].Tasks = append(f.Boards[0].Tasks, &task.Task{ID: "dddd", Title: "New", Start: &start})
+	})
+	if got := roundTrip(t, a, added); !strings.Contains(got, `"start":"2026-11-10"`) {
+		t.Errorf("add: %s", got)
+	}
+	plain := edit(t, a, func(f *task.File) {
+		f.Boards[0].Tasks = append(f.Boards[0].Tasks, &task.Task{ID: "dddd", Title: "New"})
+	})
+	if got := roundTrip(t, a, plain); strings.Contains(got, "start") {
+		t.Errorf("a card without a start carries the key: %s", got)
+	}
+}

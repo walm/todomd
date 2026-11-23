@@ -1,0 +1,52 @@
+{
+  "title": "Board",
+  "preamble": "",
+  "boards": [
+    {
+      "name": "Todo",
+      "tasks": [
+        {
+          "id": "bb01",
+          "title": "Start after due is kept as is (readers flag it, writers refuse it)",
+          "tags": [],
+          "priority": "normal",
+          "start": "2026-12-01",
+          "due": "2026-11-14",
+          "sticker": null,
+          "assignee": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bb02",
+          "title": "Any order is read, the writer normalises it",
+          "tags": [
+            "a"
+          ],
+          "priority": "low",
+          "start": "2026-11-10",
+          "due": "2026-11-14",
+          "sticker": null,
+          "assignee": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        },
+        {
+          "id": "bb03",
+          "title": "Same day",
+          "tags": [],
+          "priority": "normal",
+          "start": "2026-11-14",
+          "due": "2026-11-14",
+          "sticker": null,
+          "assignee": null,
+          "description": "",
+          "links": [],
+          "comments": []
+        }
+      ]
+    }
+  ]
+}
