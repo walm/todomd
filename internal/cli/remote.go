@@ -156,7 +156,7 @@ scoped to one project (made on the web) via TODOMD_TOKEN or --with-token.`,
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&hostFlag, "host", "", "service to log in to (default https://todomd.online; env TODOMD_HOST)")
+	cmd.Flags().StringVar(&hostFlag, "host", "", "service to log in to (default https://app.todomd.online; env TODOMD_HOST)")
 	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "only print the URL, don't open a browser")
 	cmd.Flags().BoolVar(&withToken, "with-token", false, "read a token (e.g. a scoped one made on the web) from stdin instead")
 	return cmd
@@ -265,7 +265,7 @@ func newLogout() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&hostFlag, "host", "", "service to log out of (default https://todomd.online; env TODOMD_HOST)")
+	cmd.Flags().StringVar(&hostFlag, "host", "", "service to log out of (default https://app.todomd.online; env TODOMD_HOST)")
 	return cmd
 }
 
@@ -324,7 +324,7 @@ func newWhoami() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&hostFlag, "host", "", "service (default https://todomd.online; env TODOMD_HOST)")
+	cmd.Flags().StringVar(&hostFlag, "host", "", "service (default https://app.todomd.online; env TODOMD_HOST)")
 	jsonFlag(cmd)
 	return cmd
 }
@@ -389,7 +389,7 @@ switches into edits. The recommended answer stops tracking it (added to
 			return err
 		},
 	}
-	cmd.Flags().StringVar(&o.hostFlag, "host", "", "service (default https://todomd.online; env TODOMD_HOST)")
+	cmd.Flags().StringVar(&o.hostFlag, "host", "", "service (default https://app.todomd.online; env TODOMD_HOST)")
 	cmd.Flags().StringVar(&o.project, "project", "", "link to this project (owner/name or id)")
 	cmd.Flags().BoolVar(&o.create, "create", false, "create a new project from this file")
 	cmd.Flags().StringVar(&o.name, "name", "", "name for --create (default: the repo or directory name)")

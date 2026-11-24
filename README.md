@@ -371,7 +371,7 @@ database, the same `TODO.md` as the source of truth.
 
 ## ☁️ todomd.online sync
 
-[todomd.online](https://todomd.online) hosts a board online — open it from any
+[todomd.online](https://app.todomd.online) hosts a board online — open it from any
 browser, share it — and the CLI keeps it and your `TODO.md` in step, both ways.
 
 ```sh

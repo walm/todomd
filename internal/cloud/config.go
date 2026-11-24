@@ -1,4 +1,4 @@
-// Package cloud talks to todomd.online (or another host serving the same
+// Package cloud talks to app.todomd.online (or another host serving the same
 // API): discovery, device login, credentials, projects, documents, sync and
 // live events. It knows nothing about local files; internal/cloudsync builds
 // the sync rounds on top of it.
@@ -17,7 +17,40 @@ import (
 )
 
 // DefaultHost is used when neither --host nor TODOMD_HOST says otherwise.
-const DefaultHost = "https://todomd.online"
+const DefaultHost = "https://app.todomd.online"
+
+// LegacyHost is where the app lived before it moved to DefaultHost. It still
+// answers the API for old clients, and attachment links stay on it for good.
+const LegacyHost = "https://todomd.online"
+
+// hostAliases maps a root host to the app host that serves the same account
+// and projects. The root keeps answering, so logins, links and attachment
+// URLs made against either are one and the same.
+var hostAliases = map[string]string{
+	LegacyHost:                      DefaultHost,
+	"https://staging.todomd.online": "https://app-staging.todomd.online",
+}
+
+// CanonicalHost maps a root host to its app host and leaves any other host
+// (already the app's, localhost, a self-hosted one) as it is.
+func CanonicalHost(host string) string {
+	if app, ok := hostAliases[host]; ok {
+		return app
+	}
+	return host
+}
+
+// RootHost is the host attachment links are written on: the root for an app
+// host, the host itself otherwise.
+func RootHost(host string) string {
+	host = CanonicalHost(host)
+	for root, app := range hostAliases {
+		if app == host {
+			return root
+		}
+	}
+	return host
+}
 
 // User is an account as the API returns it. Handle is empty until the person
 // picks one on the web.
@@ -86,7 +119,30 @@ func LoadHosts() (*Hosts, error) {
 	if h.Hosts == nil {
 		h.Hosts = map[string]*HostConfig{}
 	}
+	h.migrate()
 	return h, nil
+}
+
+// migrate folds a login stored under a root host into its app host, so the
+// two are one account. An existing app entry wins. The change reaches the file
+// the next time it is saved.
+func (h *Hosts) migrate() {
+	for key, c := range h.Hosts {
+		app := CanonicalHost(key)
+		if app == key {
+			continue
+		}
+		delete(h.Hosts, key)
+		if c == nil || h.Hosts[app] != nil {
+			continue
+		}
+		if c.API != "" {
+			if rest, ok := strings.CutPrefix(c.API, key); ok {
+				c.API = app + rest
+			}
+		}
+		h.Hosts[app] = c
+	}
 }
 
 // Save writes the credentials file: directory 0700, file 0600, atomically.
@@ -161,6 +217,7 @@ func isLoopback(h string) bool {
 }
 
 // ResolveHost picks the host: the flag, else $TODOMD_HOST, else DefaultHost.
+// A root host comes back as its app host.
 func ResolveHost(flag string) (string, error) {
 	h := flag
 	if h == "" {
@@ -169,7 +226,11 @@ func ResolveHost(flag string) (string, error) {
 	if h == "" {
 		h = DefaultHost
 	}
-	return NormalizeHost(h)
+	h, err := NormalizeHost(h)
+	if err != nil {
+		return "", err
+	}
+	return CanonicalHost(h), nil
 }
 
 // HostName is the host without its scheme, for messages ("todomd.online").

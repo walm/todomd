@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/walm/todomd/internal/cloud"
 	"github.com/walm/todomd/internal/statedir"
 )
 
@@ -91,6 +92,8 @@ func LoadLink(file string) (*Link, error) {
 	if err := json.Unmarshal(data, &l); err != nil {
 		return nil, fmt.Errorf("%s: %w", lp, err)
 	}
+	// A link made against the root host is the app host's link too.
+	l.Host = cloud.CanonicalHost(l.Host)
 	return &l, nil
 }
 

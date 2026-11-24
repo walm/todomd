@@ -4,6 +4,22 @@ All notable changes to todomd are documented here. The project follows
 [semver](https://semver.org); while on 0.x, minor versions may include
 breaking changes to the file format or CLI (they will be called out).
 
+## Unreleased
+
+### Changed
+
+- **The app moved to `app.todomd.online`.** `todomd login`, `link`, `sync` and
+  the rest now talk to `https://app.todomd.online` by default. The root,
+  `todomd.online`, keeps answering for old clients, and the CLI treats the two
+  as one account and one server: an existing login or linked file made on
+  `todomd.online` keeps working with no second login and no re-link (the stored
+  host is rewritten quietly the next time it is saved). `--host` and
+  `TODOMD_HOST` still pick another host, e.g. staging; naming a root host
+  (`todomd.online`, `staging.todomd.online`) means its app host.
+- Attachment links stay on `todomd.online` for good: sync writes them that
+  way, recognises both spellings, downloads from the app host, and keeps one
+  attachments folder for both.
+
 ## v0.23.0 — 2026-11-23
 
 ### Added

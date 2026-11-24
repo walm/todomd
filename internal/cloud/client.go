@@ -61,7 +61,7 @@ func (e *APIError) Line() int {
 // server error. Retrying later is safe.
 type UnavailableError struct{ Err error }
 
-func (e *UnavailableError) Error() string { return "todomd.online unreachable: " + e.Err.Error() }
+func (e *UnavailableError) Error() string { return "app.todomd.online unreachable: " + e.Err.Error() }
 func (e *UnavailableError) Unwrap() error { return e.Err }
 
 // IsStatus reports whether err is an APIError with the given status (and,
