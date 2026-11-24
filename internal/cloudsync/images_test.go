@@ -321,3 +321,68 @@ func TestStoreFileRules(t *testing.T) {
 		t.Errorf("png: image=%v err=%v", image, err)
 	}
 }
+
+// The app moved to app.todomd.online but attachment links stay on
+// todomd.online: both spellings are this host's, and links are written on the
+// root.
+func TestAttachmentLinksMatchBothHostsAndAreWrittenOnTheRoot(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	l := &Link{Host: cloud.DefaultHost, ProjectID: "prj_abc"}
+	att := "att_" + strings.Repeat("a", 20)
+	root := "https://todomd.online/a/prj_abc/" + att + "/x.png"
+	app := "https://app.todomd.online/a/prj_abc/" + att + "/x.png"
+	other := "https://elsewhere.example/a/prj_abc/" + att + "/x.png"
+
+	im, err := newImages(nil, l, &AttachmentReport{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := im.URL(att, "x.png"); got != root {
+		t.Errorf("URL = %q; want the root form %q", got, root)
+	}
+	for _, u := range []string{root, app} {
+		if m := im.wire.FindStringSubmatch("see " + u); m == nil || m[1] != att || m[2] != "x.png" {
+			t.Errorf("not matched: %s", u)
+		}
+	}
+	if im.wire.MatchString(other) {
+		t.Error("matched a link on another host")
+	}
+	wire := &task.File{Boards: []*task.Board{{Name: "B", Tasks: []*task.Task{{ID: "aaaa", Title: "a",
+		Description: "![a](" + root + ") ![b](" + app + ")"}}}}}
+	if refs := im.refs(wire); len(refs) != 1 || refs[att] != "x.png" {
+		t.Errorf("refs: %v", refs)
+	}
+	links := TaskLinks(l, wire.Boards[0].Tasks[0])
+	if len(links) != 1 || links[0].URL != root {
+		t.Errorf("TaskLinks: %+v", links)
+	}
+
+	// An older link (made on the root host) is the app host's.
+	r1, _ := AttachmentRoot("https://todomd.online")
+	r2, _ := AttachmentRoot("https://app.todomd.online")
+	if r1 != r2 || strings.HasSuffix(r1, "todomd.online") {
+		t.Errorf("attachment folders differ: %q %q", r1, r2)
+	}
+	// Staging pairs the same way.
+	ls := &Link{Host: "https://app-staging.todomd.online", ProjectID: "prj_abc"}
+	ims, _ := newImages(nil, ls, &AttachmentReport{})
+	if got := ims.URL(att, "x.png"); got != "https://staging.todomd.online/a/prj_abc/"+att+"/x.png" {
+		t.Errorf("staging URL = %q", got)
+	}
+	if !ims.wire.MatchString("https://staging.todomd.online/a/prj_abc/" + att + "/x.png") {
+		t.Error("staging root link not matched")
+	}
+}
+
+func TestOlderLinkOnTheRootHostLoadsAsTheAppHost(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	file := filepath.Join(t.TempDir(), "TODO.md")
+	if err := (&Link{Host: "https://todomd.online", ProjectID: "prj_abc", BaseRev: 3}).Save(file); err != nil {
+		t.Fatal(err)
+	}
+	l, err := LoadLink(file)
+	if err != nil || l.Host != cloud.DefaultHost || l.BaseRev != 3 {
+		t.Fatalf("%+v %v", l, err)
+	}
+}

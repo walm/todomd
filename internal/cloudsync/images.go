@@ -19,8 +19,8 @@ import (
 // <host>/a/<project>/<att>/<name>; in the local file the same image is a path
 // to <root>/<project>/<att>/<name>, where <root> is
 // $XDG_STATE_HOME/todomd/attachments (plus the host name for hosts other than
-// todomd.online). Each form is derived from the other by rule, with no
-// table, so moving TODO.md changes nothing, and a path written on another
+// app.todomd.online, which todomd.online is an alias of; links are written on
+// todomd.online). Each form is derived from the other by rule, with no table, so moving TODO.md changes nothing, and a path written on another
 // machine is recognised by its tail.
 //
 // The sync base, change lists, checksums and merges all use the URL ("wire")
@@ -56,7 +56,7 @@ func AttachmentRoot(host string) (string, error) {
 		return "", err
 	}
 	root := filepath.Join(g, "attachments")
-	if host != cloud.DefaultHost {
+	if host = cloud.CanonicalHost(host); host != cloud.DefaultHost {
 		root = filepath.Join(root, cloud.HostName(host))
 	}
 	return root, nil
@@ -76,7 +76,12 @@ type images struct {
 
 // wireRe matches a link's attachment URLs; groups are the att id and name.
 func wireRe(l *Link) *regexp.Regexp {
-	return regexp.MustCompile(regexp.QuoteMeta(l.Host) + `/a/` + regexp.QuoteMeta(l.ProjectID) + `/(att_[0-9a-f]{20})/(` + nameRe + `)`)
+	// Links stay on the root host for good, so both spellings are this host's.
+	hosts := regexp.QuoteMeta(l.Host)
+	if root := cloud.RootHost(l.Host); root != l.Host {
+		hosts = `(?:` + hosts + `|` + regexp.QuoteMeta(root) + `)`
+	}
+	return regexp.MustCompile(hosts + `/a/` + regexp.QuoteMeta(l.ProjectID) + `/(att_[0-9a-f]{20})/(` + nameRe + `)`)
 }
 
 // FileLink is an attachment a task links to by URL.
@@ -131,7 +136,7 @@ func newImages(c *cloud.Client, l *Link, rep *AttachmentReport) (*images, error)
 
 // URL is the wire form of an image.
 func (im *images) URL(att, name string) string {
-	return im.host + "/a/" + im.project + "/" + att + "/" + name
+	return cloud.RootHost(im.host) + "/a/" + im.project + "/" + att + "/" + name
 }
 
 // path is where this machine keeps an image.
